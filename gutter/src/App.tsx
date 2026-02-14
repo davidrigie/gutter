@@ -269,11 +269,11 @@ function App() {
   }, [isDirty, fileName]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[var(--editor-bg)] text-[var(--editor-text)]">
+    <div className="h-screen w-screen flex flex-col bg-[var(--editor-bg)] text-[var(--editor-text)] transition-colors">
       <div className="flex-1 flex overflow-hidden">
         {/* File Tree Sidebar */}
         {showFileTree && !isZenMode && (
-          <aside className="w-56 border-r border-[var(--editor-border)] shrink-0 overflow-hidden">
+          <aside className="w-56 border-r border-[var(--editor-border)] shrink-0 overflow-hidden sidebar-panel">
             <FileTree onFileOpen={handleFileTreeOpen} />
           </aside>
         )}
@@ -284,7 +284,7 @@ function App() {
 
           {/* Mode indicator */}
           {isSourceMode && (
-            <div className="h-7 flex items-center px-3 text-xs bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 border-b border-[var(--editor-border)]">
+            <div className="h-7 flex items-center px-3 text-[12px] bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-200 border-b border-[var(--editor-border)]">
               Source Mode — Editing raw markdown (Cmd+/ to switch back)
             </div>
           )}
@@ -309,7 +309,7 @@ function App() {
 
         {/* Comments Sidebar */}
         {showComments && !isZenMode && (
-          <aside className="w-72 border-l border-[var(--editor-border)] shrink-0 overflow-hidden">
+          <aside className="w-72 border-l border-[var(--editor-border)] shrink-0 overflow-hidden sidebar-panel">
             <CommentsPanel />
           </aside>
         )}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CommentThread } from "../../types/comments";
 import { useCommentStore } from "../../stores/commentStore";
 import { ReplyInput } from "./ReplyInput";
+import { Check, Trash, ChevronDown, ChevronRight } from "../Icons";
 
 interface ThreadProps {
   commentId: string;
@@ -31,27 +32,28 @@ export function Thread({ commentId, thread, isActive, onClick }: ThreadProps) {
 
   return (
     <div
-      className={`mx-2 mb-2 rounded-lg border transition-colors cursor-pointer ${
+      className={`mx-2 mb-2 rounded-lg border-l-[3px] transition-all cursor-pointer ${
         isActive
-          ? "border-[var(--accent)] bg-blue-50 dark:bg-blue-950"
-          : "border-[var(--editor-border)] hover:border-gray-300 dark:hover:border-gray-600"
+          ? "border-l-[var(--accent)] bg-[rgba(59,130,246,0.06)] dark:bg-[rgba(96,165,250,0.08)]"
+          : "border-l-transparent hover:border-l-[var(--editor-border)] hover:shadow-sm"
       } ${thread.resolved ? "opacity-60" : ""}`}
       onClick={onClick}
+      style={{ borderTop: '1px solid var(--editor-border)', borderRight: '1px solid var(--editor-border)', borderBottom: '1px solid var(--editor-border)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5">
-        <span className="text-xs font-mono text-gray-500 dark:text-gray-400">[{commentId}]</span>
-        <div className="flex items-center gap-1">
+        <span className="text-[11px] font-mono text-[var(--text-muted)]">[{commentId}]</span>
+        <div className="flex items-center gap-0.5">
           {!thread.resolved && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 resolveThread(commentId, "User");
               }}
-              className="text-xs text-green-600 hover:text-green-700 px-1"
+              className="p-1 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
               title="Resolve"
             >
-              ✓
+              <Check size={14} />
             </button>
           )}
           <button
@@ -64,14 +66,18 @@ export function Thread({ commentId, thread, isActive, onClick }: ThreadProps) {
                 setTimeout(() => setShowDeleteConfirm(false), 3000);
               }
             }}
-            className={`text-xs px-1 ${
+            className={`p-1 rounded transition-colors ${
               showDeleteConfirm
-                ? "text-red-600 font-semibold"
-                : "text-gray-400 hover:text-red-500"
+                ? "text-red-600 bg-red-50 dark:bg-red-900/30"
+                : "text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
             }`}
             title={showDeleteConfirm ? "Click again to confirm" : "Delete"}
           >
-            {showDeleteConfirm ? "Confirm?" : "×"}
+            {showDeleteConfirm ? (
+              <span className="text-[11px] font-semibold px-1">Confirm?</span>
+            ) : (
+              <Trash size={14} />
+            )}
           </button>
           {thread.resolved && (
             <button
@@ -79,9 +85,9 @@ export function Thread({ commentId, thread, isActive, onClick }: ThreadProps) {
                 e.stopPropagation();
                 setExpanded(!expanded);
               }}
-              className="text-xs text-gray-400 px-1"
+              className="p-1 rounded text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors"
             >
-              {expanded ? "▼" : "▶"}
+              {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </button>
           )}
         </div>
@@ -89,7 +95,7 @@ export function Thread({ commentId, thread, isActive, onClick }: ThreadProps) {
 
       {/* Resolution status */}
       {thread.resolved && (
-        <div className="px-3 pb-1 text-xs text-green-600 dark:text-green-400">
+        <div className="px-3 pb-1 text-[11px] text-green-600 dark:text-green-400">
           Resolved by {thread.resolvedBy} — {thread.resolvedAt && formatDate(thread.resolvedAt)}
         </div>
       )}
@@ -100,14 +106,14 @@ export function Thread({ commentId, thread, isActive, onClick }: ThreadProps) {
           {thread.thread.map((msg) => (
             <div key={msg.id} className="mb-2 last:mb-0">
               <div className="flex items-baseline gap-2">
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                <span className="text-[12px] font-medium text-[var(--text-primary)]">
                   {msg.author}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-[11px] text-[var(--text-muted)]">
                   {formatDate(msg.timestamp)}
                 </span>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
+              <p className="text-[13px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">
                 {msg.body}
               </p>
             </div>

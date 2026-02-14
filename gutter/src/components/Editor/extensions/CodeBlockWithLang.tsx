@@ -52,7 +52,7 @@ export function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
             onClick={() => setShowDropdown(!showDropdown)}
           >
             {label}
-            <span className="ml-1 text-[10px]">▼</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           {showDropdown && (
             <div className="code-block-lang-dropdown">

@@ -3,6 +3,16 @@ import { useWorkspaceStore, type FileEntry } from "../../stores/workspaceStore";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
+import {
+  ChevronRight,
+  ChevronDown,
+  FolderIcon,
+  FolderOpen,
+  FileTextIcon,
+  FileIcon,
+  FilePlus,
+  FolderPlus,
+} from "../Icons";
 
 interface FileTreeProps {
   onFileOpen: (path: string) => void;
@@ -108,12 +118,10 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     ? [
         {
           label: "New File",
-          icon: "+",
           action: () => handleCreateFile(workspacePath),
         },
         {
           label: "New Folder",
-          icon: "+",
           action: () => handleCreateFolder(workspacePath),
         },
       ]
@@ -121,7 +129,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
 
   return (
     <div
-      className="h-full flex flex-col bg-[var(--sidebar-bg)] text-sm"
+      className="h-full flex flex-col bg-[var(--surface-secondary)]"
       onContextMenu={(e) => {
         if (workspacePath) {
           e.preventDefault();
@@ -134,31 +142,31 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
       }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--editor-border)]">
-        <span className="font-semibold text-xs uppercase tracking-wider text-gray-600 dark:text-gray-400">
+        <span className="font-semibold text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
           Files
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           {workspacePath && (
             <>
               <button
                 onClick={() => handleCreateFile(workspacePath)}
-                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 px-1"
+                className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
                 title="New File"
               >
-                +
+                <FilePlus size={14} />
               </button>
               <button
                 onClick={() => handleCreateFolder(workspacePath)}
-                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 px-1"
+                className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
                 title="New Folder"
               >
-                +/
+                <FolderPlus size={14} />
               </button>
             </>
           )}
           <button
             onClick={handleOpenFolder}
-            className="text-xs text-[var(--accent)] hover:underline ml-1"
+            className="ml-1 text-[12px] text-[var(--accent)] hover:underline"
           >
             Open
           </button>
@@ -166,7 +174,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
       </div>
       <div className="flex-1 overflow-auto py-1">
         {!workspacePath && (
-          <div className="px-3 py-8 text-center text-gray-500 dark:text-gray-400 text-xs">
+          <div className="px-3 py-8 text-center text-[var(--text-muted)] text-[13px]">
             No folder open
           </div>
         )}
@@ -232,6 +240,8 @@ function FileTreeNode({
   const [renaming, setRenaming] = useState(false);
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const isMd = entry.name.endsWith(".md") || entry.name.endsWith(".markdown");
+  const activeTabPath = useWorkspaceStore((s) => s.activeTabPath);
+  const isSelected = entry.path === activeTabPath;
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -242,7 +252,6 @@ function FileTreeNode({
       items.push(
         {
           label: "New File",
-          icon: "+",
           action: () => {
             setExpanded(true);
             setCreating("file");
@@ -250,7 +259,6 @@ function FileTreeNode({
         },
         {
           label: "New Folder",
-          icon: "+",
           action: () => {
             setExpanded(true);
             setCreating("folder");
@@ -262,12 +270,10 @@ function FileTreeNode({
     items.push(
       {
         label: "Rename",
-        icon: "✎",
         action: () => setRenaming(true),
       },
       {
         label: "Delete",
-        icon: "✕",
         action: () => {
           if (window.confirm(`Delete "${entry.name}"?`)) {
             onDelete(entry.path);
@@ -283,13 +289,31 @@ function FileTreeNode({
     return (
       <div>
         <div
-          className="flex items-center px-2 py-0.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 select-none"
-          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+          className="flex items-center gap-1 py-[3px] cursor-pointer hover:bg-[var(--surface-hover)] select-none transition-colors text-[13px]"
+          style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
           onClick={() => setExpanded(!expanded)}
           onContextMenu={handleContextMenu}
         >
-          <span className="mr-1 text-xs text-gray-400">
-            {expanded ? "▼" : "▶"}
+          {/* Tree indent guides */}
+          {depth > 0 && (
+            <div
+              className="absolute left-0 top-0 bottom-0"
+              style={{ width: depth * 16 + 8 }}
+            >
+              {Array.from({ length: depth }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute top-0 bottom-0 border-l border-[var(--editor-border)]"
+                  style={{ left: `${(i + 1) * 16 + 4}px` }}
+                />
+              ))}
+            </div>
+          )}
+          <span className="text-[var(--text-muted)] shrink-0">
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+          <span className="text-[var(--text-tertiary)] shrink-0">
+            {expanded ? <FolderOpen size={14} /> : <FolderIcon size={14} />}
           </span>
           {renaming ? (
             <RenameInput
@@ -301,7 +325,7 @@ function FileTreeNode({
               onCancel={() => setRenaming(false)}
             />
           ) : (
-            <span className="text-gray-700 dark:text-gray-300">
+            <span className="font-medium text-[var(--text-primary)] truncate">
               {entry.name}
             </span>
           )}
@@ -364,15 +388,33 @@ function FileTreeNode({
 
   return (
     <div
-      className={`flex items-center px-2 py-0.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 select-none ${
-        isMd
-          ? "text-gray-800 dark:text-gray-200"
-          : "text-gray-500 dark:text-gray-500"
+      className={`relative flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
+        isSelected
+          ? "bg-[rgba(59,130,246,0.08)] dark:bg-[rgba(96,165,250,0.1)]"
+          : "hover:bg-[var(--surface-hover)]"
       }`}
-      style={{ paddingLeft: `${depth * 12 + 20}px` }}
+      style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
       onClick={() => !renaming && onFileOpen(entry.path)}
       onContextMenu={handleContextMenu}
     >
+      {/* Tree indent guides */}
+      {depth > 0 && (
+        <div
+          className="absolute left-0 top-0 bottom-0"
+          style={{ width: depth * 16 + 8 }}
+        >
+          {Array.from({ length: depth }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-0 bottom-0 border-l border-[var(--editor-border)] opacity-40"
+              style={{ left: `${(i + 1) * 16 + 4}px` }}
+            />
+          ))}
+        </div>
+      )}
+      <span className="text-[var(--text-muted)] shrink-0 ml-[18px]">
+        {isMd ? <FileTextIcon size={14} /> : <FileIcon size={14} />}
+      </span>
       {renaming ? (
         <RenameInput
           initialName={entry.name}
@@ -383,7 +425,15 @@ function FileTreeNode({
           onCancel={() => setRenaming(false)}
         />
       ) : (
-        <span>{entry.name}</span>
+        <span
+          className={
+            isMd
+              ? "text-[var(--text-primary)] truncate"
+              : "text-[var(--text-tertiary)] truncate"
+          }
+        >
+          {entry.name}
+        </span>
       )}
     </div>
   );
@@ -448,9 +498,12 @@ function InlineCreateInput({
 
   return (
     <div
-      className="flex items-center px-2 py-0.5"
-      style={{ paddingLeft: `${depth * 12 + 20}px` }}
+      className="flex items-center gap-1 px-2 py-[3px]"
+      style={{ paddingLeft: `${depth * 16 + 28}px` }}
     >
+      <span className="text-[var(--text-muted)] shrink-0">
+        {type === "folder" ? <FolderPlus size={14} /> : <FilePlus size={14} />}
+      </span>
       <input
         ref={inputRef}
         className="file-tree-input"

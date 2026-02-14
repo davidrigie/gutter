@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useWorkspaceStore } from "../stores/workspaceStore";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
+import { X, Circle } from "./Icons";
 
 interface TabBarProps {
   onSwitchTab: (path: string) => void;
@@ -45,33 +46,40 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
 
   return (
     <>
-      <div className="flex items-center h-9 bg-[var(--sidebar-bg)] border-b border-[var(--editor-border)] overflow-x-auto shrink-0">
-        {openTabs.map((tab) => (
-          <div
-            key={tab.path}
-            className={`flex items-center gap-1 px-3 h-full text-xs cursor-pointer border-r border-[var(--editor-border)] select-none whitespace-nowrap ${
-              tab.path === activeTabPath
-                ? "bg-[var(--editor-bg)] text-[var(--editor-text)]"
-                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-            }`}
-            onClick={() => onSwitchTab(tab.path)}
-            onContextMenu={(e) => handleTabContextMenu(e, tab.path)}
-          >
-            <span>
-              {tab.isDirty ? "● " : ""}
-              {tab.name}
-            </span>
-            <button
-              className="ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCloseTab(tab.path);
-              }}
+      <div className="flex items-center h-10 bg-[var(--surface-secondary)] border-b border-[var(--editor-border)] overflow-x-auto shrink-0">
+        {openTabs.map((tab) => {
+          const isActive = tab.path === activeTabPath;
+          return (
+            <div
+              key={tab.path}
+              className={`group relative flex items-center gap-1.5 px-3 h-full cursor-pointer select-none whitespace-nowrap transition-colors ${
+                isActive
+                  ? "text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
+              onClick={() => onSwitchTab(tab.path)}
+              onContextMenu={(e) => handleTabContextMenu(e, tab.path)}
             >
-              ×
-            </button>
-          </div>
-        ))}
+              {tab.isDirty && (
+                <Circle size={6} className="text-[var(--accent)] shrink-0" />
+              )}
+              <span className="text-[13px]">{tab.name}</span>
+              <button
+                className="ml-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-active)] transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCloseTab(tab.path);
+                }}
+              >
+                <X size={14} className="text-[var(--text-muted)]" />
+              </button>
+              {/* Active indicator */}
+              {isActive && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]" />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {contextMenu && (

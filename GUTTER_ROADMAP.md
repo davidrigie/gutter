@@ -1,0 +1,155 @@
+# Gutter — Roadmap to Great
+
+Everything needed to take Gutter from functional prototype to a markdown editor people actually prefer. No fluff — just the gaps between where it is and where Bear/iA Writer/Obsidian are.
+
+---
+
+## Tier 1: Expected Basics (Users will notice these are missing)
+
+### Find & Replace
+
+- Cmd+F opens inline find bar at top of editor
+- Cmd+Shift+F for replace mode
+- Match case, whole word, regex toggles
+- Highlight all matches in document with match count
+- Enter/Shift+Enter to cycle through matches
+
+### Quick Open
+
+- Cmd+P opens fuzzy file finder (separate from command palette)
+- Searches all files in workspace by name
+- Recent files weighted higher in results
+- Preview file on arrow-key hover, open on Enter
+
+### Clipboard Image Paste
+
+- Paste screenshot from clipboard directly into editor
+- Auto-save image to `./assets/` folder next to the markdown file
+- Insert markdown image link at cursor position
+- Support drag & drop of image files onto editor too
+
+### File Watcher
+
+- Watch workspace directory for external changes
+- Auto-refresh file tree when files are added/removed/renamed outside Gutter
+- Prompt to reload if the currently open file is modified externally
+- Use Tauri's `notify` or `fs::watch` on the Rust side
+
+### Resizable Panels
+
+- Drag handles on file tree and comments panel borders
+- Persist widths across sessions (store in local config)
+- Double-click handle to reset to default width
+- Minimum widths so panels don't collapse to nothing
+
+### Undo/Redo Indicators
+
+- Cmd+Z / Cmd+Shift+Z already work via ProseMirror
+- Add undo/redo state awareness to status bar or toolbar
+- Disable save status flicker on undo back to clean state
+
+---
+
+## Tier 2: Polish That Makes It Feel Pro
+
+### Document Outline
+
+- Sidebar tab or panel showing heading structure (H1–H6)
+- Click to scroll to heading
+- Highlight current section as you scroll
+- Collapsible hierarchy
+- Could share space with file tree as a tab
+
+### Typewriter / Focus Mode
+
+- Pairs with existing zen mode
+- Dim all paragraphs except the one being edited
+- Optionally keep current line vertically centered
+- Toggle via Cmd+Shift+T or command palette
+
+### Drag & Drop in File Tree
+
+- Drag files and folders to reorder / move between directories
+- Visual drop indicator (line or highlight on target folder)
+- Hold over collapsed folder to auto-expand
+- Undo support for accidental moves
+
+### Tab Improvements
+
+- Drag to reorder tabs
+- Middle-click to close
+- Tab overflow: scroll or show dropdown for many tabs
+- Pin tabs (pinned tabs are narrower, icon-only)
+
+### Better Welcome Screen
+
+- Show when no file is open instead of the static welcome doc
+- Recent files list
+- "Open File" and "Open Folder" buttons
+- Keyboard shortcut cheatsheet
+- App version
+
+### Export
+
+- Cmd+Shift+E or File > Export
+- PDF export (via print-to-PDF or a rendering library)
+- HTML export (standalone, styled)
+- Copy as formatted text (paste into Google Docs, email)
+- Export with or without comments
+
+---
+
+## Tier 3: Differentiators (What makes Gutter *Gutter*)
+
+### Backlinks & Wiki Linking
+
+- `[[filename]]` syntax to link between workspace documents
+- Autocomplete file names as you type inside `[[`
+- Backlinks panel: "These documents link to this one"
+- Hover preview of linked document
+- This turns Gutter from a markdown editor into a knowledge tool
+
+### Frontmatter Support
+
+- Parse YAML frontmatter block (title, tags, date, etc.)
+- Render as a clean metadata bar above the document, not raw YAML
+- Edit inline or via a structured form
+- Use frontmatter title as tab/window title if present
+
+### Version History
+
+- Auto-snapshot on save (local `.gutter/history/` directory)
+- Timeline view to browse past versions
+- Diff view between any two versions
+- Restore previous version
+
+### Spell Check
+
+- Squiggly underline on misspelled words
+- Right-click to see suggestions
+- Personal dictionary (add words)
+- Support for multiple languages
+
+### Comment Enhancements
+
+- @mentions in comments (for multi-user future)
+- Emoji reactions on comments
+- Filter comments by resolved/open/author
+- Comment anchors survive document edits (track by surrounding text, not just marks)
+- Export comments as a standalone review document
+
+---
+
+## Infrastructure / DX
+
+### Settings File
+
+- `~/.gutter/config.json` or workspace `.gutter/settings.json`
+- Font, theme, panel widths, default author name, auto-save interval
+- Settings UI accessible from command palette
+
+### Performance
+
+- Debounce file tree refresh on rapid filesystem changes
+
+

@@ -1,5 +1,14 @@
 import { useEditorStore } from "../stores/editorStore";
-import { Circle } from "./Icons";
+import { Circle, MessageSquare } from "./Icons";
+
+function SidebarIcon({ size = 16, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+    </svg>
+  );
+}
 
 export function StatusBar() {
   const {
@@ -9,10 +18,29 @@ export function StatusBar() {
     isDirty,
     isSourceMode,
     fileName,
+    showFileTree,
+    showComments,
+    toggleFileTree,
+    toggleComments,
   } = useEditorStore();
 
   return (
-    <div className="h-8 flex items-center px-3 border-t border-[var(--editor-border)] bg-[var(--surface-secondary)] text-[var(--text-tertiary)] select-none shrink-0 gap-3 text-[13px]">
+    <div className="h-8 flex items-center px-2 border-t border-[var(--editor-border)] bg-[var(--surface-secondary)] text-[var(--text-tertiary)] select-none shrink-0 gap-2 text-[13px]">
+      {/* Panel toggle buttons */}
+      <button
+        onClick={toggleFileTree}
+        className={`p-1 rounded transition-colors ${
+          showFileTree
+            ? "text-[var(--accent)] bg-[var(--surface-active)]"
+            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+        }`}
+        title={showFileTree ? "Hide file tree (Cmd+\\)" : "Show file tree (Cmd+\\)"}
+      >
+        <SidebarIcon size={15} />
+      </button>
+
+      <span className="text-[var(--editor-border)]">|</span>
+
       <span className="truncate max-w-xs font-medium" title={filePath || undefined}>
         {filePath || fileName}
       </span>
@@ -42,6 +70,21 @@ export function StatusBar() {
       <span className="text-[var(--text-muted)]">
         {wordCount} words
       </span>
+
+      <span className="text-[var(--editor-border)]">|</span>
+
+      {/* Comments panel toggle */}
+      <button
+        onClick={toggleComments}
+        className={`p-1 rounded transition-colors ${
+          showComments
+            ? "text-[var(--accent)] bg-[var(--surface-active)]"
+            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+        }`}
+        title={showComments ? "Hide comments (Cmd+Shift+C)" : "Show comments (Cmd+Shift+C)"}
+      >
+        <MessageSquare size={15} />
+      </button>
     </div>
   );
 }

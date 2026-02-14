@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "comments": {
+    "c1": {
+      "thread": [
+        {
+          "id": "m_j01",
+          "author": "Dave",
+          "timestamp": "2025-01-25T18:00:00.000Z",
+          "body": "This approach has survived every edge case we've thrown at it. The markers render fine in GitHub, VS Code, and every markdown viewer we've tested."
+        }
+      ],
+      "resolved": false,
+      "createdAt": "2025-01-25T18:00:00.000Z"
+    }
+  }
+}

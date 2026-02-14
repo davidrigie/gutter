@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "comments": {
+    "c1": {
+      "thread": [
+        {
+          "id": "m_demo0001",
+          "author": "Gutter Team",
+          "timestamp": "2025-01-15T10:00:00.000Z",
+          "body": "This is the core innovation! Comments live alongside your markdown as portable HTML markers, with structured data in a JSON sidecar and a human-readable companion file."
+        },
+        {
+          "id": "m_demo0002",
+          "author": "Reviewer",
+          "timestamp": "2025-01-15T10:05:00.000Z",
+          "body": "Love this approach — the markers survive in any standard markdown renderer."
+        }
+      ],
+      "resolved": false,
+      "createdAt": "2025-01-15T10:00:00.000Z"
+    },
+    "c2": {
+      "thread": [
+        {
+          "id": "m_demo0003",
+          "author": "Gutter Team",
+          "timestamp": "2025-01-15T10:10:00.000Z",
+          "body": "These inline markers use standard HTML <mark> and <sup> tags, so they render meaningfully even in GitHub, VS Code preview, or any markdown viewer."
+        }
+      ],
+      "resolved": false,
+      "createdAt": "2025-01-15T10:10:00.000Z"
+    }
+  }
+}

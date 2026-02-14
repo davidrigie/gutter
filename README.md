@@ -2,6 +2,8 @@
 
 A local-first WYSIWYG markdown editor with first-class commenting. Built with Tauri v2, React 19, and TipTap 3.
 
+![Gutter Editor](screenshot.png)
+
 ## Get Started
 
 ```bash

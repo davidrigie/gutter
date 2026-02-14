@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --editor-bg: #ffffff;
+  --editor-text: #1a1a1a;
+  --editor-border: #e5e7eb;
+  --sidebar-bg: #f9fafb;
+  --accent: #3b82f6;
+  --comment-highlight: rgba(255, 213, 79, 0.3);
+  --comment-highlight-active: rgba(255, 213, 79, 0.6);
+  --comment-highlight-resolved: rgba(156, 163, 175, 0.2);
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  background: var(--editor-bg);
+  color: var(--editor-text);
+}
+
+.dark {
+  --editor-bg: #111827;
+  --editor-text: #e5e7eb;
+  --editor-border: #374151;
+  --sidebar-bg: #1f2937;
+  --accent: #60a5fa;
+  --comment-highlight: rgba(255, 213, 79, 0.2);
+  --comment-highlight-active: rgba(255, 213, 79, 0.4);
+  --comment-highlight-resolved: rgba(156, 163, 175, 0.15);
+}

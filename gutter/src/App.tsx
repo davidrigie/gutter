@@ -61,6 +61,7 @@ function App() {
   const [showExport, setShowExport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const markdownRef = useRef("");
+  const suppressFileChangedUntil = useRef(0);
 
   const editorInstanceRef = useRef<{
     createComment: () => void;
@@ -88,6 +89,7 @@ function App() {
     });
 
     const unlistenFile = listen<string>("file-changed", (event) => {
+      if (Date.now() < suppressFileChangedUntil.current) return;
       const changedPath = event.payload;
       const currentPath = useEditorStore.getState().filePath;
       if (changedPath === currentPath) {
@@ -207,6 +209,8 @@ function App() {
   // Save handler — also saves comments and generates companion
   const handleSave = useCallback(async () => {
     const md = markdownRef.current;
+    // Suppress file-changed notifications for 2s after our own save
+    suppressFileChangedUntil.current = Date.now() + 2000;
     await saveFile(md);
     await saveComments();
     await generateCompanion(md);

@@ -35,14 +35,17 @@ pub fn start_watcher(app: AppHandle, path: String) -> Result<(), String> {
                 }
 
                 match event.kind {
-                    EventKind::Create(_) | EventKind::Remove(_) | EventKind::Modify(_) => {
-                        // Check if it's a file content change
-                        let is_content_change = matches!(
-                            event.kind,
-                            EventKind::Modify(notify::event::ModifyKind::Data(_))
+                    EventKind::Create(_) | EventKind::Remove(_) => {
+                        let _ = app_handle.emit("tree-changed", &watch_path);
+                    }
+                    EventKind::Modify(modify_kind) => {
+                        // Only emit file-changed for actual data writes, not metadata/atime
+                        let is_data_change = matches!(
+                            modify_kind,
+                            notify::event::ModifyKind::Data(_)
                         );
 
-                        if is_content_change {
+                        if is_data_change {
                             for p in paths {
                                 if !is_comment_file(p) {
                                     let _ = app_handle.emit(
@@ -51,9 +54,8 @@ pub fn start_watcher(app: AppHandle, path: String) -> Result<(), String> {
                                     );
                                 }
                             }
+                            let _ = app_handle.emit("tree-changed", &watch_path);
                         }
-
-                        let _ = app_handle.emit("tree-changed", &watch_path);
                     }
                     _ => {}
                 }

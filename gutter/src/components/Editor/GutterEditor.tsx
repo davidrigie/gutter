@@ -112,8 +112,8 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         }),
         Underline,
         Link.configure({
-          openOnClick: false,
-          HTMLAttributes: { rel: "noopener noreferrer" },
+          openOnClick: true,
+          HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
         }),
         Image,
         Table.configure({ resizable: true }),

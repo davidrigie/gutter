@@ -4,15 +4,29 @@
 
 Gutter has a solid feature set but needs polish to feel like a paid app. The audit found: no dirty-tab save warnings (data loss risk), no error feedback (silent failures), font settings stored but never applied, no formatting toolbar, no settings UI, no native menu bar, no workspace search, no window persistence, no PDF export, default scrollbars, and no loading indicators.
 
-## Phase 1: Dirty Tab Protection + Toast Notifications
+## Phase 1: File Tree Fixes + Dirty Tab Protection + Toast Notifications
 
-**Files: 4 new/modified**
+**Files: 6 new/modified**
 
-- **New: **`**src/stores/toastStore.ts**` — Zustand store: `{ id, message, type, duration }[]`, auto-dismiss after 4s
-- **New: **`**src/components/Toast.tsx**` — Fixed bottom-right toast container, uses existing `fadeInScale` animation and CSS variable system
-- **Modify: **`**App.tsx**` — Mount `<ToastContainer>`, change `handleCloseTab` to check `isDirty` and show Tauri `ask()` dialog (Save/Don't Save/Cancel), add `tauri://close-requested` listener for app quit with dirty tabs
-- **Modify: **`**TabBar.tsx**` — Make close handlers async, pass through dirty check for Close Others/Close All
-- Wire toasts into all `catch` blocks replacing `console.error`
+### Part A: Toast Notification System (do first — needed by later parts)
+- **New: `src/stores/toastStore.ts`** — Zustand store: `{ id, message, type, duration }[]`, auto-dismiss after 4s
+- **New: `src/components/Toast.tsx`** — Fixed bottom-right toast container, uses existing `fadeInScale` animation and CSS variable system
+- **Modify: `App.tsx`** — Mount `<ToastContainer />`
+
+### Part B: Open File from Disk in File Tree
+- **Modify: `src/components/FileTree/FileTree.tsx`** — Add `handleOpenFile` callback using `open()` from `@tauri-apps/plugin-dialog` with markdown file filters. Split the header "Open" button into "File / Folder" links. "File" opens the native file picker for individual .md files and calls `onFileOpen(path)`. "Folder" keeps existing workspace-open behavior.
+
+### Part C: File Tree Reordering Within Folders
+- **New: `src/stores/sortOrderStore.ts`** — Zustand store persisting custom sort order to `{workspacePath}/.gutter/sort-order.json`. Maps folder paths to ordered filename arrays. `applySortOrder()` sorts entries: custom-ordered first, then remaining alphabetically. `reorderInFolder()` updates order on drag.
+- **Modify: `src/components/FileTree/FileTree.tsx`** — Load sort order on workspace change. Apply sort order when rendering children. Detect same-folder drag (reorder) vs cross-folder drag (move). Show horizontal drop indicator line for reorder targets. File nodes accept drag-over for same-folder reorder.
+
+### Part D: Dirty Tab Protection
+- **Modify: `App.tsx`** — Rewrite `handleCloseTab` as async: check `isDirty`, show Tauri `ask()` dialog ("Save" / "Don't Save"), save if requested, then close. Add `getCurrentWindow().onCloseRequested()` listener for app quit with dirty tabs.
+- **Modify: `src/components/TabBar.tsx`** — Update `onCloseTab` prop type to allow Promise return. Make "Close Others" and "Close All" context menu actions await each close sequentially.
+
+### Part E: Wire Toasts into Error Handlers
+- Replace `console.error` calls with `useToastStore.getState().addToast(msg, "error")` in: FileTree.tsx (create/delete/rename/move failures), App.tsx (open/switch failures)
+- Add success toasts for save ("File saved") and file create operations
 
 ## Phase 2: Settings Dialog + Font Settings Applied
 
@@ -84,18 +98,56 @@ Gutter has a solid feature set but needs polish to feel like a paid app. The aud
 
 1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 9
 
+Phase 1 implementation order: A (toasts) → B (open file) → C (reorder) → D (dirty tabs) → E (wire toasts)
+
 Phases 1-2 first (infrastructure). 3+5 are quick visual wins. 4+6 are Rust-side. 7 is the biggest remaining feature. 8+9 are release prep.
 
-## Status
+## Already Completed (Sprint 1)
 
-- Phase 1: Dirty Tab Protection + Toast Notifications
-- Phase 2: Settings Dialog + Font Settings Applied
-- Phase 3: Formatting Toolbar (Bubble Menu)
-- Phase 4: Native macOS Menu Bar
-- Phase 5: Scrollbars + Loading Spinners
-- Phase 6: Window State Persistence
-- Phase 7: Workspace Search
-- Phase 8: Drag-from-Finder + PDF Export
-- Phase 9: Release Prep
+These features are fully implemented and shipped:
 
+- [x] TipTap WYSIWYG editor with rich text formatting
+- [x] Markdown parser/serializer with round-trip fidelity
+- [x] Three-file comment system (inline markers + JSON + companion MD)
+- [x] Comment panel with thread CRUD, reply, resolve, delete
+- [x] File tree with create/delete/rename, drag files between folders
+- [x] Tab system with multi-tab support
+- [x] Settings infrastructure (Zustand store + localStorage persistence)
+- [x] Resizable sidebar panels (file tree + comments)
+- [x] Find & Replace (in-document)
+- [x] Quick Open (Cmd+P fuzzy file search)
+- [x] Clipboard image paste & drag/drop
+- [x] File watcher (detect external changes, reload prompt)
+- [x] Undo/Redo indicators in status bar
+- [x] Document outline panel
+- [x] Typewriter / Focus mode (dim non-active paragraphs)
+- [x] Tab context menu (Close Others, Close All)
+- [x] Welcome screen with recent files
+- [x] Export dialog (HTML, JSON)
+- [x] Frontmatter support (YAML metadata)
+- [x] Backlinks panel & wiki-link navigation
+- [x] Version history (local snapshots with restore)
+- [x] Spell check toggle
+- [x] Slash command menu (/, headings, lists, code, math, mermaid, etc.)
+- [x] Code blocks with language selector dropdown
+- [x] Math blocks (KaTeX, block $$ and inline $)
+- [x] Mermaid diagram blocks with edit mode
+- [x] Theme system (light/dark/system, Cmd+Shift+D cycle)
+- [x] Source mode toggle (raw markdown editing)
+- [x] Zen mode (distraction-free)
+- [x] Command palette (Cmd+. or Cmd+Shift+P)
+- [x] Demo workspace with guides, projects, journal subfolders
 
+## Polish Plan Status
+
+All phases below are **not yet started**:
+
+- [ ] Phase 1: File Tree Fixes + Dirty Tab Protection + Toast Notifications
+- [ ] Phase 2: Settings Dialog + Font Settings Applied
+- [ ] Phase 3: Formatting Toolbar (Bubble Menu)
+- [ ] Phase 4: Native macOS Menu Bar
+- [ ] Phase 5: Scrollbars + Loading Spinners
+- [ ] Phase 6: Window State Persistence
+- [ ] Phase 7: Workspace Search
+- [ ] Phase 8: Drag-from-Finder + PDF Export
+- [ ] Phase 9: Release Prep

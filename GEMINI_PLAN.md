@@ -1,56 +1,43 @@
-# Gemini's Gutter Refinement & Completeness Plan
+# Gemini's Gutter Refinement Plan (V2)
 
-This plan focuses on **refining and filling out the existing experience**. It identifies "missing links" in the current feature set and smoothes out UI/UX friction to make Gutter feel like a complete, professional tool without changing its core local-first mission.
-
----
-
-## 1. Functional Completeness (Filling the Gaps)
-*Features that feel "missing" from the current implementation.*
-
-- **Wiki-link Autocomplete**: 
-  - When typing `[[`, trigger a floating suggestion menu showing files in the current workspace.
-  - This turns the existing Wiki-link extension from a "manual entry" tool into a powerful discovery tool.
-- **Interactive Task Lists**:
-  - Make `[ ]` and `[x]` markdown checkboxes interactive in the WYSIWYG editor.
-  - Clicking a checkbox should update the underlying markdown without needing to switch to source mode.
-- **Drag-to-Link**:
-  - Allow dragging a file from the **File Tree** directly into the **Editor** to insert a `[[link]]` at the cursor position.
-- **Enhanced Command Palette History**:
-  - Weight "Recent Files" and "Recently Used Commands" at the top of the palette to speed up common workflows.
-
-## 2. Interaction & Workflow Polish
-*Smoothing out the friction in daily writing and management.*
-
-- **Typewriter Centering**: 
-  - Add an option to keep the active line vertically centered in the viewport, preventing the user's eyes from constantly moving to the bottom of the screen.
-- **File Tree Tactility**:
-  - Add visual "drop-zone" highlights when dragging files over folders to clarify where a file will land.
-  - Improve the "No folder open" state with a "Quick Start" menu (Open Folder, New Document, Tutorial).
-- **Comment System Continuity**:
-  - **Smooth Scrolling**: When clicking a comment marker in the text, the sidebar should animate smoothly to the thread, and the thread itself should briefly "pulse" to indicate focus.
-  - **Click-to-Anchor**: Clicking the "quoted text" at the top of a comment thread should scroll the editor back to the exact position of the highlight.
-
-## 3. UI & Visual Consistency
-*Ensuring the interface feels cohesive and high-end.*
-
-- **Design Token Audit**: 
-  - Replace remaining hardcoded colors (like `rgba(0, 0, 0, 0.08)`) in CSS with semantic variables (`--surface-border`, `--surface-elevated`).
-  - Standardize all modal and dropdown shadows to use a unified `var(--shadow-lg)`.
-- **Icon Refinement**:
-  - Replace ASCII separators (`|`) and arrows (`&#x21A9;`) in the Status Bar with refined SVG icons.
-  - Ensure every interactive icon has a descriptive tooltip.
-
-## 4. Performance & Stability Refinements
-*Ensuring Gutter remains fast as workspaces grow.*
-
-- **Optimized Tree Rendering**: Improve performance for large workspaces (>500 files) by optimizing how the file tree re-renders during external file changes.
-- **Asset Naming**: Refine the "Paste Image" flow to prompt for a filename or use a human-readable pattern (e.g., `img_2026_02_14_1020.png`) instead of just a raw timestamp.
+This plan identifies "missing links" and interaction refinements that complement the tactical work in `POLISH_PLAN.md`. These suggestions focus on making the existing features feel more mature and professional.
 
 ---
 
-## Execution Strategy
+## 1. Writing Experience Refinements
+*Deepening the focus for long-form writing.*
 
-1. **Phase 1: The Basics**: Design token audit, Status Bar icon replacement, and interactive task lists.
-2. **Phase 2: The Workflow**: Wiki-link autocomplete and drag-to-link.
-3. **Phase 3: The Feel**: Typewriter centering and smooth comment sidebar interactions.
-4. **Phase 4: Optimization**: Large workspace file tree tuning and refined asset handling.
+- **Typewriter Centering (Fixed-Line Scrolling)**: 
+  - Enhance the existing Focus Mode with a "Typewriter" option where the active line remains vertically fixed (at 33% or 50% of the viewport). This prevents the user's gaze from constantly dropping to the bottom of the screen.
+- **Selection-Aware Status Bar**:
+  - Update the Status Bar to show contextual metadata. When text is selected, the word count should update to `X / Y words` (selected / total).
+- **Smart Asset Organization**:
+  - When an image is pasted or dragged, instead of just using `image-[timestamp].png`, show a small inline prompt to name the image (defaulting to the timestamp). This ensures the `assets/` directory remains human-readable.
+
+## 2. Navigation & Workspace Polish
+*Smoothing out the friction of managing complex hierarchies.*
+
+- **Editor Breadcrumbs**:
+  - Add a subtle breadcrumb trail at the top of the editor (`Folder > Subfolder > File.md`). Clicking a folder name should highlight that folder in the File Tree.
+- **Tab Overflow Management**:
+  - When more tabs are open than can fit in the viewport, add a "Chevron" button at the end of the Tab Bar that opens a searchable list of all open tabs.
+- **Multi-Selection in File Tree**:
+  - Implement `Cmd/Shift+Click` support in the File Tree. This allows for professional bulk operations: moving multiple files at once or deleting a batch of documents.
+
+## 3. Comment System "Feel"
+*Closing the loop on the primary differentiator.*
+
+- **Click-to-Anchor**: 
+  - Clicking the "quoted text" snippet at the top of a comment thread in the sidebar should immediately scroll the editor back to that specific highlight.
+- **Visual Thread Continuity**:
+  - When a comment mark is active, the corresponding thread in the sidebar should have a "pulse" or subtle border glow to make the connection between text and comment unmistakable.
+
+---
+
+## Relation to `POLISH_PLAN.md`
+
+- **Phase 13 (Asset & Selection Polish)**: Can be implemented after Claude's Phase 12.
+- **Phase 14 (Navigation & Hierarchy)**: Implements Breadcrumbs and Tab Overflow.
+- **Phase 15 (Advanced Writing Modes)**: Implements Typewriter Centering.
+
+**Recommendation**: Focus on Claude's Phases 1-8 first for stability, then integrate these refinements to elevate the app from "functional" to "delightful."

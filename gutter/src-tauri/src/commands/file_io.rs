@@ -58,3 +58,15 @@ pub fn delete_path(path: String) -> Result<(), String> {
         fs::remove_file(&path).map_err(|e| format!("Failed to delete file: {}", e))
     }
 }
+
+#[tauri::command]
+pub fn save_image(dir_path: String, filename: String, data: Vec<u8>) -> Result<String, String> {
+    let assets_dir = Path::new(&dir_path).join("assets");
+    if !assets_dir.exists() {
+        fs::create_dir_all(&assets_dir)
+            .map_err(|e| format!("Failed to create assets directory: {}", e))?;
+    }
+    let file_path = assets_dir.join(&filename);
+    fs::write(&file_path, &data).map_err(|e| format!("Failed to save image: {}", e))?;
+    Ok(format!("./assets/{}", filename))
+}

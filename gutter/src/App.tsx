@@ -6,12 +6,23 @@ import { CommentsPanel } from "./components/Comments/CommentsPanel";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
 import { CommandPalette } from "./components/CommandPalette";
+import { ResizeHandle } from "./components/ResizeHandle";
+import { FindReplace } from "./components/FindReplace";
+import { QuickOpen } from "./components/QuickOpen";
+import { DocumentOutline } from "./components/DocumentOutline";
+import { WelcomeScreen } from "./components/WelcomeScreen";
+import { BacklinksPanel } from "./components/BacklinksPanel";
+import { ExportDialog } from "./components/ExportDialog";
+import { VersionHistory } from "./components/VersionHistory";
+import { useHistoryStore } from "./stores/historyStore";
 import { useEditorStore } from "./stores/editorStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useCommentStore } from "./stores/commentStore";
+import { useSettingsStore } from "./stores/settingsStore";
 import { useFileOps } from "./hooks/useFileOps";
 import { useComments } from "./hooks/useComments";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 function App() {
   const {
@@ -19,7 +30,6 @@ function App() {
     showFileTree,
     showComments,
     isZenMode,
-    theme,
     isDirty,
     fileName,
     activeCommentId,
@@ -27,14 +37,17 @@ function App() {
     toggleFileTree,
     toggleComments,
     toggleZenMode,
-    toggleTheme,
+    showOutline,
+    toggleOutline,
     setContent,
     setDirty,
     setFilePath,
     setActiveCommentId,
   } = useEditorStore();
 
-  const { addTab, setActiveTab, removeTab, setTabDirty } = useWorkspaceStore();
+  const { theme, cycleTheme, loadSettings, addRecentFile, panelWidths, setPanelWidth } = useSettingsStore();
+
+  const { addTab, setActiveTab, removeTab, setTabDirty, workspacePath, loadFileTree, openTabs } = useWorkspaceStore();
   const { getThreadIds } = useCommentStore();
   const { openFile, saveFile, scheduleAutoSave } = useFileOps();
   const { loadCommentsFromFile, saveComments, generateCompanion } = useComments();
@@ -42,13 +55,53 @@ function App() {
   const [editorContent, setEditorContent] = useState<string | undefined>(undefined);
   const [sourceContent, setSourceContent] = useState("");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [findReplaceMode, setFindReplaceMode] = useState<"find" | "replace" | null>(null);
+  const [showQuickOpen, setShowQuickOpen] = useState(false);
+  const [showReloadPrompt, setShowReloadPrompt] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const markdownRef = useRef("");
 
   const editorInstanceRef = useRef<{
     createComment: () => void;
     navigateComment: (direction: "next" | "prev") => void;
     getMarkdown: () => string;
+    getEditor: () => import("@tiptap/react").Editor | null;
   } | null>(null);
+
+  // Load settings on startup
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  // File watcher: start when workspace changes, listen for events
+  useEffect(() => {
+    if (!workspacePath) return;
+    invoke("start_watcher", { path: workspacePath }).catch(console.error);
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const unlistenTree = listen<string>("tree-changed", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (workspacePath) loadFileTree(workspacePath);
+      }, 500);
+    });
+
+    const unlistenFile = listen<string>("file-changed", (event) => {
+      const changedPath = event.payload;
+      const currentPath = useEditorStore.getState().filePath;
+      if (changedPath === currentPath) {
+        setShowReloadPrompt(true);
+      }
+    });
+
+    return () => {
+      invoke("stop_watcher").catch(console.error);
+      unlistenTree.then((fn) => fn());
+      unlistenFile.then((fn) => fn());
+      clearTimeout(debounceTimer);
+    };
+  }, [workspacePath, loadFileTree]);
 
   // Track current markdown for saving
   const handleEditorUpdate = useCallback(
@@ -95,10 +148,11 @@ function App() {
       if (path) {
         const name = path.split("/").pop() || "Untitled";
         addTab(path, name);
+        addRecentFile(path);
         await loadCommentsFromFile(path);
       }
     }
-  }, [openFile, addTab, loadCommentsFromFile]);
+  }, [openFile, addTab, addRecentFile, loadCommentsFromFile]);
 
   // Open specific file (from file tree)
   const handleFileTreeOpen = useCallback(
@@ -113,13 +167,42 @@ function App() {
         setDirty(false);
         const name = path.split("/").pop() || "Untitled";
         addTab(path, name);
+        addRecentFile(path);
         await loadCommentsFromFile(path);
       } catch (e) {
         console.error("Failed to open file:", e);
       }
     },
-    [setFilePath, setContent, setDirty, addTab, loadCommentsFromFile],
+    [setFilePath, setContent, setDirty, addTab, addRecentFile, loadCommentsFromFile],
   );
+
+  // Wiki link click handler
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const target = (e as CustomEvent).detail?.target;
+      if (!target || !workspacePath) return;
+      const findFile = (entries: import("./stores/workspaceStore").FileEntry[]): string | null => {
+        for (const entry of entries) {
+          if (!entry.is_dir) {
+            const nameWithoutExt = entry.name.replace(/\.md$/, "");
+            if (nameWithoutExt === target || entry.name === target) {
+              return entry.path;
+            }
+          }
+          if (entry.children) {
+            const found = findFile(entry.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      const { fileTree } = useWorkspaceStore.getState();
+      const found = findFile(fileTree);
+      if (found) handleFileTreeOpen(found);
+    };
+    window.addEventListener("wiki-link-click", handler);
+    return () => window.removeEventListener("wiki-link-click", handler);
+  }, [workspacePath, handleFileTreeOpen]);
 
   // Save handler — also saves comments and generates companion
   const handleSave = useCallback(async () => {
@@ -130,6 +213,8 @@ function App() {
     const path = useEditorStore.getState().filePath;
     if (path) {
       setTabDirty(path, false);
+      // Auto-snapshot for version history
+      useHistoryStore.getState().saveSnapshot(path, md);
     }
   }, [saveFile, saveComments, generateCompanion, setTabDirty]);
 
@@ -185,7 +270,21 @@ function App() {
     { name: "Toggle File Tree", shortcut: "Cmd+\\", action: toggleFileTree },
     { name: "Toggle Comments Panel", shortcut: "Cmd+Shift+C", action: toggleComments },
     { name: "Toggle Zen Mode", shortcut: "Cmd+Shift+F", action: toggleZenMode },
-    { name: "Toggle Dark/Light Mode", shortcut: "Cmd+Shift+D", action: toggleTheme },
+    { name: "Toggle Dark/Light Mode", shortcut: "Cmd+Shift+D", action: () => cycleTheme() },
+    { name: "Toggle Focus Mode", shortcut: "Cmd+Shift+T", action: () => {
+      const e = editorInstanceRef.current?.getEditor();
+      if (e) e.commands.toggleFocusMode();
+    }},
+    { name: "Toggle Document Outline", action: () => toggleOutline() },
+    { name: "Quick Open File", shortcut: "Cmd+P", action: () => setShowQuickOpen(true) },
+    { name: "Find", shortcut: "Cmd+F", action: () => setFindReplaceMode("find") },
+    { name: "Find and Replace", shortcut: "Cmd+H", action: () => setFindReplaceMode("replace") },
+    { name: "Export", shortcut: "Cmd+Shift+E", action: () => setShowExport(true) },
+    { name: "Version History", action: () => setShowHistory(true) },
+    { name: "Toggle Spell Check", action: () => {
+      const e = editorInstanceRef.current?.getEditor();
+      if (e) e.commands.toggleSpellCheck();
+    }},
     { name: "New Comment", shortcut: "Cmd+Shift+M", action: () => editorInstanceRef.current?.createComment() },
     { name: "Next Comment", shortcut: "Cmd+Shift+N", action: () => navigateComment("next") },
     { name: "Previous Comment", shortcut: "Cmd+Shift+P", action: () => navigateComment("prev") },
@@ -218,8 +317,14 @@ function App() {
         toggleZenMode();
       } else if (e.metaKey && e.shiftKey && e.key === "D") {
         e.preventDefault();
-        toggleTheme();
+        cycleTheme();
+      } else if (e.metaKey && !e.shiftKey && e.key === "p") {
+        e.preventDefault();
+        setShowQuickOpen(true);
       } else if (e.metaKey && e.shiftKey && e.key === "P") {
+        e.preventDefault();
+        setShowCommandPalette(true);
+      } else if (e.metaKey && e.key === ".") {
         e.preventDefault();
         setShowCommandPalette(true);
       } else if (e.metaKey && e.shiftKey && e.key === "M") {
@@ -228,6 +333,19 @@ function App() {
       } else if (e.metaKey && e.shiftKey && e.key === "N") {
         e.preventDefault();
         navigateComment("next");
+      } else if (e.metaKey && e.shiftKey && e.key === "E") {
+        e.preventDefault();
+        setShowExport(true);
+      } else if (e.metaKey && e.shiftKey && e.key === "T") {
+        e.preventDefault();
+        const ed = editorInstanceRef.current?.getEditor();
+        if (ed) ed.commands.toggleFocusMode();
+      } else if (e.metaKey && e.key === "f" && !e.shiftKey) {
+        e.preventDefault();
+        setFindReplaceMode("find");
+      } else if (e.metaKey && e.key === "h" && !e.shiftKey) {
+        e.preventDefault();
+        setFindReplaceMode("replace");
       }
     };
 
@@ -242,7 +360,7 @@ function App() {
     toggleFileTree,
     toggleComments,
     toggleZenMode,
-    toggleTheme,
+    cycleTheme,
     navigateComment,
   ]);
 
@@ -273,14 +391,77 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* File Tree Sidebar */}
         {showFileTree && !isZenMode && (
-          <aside className="w-56 border-r border-[var(--editor-border)] shrink-0 overflow-hidden sidebar-panel">
-            <FileTree onFileOpen={handleFileTreeOpen} />
-          </aside>
+          <>
+            <aside
+              className="border-r border-[var(--editor-border)] shrink-0 overflow-hidden sidebar-panel"
+              style={{ width: panelWidths.fileTree }}
+            >
+              <FileTree onFileOpen={handleFileTreeOpen} />
+            </aside>
+            <ResizeHandle
+              side="left"
+              currentWidth={panelWidths.fileTree}
+              minWidth={160}
+              maxWidth={Math.floor(window.innerWidth * 0.5)}
+              onResize={(w) => setPanelWidth("fileTree", w)}
+              onDoubleClick={() => setPanelWidth("fileTree", 224)}
+            />
+          </>
+        )}
+
+        {/* Document Outline */}
+        {showOutline && !isZenMode && (
+          <>
+            <aside
+              className="w-56 border-r border-[var(--editor-border)] shrink-0 overflow-hidden sidebar-panel"
+            >
+              <DocumentOutline editor={editorInstanceRef.current?.getEditor() ?? null} />
+            </aside>
+          </>
         )}
 
         {/* Main Editor Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <TabBar onSwitchTab={handleSwitchTab} onCloseTab={handleCloseTab} />
+
+          {showReloadPrompt && (
+            <div className="h-8 flex items-center justify-between px-3 text-[12px] bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 border-b border-[var(--editor-border)]">
+              <span>This file has been modified externally.</span>
+              <div className="flex gap-2">
+                <button
+                  className="px-2 py-0.5 rounded text-[11px] bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={async () => {
+                    const path = useEditorStore.getState().filePath;
+                    if (path) {
+                      const content = await invoke<string>("read_file", { path });
+                      setEditorContent(content);
+                      markdownRef.current = content;
+                      setSourceContent(content);
+                      setContent(content);
+                      setDirty(false);
+                    }
+                    setShowReloadPrompt(false);
+                  }}
+                >
+                  Reload
+                </button>
+                <button
+                  className="px-2 py-0.5 rounded text-[11px] hover:bg-blue-100 dark:hover:bg-blue-800"
+                  onClick={() => setShowReloadPrompt(false)}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+
+          {findReplaceMode && !isSourceMode && (
+            <FindReplace
+              editor={editorInstanceRef.current?.getEditor() ?? null}
+              mode={findReplaceMode}
+              onClose={() => setFindReplaceMode(null)}
+            />
+          )}
 
           {/* Mode indicator */}
           {isSourceMode && (
@@ -292,7 +473,12 @@ function App() {
           <main
             className={`flex-1 overflow-auto ${isZenMode ? "max-w-3xl mx-auto w-full" : ""}`}
           >
-            {isSourceMode ? (
+            {openTabs.length === 0 && editorContent === undefined ? (
+              <WelcomeScreen
+                onOpenFile={handleOpenFile}
+                onOpenRecent={handleFileTreeOpen}
+              />
+            ) : isSourceMode ? (
               <SourceEditor
                 value={sourceContent}
                 onChange={handleSourceChange}
@@ -309,13 +495,57 @@ function App() {
 
         {/* Comments Sidebar */}
         {showComments && !isZenMode && (
-          <aside className="w-72 border-l border-[var(--editor-border)] shrink-0 overflow-hidden sidebar-panel">
-            <CommentsPanel />
-          </aside>
+          <>
+            <ResizeHandle
+              side="right"
+              currentWidth={panelWidths.comments}
+              minWidth={220}
+              maxWidth={Math.floor(window.innerWidth * 0.5)}
+              onResize={(w) => setPanelWidth("comments", w)}
+              onDoubleClick={() => setPanelWidth("comments", 288)}
+            />
+            <aside
+              className="border-l border-[var(--editor-border)] shrink-0 overflow-auto sidebar-panel"
+              style={{ width: panelWidths.comments }}
+            >
+              <CommentsPanel />
+              <div className="border-t border-[var(--editor-border)]">
+                <BacklinksPanel onOpenFile={handleFileTreeOpen} />
+              </div>
+            </aside>
+          </>
         )}
       </div>
 
       <StatusBar />
+
+      {showHistory && (
+        <VersionHistory
+          onRestore={(content) => {
+            setEditorContent(content);
+            markdownRef.current = content;
+            setSourceContent(content);
+            setContent(content);
+            setDirty(true);
+            setShowHistory(false);
+          }}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
+
+      {showExport && (
+        <ExportDialog
+          markdown={markdownRef.current}
+          onClose={() => setShowExport(false)}
+        />
+      )}
+
+      {showQuickOpen && (
+        <QuickOpen
+          onOpenFile={handleFileTreeOpen}
+          onClose={() => setShowQuickOpen(false)}
+        />
+      )}
 
       {showCommandPalette && (
         <CommandPalette

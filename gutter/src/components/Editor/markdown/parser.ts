@@ -22,8 +22,17 @@ const COMMENT_MARKER_RE =
   /<mark>([\s\S]*?)<\/mark><sup>\[c(\d+)\]<\/sup>/g;
 
 export function parseMarkdown(markdown: string): JSONContent {
+  // Extract frontmatter before parsing
+  let frontmatterContent: string | null = null;
+  let body = markdown;
+  const fmMatch = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (fmMatch) {
+    frontmatterContent = fmMatch[1];
+    body = fmMatch[2];
+  }
+
   // Extract math blocks before parsing (remark doesn't handle $$)
-  const { cleaned, mathBlocks } = extractMathBlocks(markdown);
+  const { cleaned, mathBlocks } = extractMathBlocks(body);
 
   const tree = unified()
     .use(remarkParse)
@@ -34,9 +43,19 @@ export function parseMarkdown(markdown: string): JSONContent {
   // Re-insert math blocks
   const result = reinsertMathBlocks(content, mathBlocks);
 
+  // Prepend frontmatter node if present
+  const docContent: JSONContent[] = [];
+  if (frontmatterContent !== null) {
+    docContent.push({
+      type: "frontmatter",
+      attrs: { content: frontmatterContent },
+    });
+  }
+  docContent.push(...result);
+
   return {
     type: "doc",
-    content: result.length > 0 ? result : [{ type: "paragraph" }],
+    content: docContent.length > 0 ? docContent : [{ type: "paragraph" }],
   };
 }
 

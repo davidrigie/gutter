@@ -13,6 +13,7 @@ pub fn run() {
                         .build(),
                 )?;
             }
+            commands::watcher::init(app);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -24,6 +25,7 @@ pub fn run() {
             commands::file_io::create_directory,
             commands::file_io::rename_path,
             commands::file_io::delete_path,
+            commands::file_io::save_image,
             commands::comments::read_comments,
             commands::comments::write_comments,
             commands::comments::delete_comments,
@@ -31,6 +33,14 @@ pub fn run() {
             commands::comments::delete_companion,
             commands::workspace::read_directory,
             commands::workspace::get_parent_dir,
+            commands::settings::read_settings,
+            commands::settings::write_settings,
+            commands::watcher::start_watcher,
+            commands::watcher::stop_watcher,
+            commands::export::export_html,
+            commands::history::save_snapshot,
+            commands::history::list_snapshots,
+            commands::history::read_snapshot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

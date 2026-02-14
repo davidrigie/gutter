@@ -5,10 +5,20 @@ import type { JSONContent } from "@tiptap/react";
  */
 export function serializeMarkdown(doc: JSONContent): string {
   if (!doc.content) return "";
-  const blocks = doc.content.map((node, i) =>
-    serializeBlock(node, doc.content!, i),
+
+  // Handle frontmatter: if first node is frontmatter, serialize it separately
+  let frontmatter = "";
+  let contentNodes = doc.content;
+  if (doc.content[0]?.type === "frontmatter") {
+    const fmContent = doc.content[0].attrs?.content || "";
+    frontmatter = `---\n${fmContent}\n---\n`;
+    contentNodes = doc.content.slice(1);
+  }
+
+  const blocks = contentNodes.map((node, i) =>
+    serializeBlock(node, contentNodes, i),
   );
-  return blocks.join("\n\n") + "\n";
+  return frontmatter + blocks.join("\n\n") + "\n";
 }
 
 function serializeBlock(

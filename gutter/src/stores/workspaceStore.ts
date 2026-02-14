@@ -12,6 +12,7 @@ export interface OpenTab {
   path: string;
   name: string;
   isDirty: boolean;
+  isPinned: boolean;
 }
 
 interface WorkspaceState {
@@ -26,6 +27,9 @@ interface WorkspaceState {
   removeTab: (path: string) => void;
   setActiveTab: (path: string | null) => void;
   setTabDirty: (path: string, dirty: boolean) => void;
+  reorderTabs: (fromIndex: number, toIndex: number) => void;
+  pinTab: (path: string) => void;
+  unpinTab: (path: string) => void;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
@@ -48,7 +52,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   addTab: (path, name) => {
     const { openTabs } = get();
     if (!openTabs.find((t) => t.path === path)) {
-      set({ openTabs: [...openTabs, { path, name, isDirty: false }] });
+      set({ openTabs: [...openTabs, { path, name, isDirty: false, isPinned: false }] });
     }
     set({ activeTabPath: path });
   },
@@ -70,6 +74,33 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({
       openTabs: openTabs.map((t) =>
         t.path === path ? { ...t, isDirty: dirty } : t,
+      ),
+    });
+  },
+
+  reorderTabs: (fromIndex, toIndex) => {
+    const { openTabs } = get();
+    const tabs = [...openTabs];
+    const [moved] = tabs.splice(fromIndex, 1);
+    tabs.splice(toIndex, 0, moved);
+    set({ openTabs: tabs });
+  },
+
+  pinTab: (path) => {
+    const { openTabs } = get();
+    const tabs = openTabs.map((t) =>
+      t.path === path ? { ...t, isPinned: true } : t,
+    );
+    // Sort pinned tabs to front
+    tabs.sort((a, b) => (a.isPinned === b.isPinned ? 0 : a.isPinned ? -1 : 1));
+    set({ openTabs: tabs });
+  },
+
+  unpinTab: (path) => {
+    const { openTabs } = get();
+    set({
+      openTabs: openTabs.map((t) =>
+        t.path === path ? { ...t, isPinned: false } : t,
       ),
     });
   },

@@ -1,22 +1,45 @@
 import { useCommentStore } from "../../stores/commentStore";
 import { useEditorStore } from "../../stores/editorStore";
 import { Thread } from "./Thread";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { MessageSquare } from "../Icons";
+
+type FilterMode = "all" | "open" | "resolved";
 
 export function CommentsPanel() {
   const { threads, getThreadIds } = useCommentStore();
   const { activeCommentId, setActiveCommentId } = useEditorStore();
-  const [showResolved, setShowResolved] = useState(false);
+  const [filter, setFilter] = useState<FilterMode>("open");
 
   const threadIds = getThreadIds();
-  const visibleThreads = showResolved
-    ? threadIds
-    : threadIds.filter((id) => !threads[id]?.resolved);
-
   const totalCount = threadIds.length;
   const resolvedCount = threadIds.filter((id) => threads[id]?.resolved).length;
   const openCount = totalCount - resolvedCount;
+
+  const visibleThreads = threadIds.filter((id) => {
+    if (filter === "all") return true;
+    if (filter === "open") return !threads[id]?.resolved;
+    return threads[id]?.resolved;
+  });
+
+  const handleExportComments = useCallback(() => {
+    const lines: string[] = ["# Comments Export\n"];
+    for (const id of threadIds) {
+      const thread = threads[id];
+      if (!thread) continue;
+      lines.push(`## [${id}]`);
+      lines.push(`Status: ${thread.resolved ? "Resolved" : "Open"}\n`);
+      for (const msg of thread.thread) {
+        const date = new Date(msg.timestamp).toLocaleString();
+        lines.push(`**${msg.author}** - ${date}`);
+        lines.push(`${msg.body}\n`);
+      }
+      lines.push("---\n");
+    }
+    lines.push(`\n*${totalCount} comments (${resolvedCount} resolved, ${openCount} open)*`);
+    const md = lines.join("\n");
+    navigator.clipboard.writeText(md).catch(console.error);
+  }, [threadIds, threads, totalCount, resolvedCount, openCount]);
 
   return (
     <div className="h-full flex flex-col bg-[var(--surface-secondary)]">
@@ -31,26 +54,42 @@ export function CommentsPanel() {
             </span>
           )}
         </div>
-        {resolvedCount > 0 && (
-          <button
-            onClick={() => setShowResolved(!showResolved)}
-            className="text-[12px] text-[var(--accent)] hover:underline"
+        <div className="flex items-center gap-1">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as FilterMode)}
+            className="text-[11px] bg-transparent text-[var(--text-secondary)] border border-[var(--editor-border)] rounded px-1 py-0.5 outline-none"
           >
-            {showResolved ? "Hide resolved" : "Show resolved"}
-          </button>
-        )}
+            <option value="all">All ({totalCount})</option>
+            <option value="open">Open ({openCount})</option>
+            <option value="resolved">Resolved ({resolvedCount})</option>
+          </select>
+          {totalCount > 0 && (
+            <button
+              onClick={handleExportComments}
+              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1"
+              title="Copy comments as markdown"
+            >
+              Export
+            </button>
+          )}
+        </div>
       </div>
       <div className="flex-1 overflow-auto py-2">
         {visibleThreads.length === 0 && (
           <div className="px-4 py-12 text-center text-[var(--text-muted)]">
             <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
             <p className="text-[13px] font-medium text-[var(--text-tertiary)] mb-1">
-              {totalCount === 0 ? "No comments yet" : "All resolved"}
+              {totalCount === 0
+                ? "No comments yet"
+                : filter === "open"
+                  ? "All resolved"
+                  : "No resolved comments"}
             </p>
             <p className="text-[12px]">
               {totalCount === 0
                 ? "Select text and press Cmd+Shift+M to add a comment."
-                : "All comments have been resolved."}
+                : "Try changing the filter."}
             </p>
           </div>
         )}

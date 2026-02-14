@@ -1,6 +1,16 @@
 import { useEditorStore } from "../stores/editorStore";
 import { Circle, MessageSquare } from "./Icons";
 
+function OutlineIcon({ size = 16, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="8" y1="12" x2="20" y2="12" />
+      <line x1="8" y1="18" x2="20" y2="18" />
+    </svg>
+  );
+}
+
 function SidebarIcon({ size = 16, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -20,8 +30,12 @@ export function StatusBar() {
     fileName,
     showFileTree,
     showComments,
+    showOutline,
+    canUndo,
+    canRedo,
     toggleFileTree,
     toggleComments,
+    toggleOutline,
   } = useEditorStore();
 
   return (
@@ -37,6 +51,18 @@ export function StatusBar() {
         title={showFileTree ? "Hide file tree (Cmd+\\)" : "Show file tree (Cmd+\\)"}
       >
         <SidebarIcon size={15} />
+      </button>
+
+      <button
+        onClick={toggleOutline}
+        className={`p-1 rounded transition-colors ${
+          showOutline
+            ? "text-[var(--accent)] bg-[var(--surface-active)]"
+            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+        }`}
+        title={showOutline ? "Hide outline" : "Show outline"}
+      >
+        <OutlineIcon size={15} />
       </button>
 
       <span className="text-[var(--editor-border)]">|</span>
@@ -61,7 +87,29 @@ export function StatusBar() {
         {isSourceMode ? "Source" : "WYSIWYG"}
       </span>
 
-      <span className="ml-auto text-[var(--text-muted)]">
+      {/* Undo/Redo */}
+      <span className="ml-auto flex items-center gap-0.5">
+        <button
+          className={`p-0.5 rounded text-[13px] ${canUndo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
+          onClick={() => canUndo && document.execCommand("undo")}
+          disabled={!canUndo}
+          title="Undo (Cmd+Z)"
+        >
+          &#x21A9;
+        </button>
+        <button
+          className={`p-0.5 rounded text-[13px] ${canRedo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
+          onClick={() => canRedo && document.execCommand("redo")}
+          disabled={!canRedo}
+          title="Redo (Cmd+Shift+Z)"
+        >
+          &#x21AA;
+        </button>
+      </span>
+
+      <span className="text-[var(--editor-border)]">|</span>
+
+      <span className="text-[var(--text-muted)]">
         Ln {cursorPosition.line}, Col {cursorPosition.col}
       </span>
 

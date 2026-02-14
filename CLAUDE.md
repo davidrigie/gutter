@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when <mark>working</mark><sup>[c1]</sup> with code in this repository.
 
 ## Project Overview
 
@@ -43,9 +43,9 @@ Three stores in `src/stores/`:
 
 This is the core differentiator. Understand this before touching comment-related code:
 
-1. **Inline markers in `.md`**: `<mark>highlighted text</mark><sup>[c1]</sup>` — survive standard markdown renderers
-2. **`.comments.json`** — structured thread data (source of truth), keyed by comment ID
-3. **`.comments.md`** — auto-generated human-readable companion, never hand-edited
+1. **Inline markers in **`**.md**`: `<mark>highlighted text</mark><sup>[c1]</sup>` — survive standard markdown renderers
+2. `**.comments.json**` — structured thread data (source of truth), keyed by comment ID
+3. `**.comments.md**` — auto-generated human-readable companion, never hand-edited
 
 Flow: parser.ts extracts markers → CommentMark TipTap extension renders them → serializer.ts writes them back → useComments.ts handles persistence. The `buildCompanionMarkdown()` function in useComments.ts generates the companion file.
 
@@ -70,8 +70,8 @@ In `src/components/Editor/markdown/`:
 
 ### Styling
 
-- **`src/styles/theme.css`** — CSS custom properties (design tokens), light/dark themes, animations. All semantic colors (`--text-primary`, `--surface-hover`, etc.) defined here.
-- **`src/styles/editor.css`** — ProseMirror prose styles, context menu, slash menu, floating bars, code blocks. Component-specific CSS lives here, not in component files.
+- `**src/styles/theme.css**` — CSS custom properties (design tokens), light/dark themes, animations. All semantic colors (`--text-primary`, `--surface-hover`, etc.) defined here.
+- `**src/styles/editor.css**` — ProseMirror prose styles, context menu, slash menu, floating bars, code blocks. Component-specific CSS lives here, not in component files.
 - Components use Tailwind utility classes referencing CSS variables: `text-[var(--text-primary)]`
 
 ### Key Keyboard Shortcuts

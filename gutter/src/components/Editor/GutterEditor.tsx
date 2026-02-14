@@ -6,7 +6,7 @@ import {
   useState,
   useRef,
 } from "react";
-import { useEditor, EditorContent, ReactNodeViewRenderer } from "@tiptap/react";
+import { useEditor, EditorContent, ReactNodeViewRenderer, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
@@ -22,12 +22,26 @@ import { SlashCommands } from "./extensions/SlashCommands";
 import { MathBlock, MathBlockView, MathInline, MathInlineView } from "./extensions/MathBlock";
 import { MermaidBlock, MermaidBlockView } from "./extensions/MermaidBlock";
 import { CodeBlockView } from "./extensions/CodeBlockWithLang";
+import { Extension } from "@tiptap/react";
 import { parseMarkdown } from "./markdown/parser";
 import { serializeMarkdown } from "./markdown/serializer";
+import { invoke } from "@tauri-apps/api/core";
 import { useEditorStore } from "../../stores/editorStore";
 import { useCommentStore } from "../../stores/commentStore";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
+import { FocusMode } from "./extensions/FocusMode";
+import { Frontmatter } from "./extensions/Frontmatter";
+import { WikiLink } from "./extensions/WikiLink";
+import { SpellCheck } from "./extensions/SpellCheck";
+import { createFindReplacePlugin } from "../FindReplace";
 import "../../styles/editor.css";
+
+const FindReplaceExtension = Extension.create({
+  name: "findReplace",
+  addProseMirrorPlugins() {
+    return [createFindReplacePlugin()];
+  },
+});
 
 const lowlight = createLowlight(common);
 
@@ -40,6 +54,7 @@ export interface GutterEditorHandle {
   createComment: () => void;
   navigateComment: (direction: "next" | "prev") => void;
   getMarkdown: () => string;
+  getEditor: () => Editor | null;
 }
 
 export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
@@ -49,6 +64,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       setCursorPosition,
       setDirty,
       setActiveCommentId,
+      setUndoRedo,
     } = useEditorStore();
 
     const { addThread, getNextCommentId } = useCommentStore();
@@ -67,6 +83,27 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
     } | null>(null);
 
     const commentInputRef = useRef<HTMLTextAreaElement>(null);
+    const editorRef = useRef<Editor | null>(null);
+
+    const handleImageInsert = useCallback(async (file: File) => {
+      const filePath = useEditorStore.getState().filePath;
+      if (!filePath) return;
+      const dirPath = filePath.substring(0, filePath.lastIndexOf("/"));
+      const ext = file.name.split(".").pop() || "png";
+      const filename = `image-${Date.now()}.${ext}`;
+      const buffer = await file.arrayBuffer();
+      const data = Array.from(new Uint8Array(buffer));
+      try {
+        const relativePath = await invoke<string>("save_image", {
+          dirPath,
+          filename,
+          data,
+        });
+        editorRef.current?.chain().focus().setImage({ src: relativePath }).run();
+      } catch (e) {
+        console.error("Failed to save image:", e);
+      }
+    }, []);
 
     const editor = useEditor({
       extensions: [
@@ -107,6 +144,11 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
             return ReactNodeViewRenderer(MermaidBlockView);
           },
         }),
+        FindReplaceExtension,
+        FocusMode,
+        Frontmatter,
+        WikiLink,
+        SpellCheck,
       ],
       content: initialContent
         ? parseMarkdown(initialContent)
@@ -153,6 +195,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         const text = e.state.doc.textContent;
         const words = text.split(/\s+/).filter(Boolean).length;
         setWordCount(words);
+        setUndoRedo(e.can().undo(), e.can().redo());
       },
       onSelectionUpdate: ({ editor: e }) => {
         const { from } = e.state.selection;
@@ -173,6 +216,31 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         }
       },
       editorProps: {
+        handlePaste: (_view, event) => {
+          const items = event.clipboardData?.items;
+          if (!items) return false;
+          for (const item of Array.from(items)) {
+            if (item.type.startsWith("image/")) {
+              event.preventDefault();
+              const file = item.getAsFile();
+              if (file) handleImageInsert(file);
+              return true;
+            }
+          }
+          return false;
+        },
+        handleDrop: (_view, event) => {
+          const files = event.dataTransfer?.files;
+          if (!files || files.length === 0) return false;
+          for (const file of Array.from(files)) {
+            if (file.type.startsWith("image/")) {
+              event.preventDefault();
+              handleImageInsert(file);
+              return true;
+            }
+          }
+          return false;
+        },
         handleKeyDown: (_view, event) => {
           if (event.metaKey && event.key === "e") {
             event.preventDefault();
@@ -202,6 +270,11 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         },
       },
     });
+
+    // Keep ref in sync
+    useEffect(() => {
+      editorRef.current = editor;
+    }, [editor]);
 
     // Right-click context menu
     const handleContextMenu = useCallback(
@@ -403,10 +476,12 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       return serializeMarkdown(editor.getJSON());
     }, [editor]);
 
+    const getEditor = useCallback(() => editor, [editor]);
+
     useImperativeHandle(
       ref,
-      () => ({ createComment, navigateComment, getMarkdown }),
-      [createComment, navigateComment, getMarkdown],
+      () => ({ createComment, navigateComment, getMarkdown, getEditor }),
+      [createComment, navigateComment, getMarkdown, getEditor],
     );
 
     // Load content when initialContent changes

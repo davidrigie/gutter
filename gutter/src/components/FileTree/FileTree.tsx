@@ -239,9 +239,64 @@ function FileTreeNode({
   const [expanded, setExpanded] = useState(depth < 1);
   const [renaming, setRenaming] = useState(false);
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const autoExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMd = entry.name.endsWith(".md") || entry.name.endsWith(".markdown");
   const activeTabPath = useWorkspaceStore((s) => s.activeTabPath);
   const isSelected = entry.path === activeTabPath;
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("text/plain", entry.path);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!entry.is_dir) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+    // Auto-expand after 800ms
+    if (!autoExpandTimer.current) {
+      autoExpandTimer.current = setTimeout(() => {
+        setExpanded(true);
+        autoExpandTimer.current = null;
+      }, 800);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+    if (autoExpandTimer.current) {
+      clearTimeout(autoExpandTimer.current);
+      autoExpandTimer.current = null;
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (autoExpandTimer.current) {
+      clearTimeout(autoExpandTimer.current);
+      autoExpandTimer.current = null;
+    }
+    if (!entry.is_dir) return;
+    const sourcePath = e.dataTransfer.getData("text/plain");
+    if (!sourcePath || sourcePath === entry.path) return;
+    // Prevent dropping into own children
+    if (entry.path.startsWith(sourcePath + "/")) return;
+    const fileName = sourcePath.split("/").pop();
+    if (!fileName) return;
+    const newPath = `${entry.path}/${fileName}`;
+    try {
+      await invoke("rename_path", { oldPath: sourcePath, newPath });
+      const ws = useWorkspaceStore.getState();
+      if (ws.workspacePath) await ws.loadFileTree(ws.workspacePath);
+    } catch (err) {
+      console.error("Move failed:", err);
+    }
+  };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -289,8 +344,15 @@ function FileTreeNode({
     return (
       <div>
         <div
-          className="flex items-center gap-1 py-[3px] cursor-pointer hover:bg-[var(--surface-hover)] select-none transition-colors text-[13px]"
+          className={`flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
+            dragOver ? "bg-[rgba(59,130,246,0.15)]" : "hover:bg-[var(--surface-hover)]"
+          }`}
           style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
+          draggable
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
           onClick={() => setExpanded(!expanded)}
           onContextMenu={handleContextMenu}
         >
@@ -394,6 +456,8 @@ function FileTreeNode({
           : "hover:bg-[var(--surface-hover)]"
       }`}
       style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
+      draggable
+      onDragStart={handleDragStart}
       onClick={() => !renaming && onFileOpen(entry.path)}
       onContextMenu={handleContextMenu}
     >

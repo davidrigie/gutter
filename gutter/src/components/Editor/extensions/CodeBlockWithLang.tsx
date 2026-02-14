@@ -74,9 +74,7 @@ export function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
           )}
         </div>
       </div>
-      <pre>
-        <NodeViewContent as={"code" as "div"} />
-      </pre>
+      <NodeViewContent as={"code" as "div"} className="code-block-content" />
     </NodeViewWrapper>
   );
 }

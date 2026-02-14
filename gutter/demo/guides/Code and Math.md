@@ -113,4 +113,4 @@ sequenceDiagram
     F-->>U: "Saved" indicator
 ```
 
-See also: [[Writing Demo]] for text formatting, [[Welcome]] for shortcuts.
+See also: [[Writing Demo]] for text formatting, [[Welcome]] for shortcuts.'

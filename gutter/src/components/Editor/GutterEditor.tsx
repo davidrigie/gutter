@@ -288,9 +288,18 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           }
           if (event.metaKey && event.key === "k") {
             event.preventDefault();
-            const url = window.prompt("Link URL:");
-            if (url) {
-              editor?.chain().focus().setLink({ href: url }).run();
+            if (editor?.state.selection.empty) {
+              // No selection — insert placeholder link
+              editor?.chain().focus().insertContent({
+                type: "text",
+                text: "link text",
+                marks: [{ type: "link", attrs: { href: "https://" } }],
+              }).run();
+              const { to } = editor!.state.selection;
+              editor?.commands.setTextSelection({ from: to - 9, to });
+            } else {
+              // Wrap selection in link — placeholder URL, edit via floating bar
+              editor?.chain().focus().setLink({ href: "https://" }).run();
             }
             return true;
           }
@@ -383,9 +392,16 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           icon: "🔗",
           shortcut: "Cmd+K",
           action: () => {
-            const url = window.prompt("Link URL:");
-            if (url) {
-              editor.chain().focus().setLink({ href: url }).run();
+            if (editor.state.selection.empty) {
+              editor.chain().focus().insertContent({
+                type: "text",
+                text: "link text",
+                marks: [{ type: "link", attrs: { href: "https://" } }],
+              }).run();
+              const { to } = editor.state.selection;
+              editor.commands.setTextSelection({ from: to - 9, to });
+            } else {
+              editor.chain().focus().setLink({ href: "https://" }).run();
             }
           },
         });

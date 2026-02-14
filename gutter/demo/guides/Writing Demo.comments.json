@@ -10,8 +10,30 @@
           "body": "Comments work inside tables too! The markers are standard HTML so they survive in any context."
         }
       ],
-      "resolved": false,
-      "createdAt": "2025-01-15T11:00:00.000Z"
+      "resolved": true,
+      "createdAt": "2025-01-15T11:00:00.000Z",
+      "resolvedBy": "User",
+      "resolvedAt": "2026-02-14T23:53:02.940Z"
+    },
+    "c2": {
+      "thread": [
+        {
+          "id": "m_g0trkbqg",
+          "author": "User",
+          "timestamp": "2026-02-14T23:53:28.461Z",
+          "body": "Another comment"
+        },
+        {
+          "id": "m_1pf0t2qn",
+          "author": "User",
+          "timestamp": "2026-02-14T23:53:31.759Z",
+          "body": "Yeah"
+        }
+      ],
+      "resolved": true,
+      "createdAt": "2026-02-14T23:53:28.461Z",
+      "resolvedBy": "User",
+      "resolvedAt": "2026-02-14T23:53:32.922Z"
     }
   }
 }

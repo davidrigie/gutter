@@ -948,6 +948,11 @@
 .wiki-link-inline:hover {
   text-decoration-style: solid;
 }
+/* Non-existent wiki link target — dimmer, dashed */
+.wiki-link-new {
+  opacity: 0.55;
+  text-decoration-style: dashed;
+}
 .wiki-link-bracket {
   font-size: 0;
   color: transparent;

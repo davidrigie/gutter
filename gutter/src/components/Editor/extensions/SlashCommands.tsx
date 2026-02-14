@@ -75,6 +75,34 @@ const SLASH_ITEMS: SlashCommandItem[] = [
     },
   },
   {
+    title: "Link",
+    description: "Insert a hyperlink",
+    icon: "\uD83D\uDD17",
+    action: (editor) => {
+      // Insert placeholder link text with a link mark — user can then
+      // edit the text inline and the URL via the floating link editor
+      editor.chain().focus().insertContent({
+        type: "text",
+        text: "link text",
+        marks: [{ type: "link", attrs: { href: "https://" } }],
+      }).run();
+      // Select the placeholder text so typing replaces it
+      const { to } = editor.state.selection;
+      editor.commands.setTextSelection({ from: to - 9, to });
+    },
+  },
+  {
+    title: "Wiki Link",
+    description: "Link to another note",
+    icon: "[[",
+    action: (editor) => {
+      editor.chain().focus().insertContent("[[]]").run();
+      // Move cursor between the brackets
+      const pos = editor.state.selection.from - 2;
+      editor.commands.setTextSelection(pos);
+    },
+  },
+  {
     title: "Image",
     description: "Insert image from URL",
     icon: "img",

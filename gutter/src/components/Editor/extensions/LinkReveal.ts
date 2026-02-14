@@ -2,6 +2,22 @@ import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { Node as PMNode, Mark } from "@tiptap/pm/model";
+import { useWorkspaceStore, type FileEntry } from "../../../stores/workspaceStore";
+
+function wikiTargetExists(target: string): boolean {
+  const { fileTree } = useWorkspaceStore.getState();
+  const search = (entries: FileEntry[]): boolean => {
+    for (const entry of entries) {
+      if (!entry.is_dir) {
+        const nameWithoutExt = entry.name.replace(/\.md$/, "");
+        if (nameWithoutExt === target || entry.name === target) return true;
+      }
+      if (entry.children && search(entry.children)) return true;
+    }
+    return false;
+  };
+  return search(fileTree);
+}
 
 const lineRevealKey = new PluginKey("lineReveal");
 
@@ -232,10 +248,11 @@ export const LinkReveal = Extension.create({
                   class: "wiki-link-bracket wiki-link-bracket-visible",
                 }),
               );
-              // Style inner text as link
+              // Style inner text as link — dim if target doesn't exist
+              const exists = wikiTargetExists(wl.target);
               decorations.push(
                 Decoration.inline(wl.innerStart, wl.innerEnd, {
-                  class: "wiki-link-inline",
+                  class: exists ? "wiki-link-inline" : "wiki-link-inline wiki-link-new",
                   "data-wiki-target": wl.target,
                 }),
               );

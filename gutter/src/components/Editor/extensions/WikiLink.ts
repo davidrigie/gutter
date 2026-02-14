@@ -1,8 +1,24 @@
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { useWorkspaceStore, type FileEntry } from "../../../stores/workspaceStore";
 
 const wikiLinkPluginKey = new PluginKey("wikiLinkDecorations");
+
+function wikiTargetExists(target: string): boolean {
+  const { fileTree } = useWorkspaceStore.getState();
+  const search = (entries: FileEntry[]): boolean => {
+    for (const entry of entries) {
+      if (!entry.is_dir) {
+        const nameWithoutExt = entry.name.replace(/\.md$/, "");
+        if (nameWithoutExt === target || entry.name === target) return true;
+      }
+      if (entry.children && search(entry.children)) return true;
+    }
+    return false;
+  };
+  return search(fileTree);
+}
 
 /**
  * Wiki link rendering: hides [[ and ]] brackets, styles inner text as a link.
@@ -53,10 +69,11 @@ export const WikiLink = Extension.create({
                     class: "wiki-link-bracket",
                   }),
                 );
-                // Style inner text as link
+                // Style inner text as link — dim if target doesn't exist
+                const exists = wikiTargetExists(match[1]);
                 decorations.push(
                   Decoration.inline(innerStart, innerEnd, {
-                    class: "wiki-link-inline",
+                    class: exists ? "wiki-link-inline" : "wiki-link-inline wiki-link-new",
                     "data-wiki-target": match[1],
                   }),
                 );

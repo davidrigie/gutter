@@ -207,7 +207,26 @@ function App() {
       };
       const { fileTree } = useWorkspaceStore.getState();
       const found = findFile(fileTree);
-      if (found) handleFileTreeOpen(found);
+      if (found) {
+        handleFileTreeOpen(found);
+      } else {
+        // Create the file in the same directory as the current file
+        const currentPath = useEditorStore.getState().filePath;
+        const dir = currentPath
+          ? currentPath.substring(0, currentPath.lastIndexOf("/"))
+          : workspacePath;
+        const fileName = target.endsWith(".md") ? target : `${target}.md`;
+        const newPath = `${dir}/${fileName}`;
+        invoke("write_file", { path: newPath, content: `# ${target}\n\n` })
+          .then(() => {
+            if (workspacePath) loadFileTree(workspacePath);
+            handleFileTreeOpen(newPath);
+            useToastStore.getState().addToast(`Created ${fileName}`, "success", 2000);
+          })
+          .catch(() => {
+            useToastStore.getState().addToast(`Failed to create ${fileName}`, "error");
+          });
+      }
     };
     window.addEventListener("wiki-link-click", handler);
 
@@ -230,7 +249,7 @@ function App() {
       window.removeEventListener("wiki-link-click", handler);
       window.removeEventListener("internal-link-click", internalLinkHandler);
     };
-  }, [workspacePath, handleFileTreeOpen]);
+  }, [workspacePath, handleFileTreeOpen, loadFileTree]);
 
   // Save handler — also saves comments and generates companion
   const handleSave = useCallback(async () => {

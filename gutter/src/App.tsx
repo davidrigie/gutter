@@ -206,7 +206,26 @@ function App() {
       if (found) handleFileTreeOpen(found);
     };
     window.addEventListener("wiki-link-click", handler);
-    return () => window.removeEventListener("wiki-link-click", handler);
+
+    // Internal markdown link click handler
+    const internalLinkHandler = (e: Event) => {
+      const href = (e as CustomEvent).detail?.href;
+      if (!href) return;
+      const currentPath = useEditorStore.getState().filePath;
+      if (!currentPath) return;
+      // Resolve relative to current file's directory
+      const dir = currentPath.substring(0, currentPath.lastIndexOf("/"));
+      const resolved = `${dir}/${href}`;
+      // Add .md extension if not present
+      const target = resolved.endsWith(".md") ? resolved : `${resolved}.md`;
+      handleFileTreeOpen(target);
+    };
+    window.addEventListener("internal-link-click", internalLinkHandler);
+
+    return () => {
+      window.removeEventListener("wiki-link-click", handler);
+      window.removeEventListener("internal-link-click", internalLinkHandler);
+    };
   }, [workspacePath, handleFileTreeOpen]);
 
   // Save handler — also saves comments and generates companion

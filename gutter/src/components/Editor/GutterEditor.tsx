@@ -266,9 +266,17 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
             const href = link.getAttribute("href");
             if (href) {
               event.preventDefault();
-              invoke("open_url", { url: href }).catch(() =>
-                window.open(href, "_blank"),
-              );
+              // Relative .md links open in Gutter
+              const isExternal = /^https?:\/\//.test(href);
+              if (!isExternal && (href.endsWith(".md") || !href.includes("."))) {
+                window.dispatchEvent(
+                  new CustomEvent("internal-link-click", { detail: { href } }),
+                );
+              } else if (isExternal) {
+                invoke("open_url", { url: href }).catch(() =>
+                  window.open(href, "_blank"),
+                );
+              }
               return true;
             }
           }

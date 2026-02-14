@@ -1,5 +1,7 @@
 use std::fs;
 use std::path::Path;
+use tauri::AppHandle;
+use super::watcher;
 
 #[tauri::command]
 pub fn read_comments(path: String) -> Result<String, String> {
@@ -13,7 +15,8 @@ pub fn read_comments(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn write_comments(path: String, content: String) -> Result<(), String> {
+pub fn write_comments(app: AppHandle, path: String, content: String) -> Result<(), String> {
+    watcher::mark_write(&app);
     let comments_path = comments_json_path(&path);
     fs::write(&comments_path, &content)
         .map_err(|e| format!("Failed to write comments: {}", e))
@@ -37,7 +40,8 @@ pub fn delete_comments(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn write_companion(path: String, content: String) -> Result<(), String> {
+pub fn write_companion(app: AppHandle, path: String, content: String) -> Result<(), String> {
+    watcher::mark_write(&app);
     let companion_path = comments_md_path(&path);
     fs::write(&companion_path, &content)
         .map_err(|e| format!("Failed to write companion: {}", e))

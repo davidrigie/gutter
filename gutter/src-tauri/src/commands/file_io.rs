@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use tauri::AppHandle;
+use super::watcher;
 
 #[tauri::command]
 pub fn read_file(path: String) -> Result<String, String> {
@@ -8,7 +10,8 @@ pub fn read_file(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn write_file(path: String, content: String) -> Result<(), String> {
+pub fn write_file(app: AppHandle, path: String, content: String) -> Result<(), String> {
+    watcher::mark_write(&app);
     fs::write(&path, &content).map_err(|e| format!("Failed to write file: {}", e))
 }
 

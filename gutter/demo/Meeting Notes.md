@@ -4,7 +4,6 @@ date: 2025-01-20
 author: Dave
 tags: [meeting, product, review]
 ---
-
 # Product Review — Jan 20, 2025
 
 **Attendees:** Dave, Sarah, Mike
@@ -22,6 +21,7 @@ tags: [meeting, product, review]
 We shipped the <mark>core editor with commenting</mark><sup>[c1]</sup>, file tree, and multi-tab support. The three-file comment model is working well in practice.
 
 Key metrics:
+
 - Editor load time: **< 200ms**
 - File save round-trip: **< 50ms**
 - <mark>Comment persistence</mark><sup>[c2]</sup>: 100% fidelity in round-trip tests
@@ -39,11 +39,11 @@ Priorities for the next quarter:
 
 ### Open Issues
 
-- [ ] Fix paste handling for complex HTML tables
-- [ ] Improve mermaid diagram error messages
-- [x] Add find & replace (shipped!)
-- [x] Add version history (shipped!)
-- [ ] Consider adding collaborative cursors
+- Fix paste handling for complex HTML tables
+- Improve mermaid diagram error messages
+- Add find & replace (shipped!)
+- Add version history (shipped!)
+- Consider adding collaborative cursors
 
 ## Action Items
 

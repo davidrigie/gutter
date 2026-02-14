@@ -4,7 +4,6 @@ author: Sarah
 date: 2025-01-25
 tags: [research, crdt, collaboration]
 ---
-
 # CRDTs & Collaboration Research
 
 Research notes for adding real-time collaboration to Gutter. See [[Meeting Notes]] for context.
@@ -72,3 +71,5 @@ $$
 1. How do we handle <mark>comment sync</mark><sup>[c2]</sup> across peers?
 2. What's the latency budget for real-time cursors?
 3. Should we use WebRTC for peer-to-peer or a relay server?
+
+

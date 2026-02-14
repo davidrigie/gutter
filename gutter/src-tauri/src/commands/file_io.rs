@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 #[tauri::command]
 pub fn read_file(path: String) -> Result<String, String> {
@@ -69,4 +70,27 @@ pub fn save_image(dir_path: String, filename: String, data: Vec<u8>) -> Result<S
     let file_path = assets_dir.join(&filename);
     fs::write(&file_path, &data).map_err(|e| format!("Failed to save image: {}", e))?;
     Ok(format!("./assets/{}", filename))
+}
+
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    Command::new("open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| format!("Failed to open URL: {}", e))?;
+
+    #[cfg(target_os = "linux")]
+    Command::new("xdg-open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| format!("Failed to open URL: {}", e))?;
+
+    #[cfg(target_os = "windows")]
+    Command::new("cmd")
+        .args(["/c", "start", &url])
+        .spawn()
+        .map_err(|e| format!("Failed to open URL: {}", e))?;
+
+    Ok(())
 }

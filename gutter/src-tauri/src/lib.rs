@@ -26,6 +26,7 @@ pub fn run() {
             commands::file_io::rename_path,
             commands::file_io::delete_path,
             commands::file_io::save_image,
+            commands::file_io::open_url,
             commands::comments::read_comments,
             commands::comments::write_comments,
             commands::comments::delete_comments,

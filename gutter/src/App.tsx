@@ -141,6 +141,7 @@ function App() {
 
   // Open file handler
   const handleOpenFile = useCallback(async () => {
+    suppressFileChangedUntil.current = Date.now() + 2000;
     const content = await openFile();
     if (content !== null) {
       setEditorContent(content);
@@ -160,6 +161,8 @@ function App() {
   const handleFileTreeOpen = useCallback(
     async (path: string) => {
       try {
+        suppressFileChangedUntil.current = Date.now() + 2000;
+        setShowReloadPrompt(false);
         const content = await invoke<string>("read_file", { path });
         setFilePath(path);
         setEditorContent(content);
@@ -225,6 +228,8 @@ function App() {
   // Tab handlers
   const handleSwitchTab = useCallback(
     async (path: string) => {
+      suppressFileChangedUntil.current = Date.now() + 2000;
+      setShowReloadPrompt(false);
       setActiveTab(path);
       try {
         const content = await invoke<string>("read_file", { path });

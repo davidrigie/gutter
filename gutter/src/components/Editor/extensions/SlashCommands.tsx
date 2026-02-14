@@ -280,6 +280,8 @@ class SlashMenu {
     this.wrapper.style.left = `${coords.left}px`;
     this.wrapper.style.top = `${coords.bottom + 4}px`;
     this.wrapper.style.zIndex = "9999";
+    this.wrapper.style.maxHeight = "min(360px, 60vh)";
+    this.wrapper.style.overflowY = "auto";
 
     // Prevent clicks from blurring the editor
     this.wrapper.addEventListener("mousedown", (e) => {
@@ -289,6 +291,25 @@ class SlashMenu {
     this.buildList();
     document.body.appendChild(this.wrapper);
     this.isOpen = true;
+
+    // Adjust position to keep menu in viewport
+    requestAnimationFrame(() => {
+      const rect = this.wrapper.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (rect.right > vw) {
+        this.wrapper.style.left = `${Math.max(4, vw - rect.width - 4)}px`;
+      }
+      if (rect.bottom > vh) {
+        this.wrapper.style.top = `${Math.max(4, coords.bottom - 4 - rect.height)}px`;
+        // If it still doesn't fit above, cap height and anchor to bottom
+        const newRect = this.wrapper.getBoundingClientRect();
+        if (newRect.top < 0) {
+          this.wrapper.style.top = "4px";
+          this.wrapper.style.maxHeight = `${vh - 8}px`;
+        }
+      }
+    });
 
     // Close when clicking outside
     this._outsideClickHandler = (e: MouseEvent) => {

@@ -42,11 +42,20 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
       const rect = menuRef.current.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
+      let adjustedX = x;
+      let adjustedY = y;
       if (rect.right > vw) {
-        menuRef.current.style.left = `${x - rect.width}px`;
+        adjustedX = Math.max(4, vw - rect.width - 4);
       }
       if (rect.bottom > vh) {
-        menuRef.current.style.top = `${y - rect.height}px`;
+        adjustedY = Math.max(4, y - rect.height);
+      }
+      menuRef.current.style.left = `${adjustedX}px`;
+      menuRef.current.style.top = `${adjustedY}px`;
+      // If still overflows vertically, cap it
+      const newRect = menuRef.current.getBoundingClientRect();
+      if (newRect.bottom > vh) {
+        menuRef.current.style.maxHeight = `${vh - newRect.top - 4}px`;
       }
     }
   }, [x, y]);
@@ -55,7 +64,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     <div
       ref={menuRef}
       className="context-menu"
-      style={{ left: x, top: y }}
+      style={{ left: x, top: y, maxHeight: "80vh", overflowY: "auto" }}
     >
       {items.map((item, i) =>
         item.separator ? (

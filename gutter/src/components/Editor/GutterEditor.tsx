@@ -259,6 +259,21 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         },
         handleClick: (_view, _pos, event) => {
           const target = event.target as HTMLElement;
+
+          // Handle link clicks
+          const link = target.closest("a[href]");
+          if (link) {
+            const href = link.getAttribute("href");
+            if (href) {
+              event.preventDefault();
+              invoke("open_url", { url: href }).catch(() =>
+                window.open(href, "_blank"),
+              );
+              return true;
+            }
+          }
+
+          // Handle comment mark clicks
           const mark = target.closest("mark[data-comment-id]");
           if (mark) {
             const commentId = mark.getAttribute("data-comment-id");

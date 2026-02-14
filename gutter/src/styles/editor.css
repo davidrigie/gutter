@@ -110,25 +110,34 @@
   text-decoration: underline;
 }
 
-/* Typora-style link reveal when cursor is inside */
-.link-reveal-bracket {
+/* Typora-style line reveal: show raw markdown syntax on active line */
+.line-reveal-syntax {
   color: var(--text-muted);
-  opacity: 0.6;
+  opacity: 0.45;
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+}
+/* Un-style <a> tags on the active line so they look like plain text */
+.line-reveal-has-links a[href] {
+  color: inherit !important;
+  text-decoration: none !important;
+  cursor: text;
+}
+.line-reveal-url {
+  color: var(--text-muted);
+  opacity: 0.45;
   font-size: 0.9em;
 }
-.link-reveal-url {
-  color: var(--text-muted);
-  opacity: 0.6;
-  font-size: 0.85em;
-}
-.link-reveal-url-editable {
+.line-reveal-url-editable {
   cursor: pointer;
+  color: var(--text-muted);
   text-decoration: underline;
   text-decoration-style: dotted;
 }
-.link-reveal-url-editable:hover {
-  opacity: 1;
+.line-reveal-url-editable:hover {
   color: var(--accent);
+  opacity: 1;
 }
 
 .ProseMirror img {

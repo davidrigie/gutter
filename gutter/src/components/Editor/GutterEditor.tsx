@@ -84,6 +84,16 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       y: number;
     } | null>(null);
 
+    const [linkEdit, setLinkEdit] = useState<{
+      href: string;
+      from: number;
+      to: number;
+      x: number;
+      y: number;
+    } | null>(null);
+
+    const linkInputRef = useRef<HTMLInputElement>(null);
+
     const commentInputRef = useRef<HTMLTextAreaElement>(null);
     const editorRef = useRef<Editor | null>(null);
 
@@ -217,6 +227,31 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         const commentMark = marks.find((m) => m.type.name === "commentMark");
         if (commentMark) {
           setActiveCommentId(commentMark.attrs.commentId);
+        }
+
+        // Detect if cursor is inside a link mark for floating editor
+        const linkMark = marks.find((m) => m.type.name === "link");
+        if (linkMark) {
+          const href = linkMark.attrs.href;
+          // Find link extent
+          const parent = resolved.parent;
+          const parentStart = resolved.start();
+          let linkFrom = -1;
+          let linkTo = -1;
+          parent.forEach((node, offset) => {
+            const nodeStart = parentStart + offset;
+            const nodeEnd = nodeStart + node.nodeSize;
+            if (node.isText && node.marks.some((m) => m.type.name === "link" && m.attrs.href === href)) {
+              if (linkFrom === -1) linkFrom = nodeStart;
+              linkTo = nodeEnd;
+            }
+          });
+          if (linkFrom !== -1 && linkTo !== -1) {
+            const coords = e.view.coordsAtPos(linkTo);
+            setLinkEdit({ href, from: linkFrom, to: linkTo, x: coords.left, y: coords.bottom + 4 });
+          }
+        } else {
+          setLinkEdit(null);
         }
       },
       editorProps: {
@@ -526,6 +561,67 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
     return (
       <div className="h-full overflow-auto" onContextMenu={handleContextMenu}>
         <EditorContent editor={editor} className="h-full" />
+
+        {linkEdit && (
+          <div
+            className="fixed z-50 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[var(--editor-border)] bg-[var(--surface-primary)] shadow-lg text-[12px]"
+            style={{ left: linkEdit.x, top: linkEdit.y }}
+          >
+            <input
+              ref={linkInputRef}
+              className="bg-transparent border border-[var(--editor-border)] rounded px-1.5 py-0.5 text-[var(--text-secondary)] w-[260px] outline-none focus:border-[var(--accent)]"
+              defaultValue={linkEdit.href}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const newHref = (e.target as HTMLInputElement).value.trim();
+                  if (newHref && newHref !== linkEdit.href && editor) {
+                    const { tr } = editor.state;
+                    const linkType = editor.state.schema.marks.link;
+                    tr.removeMark(linkEdit.from, linkEdit.to, linkType);
+                    tr.addMark(linkEdit.from, linkEdit.to, linkType.create({ href: newHref, rel: "noopener noreferrer" }));
+                    editor.view.dispatch(tr);
+                  }
+                  setLinkEdit(null);
+                  editor?.commands.focus();
+                }
+                if (e.key === "Escape") {
+                  setLinkEdit(null);
+                  editor?.commands.focus();
+                }
+                e.stopPropagation();
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            />
+            <button
+              className="text-[var(--text-muted)] hover:text-[var(--accent)] px-1"
+              title="Open link"
+              onClick={() => {
+                const href = linkEdit.href;
+                if (/^https?:\/\//.test(href)) {
+                  invoke("open_url", { url: href }).catch(() => window.open(href, "_blank"));
+                }
+              }}
+            >
+              Open
+            </button>
+            <button
+              className="text-[var(--text-muted)] hover:text-red-500 px-1"
+              title="Remove link"
+              onClick={() => {
+                if (editor) {
+                  const { tr } = editor.state;
+                  tr.removeMark(linkEdit.from, linkEdit.to, editor.state.schema.marks.link);
+                  editor.view.dispatch(tr);
+                }
+                setLinkEdit(null);
+                editor?.commands.focus();
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        )}
 
         {contextMenu && (
           <ContextMenu

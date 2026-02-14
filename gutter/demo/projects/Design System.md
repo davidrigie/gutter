@@ -2,7 +2,6 @@
 title: Design System
 tags: [project, design, ui]
 ---
-
 # Design System
 
 Gutter's visual design is built on CSS custom properties for full theme flexibility.

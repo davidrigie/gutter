@@ -110,6 +110,27 @@
   text-decoration: underline;
 }
 
+/* Typora-style link reveal when cursor is inside */
+.link-reveal-bracket {
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+.link-reveal-url {
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-size: 0.85em;
+}
+.link-reveal-url-editable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+.link-reveal-url-editable:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
 .ProseMirror img {
   max-width: 100%;
   height: auto;
@@ -917,6 +938,88 @@
 }
 .wiki-link-inline:hover {
   text-decoration-style: solid;
+}
+.wiki-link-bracket {
+  font-size: 0;
+  color: transparent;
+  user-select: none;
+}
+/* Show brackets only when cursor is inside this specific wiki link */
+.wiki-link-bracket-visible {
+  font-size: inherit;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SOURCE MODE (highlighted textarea overlay)
+   ═══════════════════════════════════════════════════════ */
+
+.source-highlight-pre,
+.source-textarea-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2rem;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
+  max-width: 48rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.source-highlight-pre {
+  color: var(--text-primary);
+  pointer-events: none;
+}
+
+.source-textarea-overlay {
+  color: transparent;
+  caret-color: var(--text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  z-index: 1;
+}
+
+/* Lowlight / highlight.js token colors using theme vars */
+.source-highlight-pre .hljs-section,
+.source-highlight-pre .hljs-title {
+  color: var(--accent, #3b82f6);
+  font-weight: 600;
+}
+.source-highlight-pre .hljs-emphasis {
+  font-style: italic;
+  color: var(--text-secondary);
+}
+.source-highlight-pre .hljs-strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.source-highlight-pre .hljs-bullet {
+  color: var(--accent, #3b82f6);
+}
+.source-highlight-pre .hljs-link {
+  color: var(--accent, #3b82f6);
+  text-decoration: underline;
+}
+.source-highlight-pre .hljs-string,
+.source-highlight-pre .hljs-attr {
+  color: #10b981;
+}
+.source-highlight-pre .hljs-code {
+  color: #f59e0b;
+}
+.source-highlight-pre .hljs-quote {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* ═══════════════════════════════════════════════════════

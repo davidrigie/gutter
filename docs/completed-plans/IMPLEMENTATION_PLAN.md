@@ -227,7 +227,7 @@ Gutter is a functional prototype markdown editor (Tauri v2 + React 19 + TipTap 3
 ## Implementation Order Summary
 
 | Phase | Feature | Complexity | New Files |
-|-------|---------|-----------|-----------|
+| --- | --- | --- | --- |
 | 0 | Settings Infrastructure | Medium | settingsStore.ts, settings.rs |
 | 1 | Resizable Panels | Medium | ResizeHandle.tsx |
 | 2 | Find & Replace | Large | FindReplace.tsx |
@@ -258,6 +258,7 @@ Gutter is a functional prototype markdown editor (Tauri v2 + React 19 + TipTap 3
 ## Verification
 
 After each phase:
+
 1. `npx tsc --noEmit` — must pass with no errors
 2. `npm test` — all existing tests must pass
 3. `npm run tauri dev` — manual smoke test of the new feature
@@ -269,3 +270,7 @@ After each phase:
 - `nspell` + dictionary (npm) — for spell check (Phase 16), OR use OS spellcheck via Tauri
 - `diff` (npm) — for version history diff view (Phase 15)
 - No new Rust crates needed (`notify` already present)
+
+
+
+

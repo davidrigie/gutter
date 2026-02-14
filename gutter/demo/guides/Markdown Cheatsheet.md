@@ -1,6 +1,8 @@
 ---
 title: Markdown Cheatsheet
-tags: [guide, reference]
+tags:
+  - guide
+  - reference
 ---
 # Markdown Cheatsheet
 
@@ -13,7 +15,7 @@ A quick reference for markdown syntax supported in Gutter.
 | `**bold**` | **bold** |
 | `*italic*` | *italic* |
 | `~~strike~~` | ~~strike~~ |
-| ``code`` | `code` |
+| `code` | `code` |
 | `[link](url)` | [link](https://example.com) |
 | `[[Wiki Link]]` | [[Welcome]] |
 
@@ -45,26 +47,40 @@ Use triple backticks with an optional language:
 ```python
 print("hello")
 ```
-```
 
+```
 ### Math
 
 Inline: `$E = mc^2$` renders as $E = mc^2$
 
 Block:
-
 ```
+
 MATH_BLOCK_0
-```
 
+```
 ### Mermaid Diagrams
-
 ```
+
 ```mermaid
 graph LR
     A --> B --> C
 ```
+
 ```
+## Blockquotes
+
+```
+
+> This is a blockquote
+> 
+> It can span multiple lines
+
+```
+
+> This is a blockquote
+>
+> It can span multiple lines
 
 ## Gutter-Specific
 

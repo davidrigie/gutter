@@ -6,6 +6,8 @@ import { CommentsPanel } from "./components/Comments/CommentsPanel";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
 import { CommandPalette } from "./components/CommandPalette";
+import { ToastContainer } from "./components/Toast";
+import { useToastStore } from "./stores/toastStore";
 import { ResizeHandle } from "./components/ResizeHandle";
 import { FindReplace } from "./components/FindReplace";
 import { QuickOpen } from "./components/QuickOpen";
@@ -23,6 +25,8 @@ import { useFileOps } from "./hooks/useFileOps";
 import { useComments } from "./hooks/useComments";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { ask } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 function App() {
   const {
@@ -141,7 +145,7 @@ function App() {
 
   // Open file handler
   const handleOpenFile = useCallback(async () => {
-    suppressFileChangedUntil.current = Date.now() + 2000;
+    suppressFileChangedUntil.current = Date.now() + 5000;
     const content = await openFile();
     if (content !== null) {
       setEditorContent(content);
@@ -161,7 +165,7 @@ function App() {
   const handleFileTreeOpen = useCallback(
     async (path: string) => {
       try {
-        suppressFileChangedUntil.current = Date.now() + 2000;
+        suppressFileChangedUntil.current = Date.now() + 5000;
         setShowReloadPrompt(false);
         const content = await invoke<string>("read_file", { path });
         setFilePath(path);
@@ -232,7 +236,7 @@ function App() {
   const handleSave = useCallback(async () => {
     const md = markdownRef.current;
     // Suppress file-changed notifications for 2s after our own save
-    suppressFileChangedUntil.current = Date.now() + 2000;
+    suppressFileChangedUntil.current = Date.now() + 5000;
     await saveFile(md);
     await saveComments();
     await generateCompanion(md);
@@ -241,13 +245,14 @@ function App() {
       setTabDirty(path, false);
       // Auto-snapshot for version history
       useHistoryStore.getState().saveSnapshot(path, md);
+      useToastStore.getState().addToast("File saved", "success", 2000);
     }
   }, [saveFile, saveComments, generateCompanion, setTabDirty]);
 
   // Tab handlers
   const handleSwitchTab = useCallback(
     async (path: string) => {
-      suppressFileChangedUntil.current = Date.now() + 2000;
+      suppressFileChangedUntil.current = Date.now() + 5000;
       setShowReloadPrompt(false);
       setActiveTab(path);
       try {
@@ -260,6 +265,7 @@ function App() {
         setDirty(false);
         await loadCommentsFromFile(path);
       } catch (e) {
+        useToastStore.getState().addToast("Failed to switch tab", "error");
         console.error("Failed to switch tab:", e);
       }
     },
@@ -267,10 +273,20 @@ function App() {
   );
 
   const handleCloseTab = useCallback(
-    (path: string) => {
+    async (path: string) => {
+      const tab = openTabs.find((t) => t.path === path);
+      if (tab?.isDirty) {
+        const shouldSave = await ask(
+          `"${tab.name}" has unsaved changes. Save before closing?`,
+          { title: "Unsaved Changes", kind: "warning" },
+        );
+        if (shouldSave && path === useEditorStore.getState().filePath) {
+          await handleSave();
+        }
+      }
       removeTab(path);
     },
-    [removeTab],
+    [openTabs, removeTab, handleSave],
   );
 
   // Comment navigation
@@ -408,6 +424,27 @@ function App() {
       }
     }
   }, [theme]);
+
+  // Prevent closing window with dirty tabs
+  useEffect(() => {
+    const unlisten = getCurrentWindow().onCloseRequested(async (event) => {
+      const { openTabs: tabs } = useWorkspaceStore.getState();
+      const hasDirty = tabs.some((t) => t.isDirty);
+      if (hasDirty) {
+        event.preventDefault();
+        const shouldClose = await ask(
+          "You have unsaved changes. Close without saving?",
+          { title: "Unsaved Changes", kind: "warning" },
+        );
+        if (shouldClose) {
+          getCurrentWindow().destroy();
+        }
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   // Update document title
   useEffect(() => {
@@ -581,6 +618,8 @@ function App() {
           onClose={() => setShowCommandPalette(false)}
         />
       )}
+
+      <ToastContainer />
     </div>
   );
 }

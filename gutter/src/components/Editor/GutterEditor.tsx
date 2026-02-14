@@ -33,6 +33,8 @@ import { FocusMode } from "./extensions/FocusMode";
 import { Frontmatter } from "./extensions/Frontmatter";
 import { WikiLink } from "./extensions/WikiLink";
 import { SpellCheck } from "./extensions/SpellCheck";
+import { MarkdownLinkInput } from "./extensions/MarkdownLinkInput";
+import { LinkReveal } from "./extensions/LinkReveal";
 import { createFindReplacePlugin } from "../FindReplace";
 import "../../styles/editor.css";
 
@@ -149,6 +151,8 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         Frontmatter,
         WikiLink,
         SpellCheck,
+        MarkdownLinkInput,
+        LinkReveal,
       ],
       content: initialContent
         ? parseMarkdown(initialContent)
@@ -260,13 +264,12 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         handleClick: (_view, _pos, event) => {
           const target = event.target as HTMLElement;
 
-          // Handle link clicks
+          // Handle link clicks — Cmd/Ctrl+click opens, regular click places cursor (triggers LinkReveal)
           const link = target.closest("a[href]");
-          if (link) {
+          if (link && (event.metaKey || event.ctrlKey)) {
             const href = link.getAttribute("href");
             if (href) {
               event.preventDefault();
-              // Relative .md links open in Gutter
               const isExternal = /^https?:\/\//.test(href);
               if (!isExternal && (href.endsWith(".md") || !href.includes("."))) {
                 window.dispatchEvent(

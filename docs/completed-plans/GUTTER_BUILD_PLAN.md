@@ -6,14 +6,14 @@ A markdown editor combining the best of Typora and Zettlr with robust Google Doc
 
 ## Vision
 
-Gutter is a local-first, WYSIWYG-ish markdown editor where **comments are a first-class feature**. The name refers to the typographic gutter — the margin space where annotations live. The editor should feel fast, clean, and premium, like a native app, not an Electron wrapper.
+Gutter is a local-first, WYSIWYG-ish markdown editor where **comments are a first-class feature**. The name refers to the typographic gutter — the margin space where annotations live. The editor ~~should~~ feel fast, clean, and premium, like a native app, not an Electron wrapper.
 
 ---
 
 ## Tech Stack
 
 | Layer | Choice |
-|---|---|
+| --- | --- |
 | Shell | Tauri v2 |
 | Frontend | React + TypeScript (strict mode) |
 | Editor core | TipTap v2 (ProseMirror) |
@@ -54,6 +54,7 @@ The strategy <mark>should focus on long-term growth</mark><sup>[c1]</sup> rather
 ```
 
 **Marker rules:**
+
 - `N` is a positive integer, sequential per document: `c1`, `c2`, `c3`
 - IDs are stable — deleting `c2` does not renumber `c3`
 - New comments get `max(existing IDs) + 1`
@@ -67,7 +68,7 @@ The strategy <mark>should focus on long-term growth</mark><sup>[c1]</sup> rather
 **Edge cases:**
 
 | Case | Expected behavior |
-|---|---|
+| --- | --- |
 | Bare `<mark>` without a following `<sup>[cN]</sup>` | Not a comment. Render as normal HTML. |
 | `<sup>[c1]</sup>` without a preceding `</mark>` | Not a comment. Render as normal HTML. |
 | Nested markers (overlapping comments) | Both are valid. Inner marker resolves first. |
@@ -79,6 +80,7 @@ The strategy <mark>should focus on long-term growth</mark><sup>[c1]</sup> rather
 | JSON entry with no matching marker in `.md` | Show as "unanchored comment" in sidebar with warning. |
 
 **Rendering in Gutter:**
+
 - `<mark>` tags render as subtle colored highlights (not raw HTML) — clickable
 - `<sup>` tags are hidden
 - Clicking a highlight focuses the matching thread in the sidebar
@@ -86,6 +88,7 @@ The strategy <mark>should focus on long-term growth</mark><sup>[c1]</sup> rather
 - In source mode, raw HTML is visible and editable
 
 **Rendering in other markdown viewers:**
+
 - `<mark>` renders as a yellow highlight (most renderers)
 - `<sup>[c1]</sup>` renders as superscript — reader can look up the ID in the companion file
 
@@ -116,6 +119,7 @@ interface CommentsFile {
 ```
 
 **Rules:**
+
 - Created on first comment, not on document creation
 - Deleted entirely when last comment is deleted (no empty files)
 - Written with 2-space indented JSON for readable git diffs
@@ -158,6 +162,7 @@ Do we need this contrast? Feels slightly passive-aggressive.
 ```
 
 **Generation rules:**
+
 - Quoted anchor text extracted from `<mark>` tags in the `.md` — truncate to 80 chars with "..."
 - Threads listed in document order (by position of marker), not creation time
 - Timestamp format: `Mon DD, YYYY H:MM AM/PM`
@@ -175,12 +180,12 @@ Do we need this contrast? Feels slightly passive-aggressive.
 The editor should render markdown as styled content, not raw syntax:
 
 | Markdown element | Rendering |
-|---|---|
+| --- | --- |
 | `# Heading` | Styled heading (not raw `#`) |
 | `**bold**` | Bold text |
 | `*italic*` | Italic text |
 | `~~strikethrough~~` | Strikethrough text |
-| `` `code` `` | Inline code with monospace + background |
+| `code` | Inline code with monospace + background |
 | Fenced code blocks | Syntax-highlighted block with language detection |
 | `[link](url)` | Clickable styled link |
 | `![alt](url)` | Inline image with drag-to-resize |
@@ -248,7 +253,7 @@ A bare <mark>highlight without comment</mark> should survive too.
 ### Keyboard Shortcuts
 
 | Action | Shortcut |
-|---|---|
+| --- | --- |
 | Bold | `Cmd+B` |
 | Italic | `Cmd+I` |
 | Strikethrough | `Cmd+Shift+X` |
@@ -492,7 +497,7 @@ CodeMirror is a code editor. WYSIWYG markdown requires a rich-text document mode
 
 ### Why the three-file model for comments?
 
-**Inline markers (in `.md`)** solve anchor drift — the anchor *is* the content, so it moves with edits naturally. External editors preserve HTML tags.
+**Inline markers (in **`******************************.md******************************`**)** solve anchor drift — the anchor *is* the content, so it moves with edits naturally. External editors preserve HTML tags.
 
 **JSON sidecar** stores thread data (replies, timestamps, resolution state) that would clutter the markdown if inlined.
 
@@ -548,3 +553,7 @@ gutter/
 3. **Companion in git** — Provide a `.gitignore` template. Recommend: commit both `.comments.json` and `.comments.md`, or just the companion for lighter footprint.
 4. **Marker collision** — Users who intentionally write `<mark>` in their markdown: Gutter only treats `<mark>...<sup>[cN]</sup>` pairs as comments. Bare `<mark>` is left alone.
 5. **Future: real-time collaboration** — TipTap supports Yjs for real-time multi-user editing. The JSON sidecar would need to be replaced with a CRDT-based store. The inline marker approach is compatible. This is a v2+ concern.
+
+
+
+

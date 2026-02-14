@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useWorkspaceStore, type FileEntry } from "../../stores/workspaceStore";
+import { useToastStore } from "../../stores/toastStore";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
@@ -14,12 +15,37 @@ import {
   FolderPlus,
 } from "../Icons";
 
+interface DragState {
+  sourcePath: string;
+  sourceName: string;
+  mouseY: number;
+  started: boolean;
+}
+
 interface FileTreeProps {
   onFileOpen: (path: string) => void;
 }
 
 export function FileTree({ onFileOpen }: FileTreeProps) {
   const { fileTree, workspacePath, loadFileTree } = useWorkspaceStore();
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+
+  const handleOpenFile = useCallback(async () => {
+    const selected = await open({
+      filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
+      multiple: false,
+    });
+    if (selected) {
+      const path =
+        typeof selected === "string"
+          ? selected
+          : (selected as { path: string }).path;
+      onFileOpen(path);
+    }
+  }, [onFileOpen]);
+
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -74,7 +100,12 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
         if (creatingIn.type === "file") {
           onFileOpen(fullPath);
         }
+        useToastStore.getState().addToast(
+          creatingIn.type === "folder" ? "Folder created" : "File created",
+          "success",
+        );
       } catch (e) {
+        useToastStore.getState().addToast("Failed to create file", "error");
         console.error("Failed to create:", e);
       }
       setCreatingIn(null);
@@ -90,6 +121,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
           await loadFileTree(workspacePath);
         }
       } catch (e) {
+        useToastStore.getState().addToast("Failed to delete", "error");
         console.error("Failed to delete:", e);
       }
     },
@@ -108,11 +140,78 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
           await loadFileTree(workspacePath);
         }
       } catch (e) {
+        useToastStore.getState().addToast("Failed to rename", "error");
         console.error("Failed to rename:", e);
       }
     },
     [workspacePath, loadFileTree],
   );
+
+  // Mouse-based drag: track mouse movement globally
+  useEffect(() => {
+    if (!drag) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      // Start drag after 5px of movement
+      if (!d.started && Math.abs(e.clientY - d.mouseY) > 5) {
+        d.started = true;
+        setDrag({ ...d, started: true });
+      }
+      if (!d.started) return;
+
+      // Find which tree node we're over
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const node = el?.closest("[data-tree-path]") as HTMLElement | null;
+      if (node) {
+        const path = node.dataset.treePath || null;
+        const isDir = node.dataset.treeDir === "true";
+        // Only allow dropping on directories (not on self or own children)
+        if (path && isDir && path !== d.sourcePath && !path.startsWith(d.sourcePath + "/")) {
+          setDropTarget(path);
+        } else {
+          setDropTarget(null);
+        }
+      } else {
+        setDropTarget(null);
+      }
+    };
+
+    const handleMouseUp = async () => {
+      const d = dragRef.current;
+      if (d?.started && dropTarget) {
+        const fileName = d.sourcePath.split("/").pop();
+        if (fileName) {
+          const newPath = `${dropTarget}/${fileName}`;
+          try {
+            await invoke("rename_path", { oldPath: d.sourcePath, newPath });
+            const ws = useWorkspaceStore.getState();
+            if (ws.workspacePath) await ws.loadFileTree(ws.workspacePath);
+          } catch (err) {
+            useToastStore.getState().addToast("Failed to move file", "error");
+            console.error("Move failed:", err);
+          }
+        }
+      }
+      dragRef.current = null;
+      setDrag(null);
+      setDropTarget(null);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [drag, dropTarget]);
+
+  const startDrag = useCallback((path: string, name: string, mouseY: number) => {
+    const d: DragState = { sourcePath: path, sourceName: name, mouseY, started: false };
+    dragRef.current = d;
+    setDrag(d);
+  }, []);
 
   const rootContextItems: ContextMenuItem[] = workspacePath
     ? [
@@ -165,10 +264,18 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
             </>
           )}
           <button
-            onClick={handleOpenFolder}
-            className="ml-1 text-[12px] text-[var(--accent)] hover:underline"
+            onClick={handleOpenFile}
+            className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+            title="Open File"
           >
-            Open
+            <FileTextIcon size={14} />
+          </button>
+          <button
+            onClick={handleOpenFolder}
+            className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+            title="Open Folder"
+          >
+            <FolderOpen size={14} />
           </button>
         </div>
       </div>
@@ -189,6 +296,9 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
             onDelete={handleDeletePath}
             onRename={handleRename}
             setContextMenu={setContextMenu}
+            onDragStart={startDrag}
+            dragSourcePath={drag?.started ? drag.sourcePath : null}
+            dropTarget={dropTarget}
           />
         ))}
 
@@ -202,6 +312,31 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
           />
         )}
       </div>
+
+      {/* Drag label floating near cursor */}
+      {drag?.started && (
+        <div className="fixed pointer-events-none z-[200] px-2 py-1 rounded bg-[var(--surface-primary)] border border-[var(--editor-border)] shadow-md text-[12px] text-[var(--text-primary)] opacity-80"
+          style={{ left: 80, top: drag.mouseY }}
+          ref={(el) => {
+            if (!el) return;
+            const update = (e: MouseEvent) => {
+              el.style.left = `${e.clientX + 12}px`;
+              el.style.top = `${e.clientY - 10}px`;
+            };
+            window.addEventListener("mousemove", update);
+            // Clean up when element unmounts
+            const obs = new MutationObserver(() => {
+              if (!el.isConnected) {
+                window.removeEventListener("mousemove", update);
+                obs.disconnect();
+              }
+            });
+            obs.observe(el.parentNode!, { childList: true });
+          }}
+        >
+          {drag.sourceName}
+        </div>
+      )}
 
       {contextMenu && (
         <ContextMenu
@@ -224,6 +359,9 @@ function FileTreeNode({
   onDelete,
   onRename,
   setContextMenu,
+  onDragStart,
+  dragSourcePath,
+  dropTarget,
 }: {
   entry: FileEntry;
   depth: number;
@@ -235,67 +373,23 @@ function FileTreeNode({
   setContextMenu: (
     menu: { x: number; y: number; items: ContextMenuItem[] } | null,
   ) => void;
+  onDragStart: (path: string, name: string, mouseY: number) => void;
+  dragSourcePath: string | null;
+  dropTarget: string | null;
 }) {
   const [expanded, setExpanded] = useState(depth < 1);
   const [renaming, setRenaming] = useState(false);
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const autoExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMd = entry.name.endsWith(".md") || entry.name.endsWith(".markdown");
   const activeTabPath = useWorkspaceStore((s) => s.activeTabPath);
   const isSelected = entry.path === activeTabPath;
+  const isDragSource = dragSourcePath === entry.path;
+  const isDropTarget = dropTarget === entry.path && entry.is_dir;
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData("text/plain", entry.path);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    if (!entry.is_dir) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = "move";
-    setDragOver(true);
-    // Auto-expand after 800ms
-    if (!autoExpandTimer.current) {
-      autoExpandTimer.current = setTimeout(() => {
-        setExpanded(true);
-        autoExpandTimer.current = null;
-      }, 800);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setDragOver(false);
-    if (autoExpandTimer.current) {
-      clearTimeout(autoExpandTimer.current);
-      autoExpandTimer.current = null;
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOver(false);
-    if (autoExpandTimer.current) {
-      clearTimeout(autoExpandTimer.current);
-      autoExpandTimer.current = null;
-    }
-    if (!entry.is_dir) return;
-    const sourcePath = e.dataTransfer.getData("text/plain");
-    if (!sourcePath || sourcePath === entry.path) return;
-    // Prevent dropping into own children
-    if (entry.path.startsWith(sourcePath + "/")) return;
-    const fileName = sourcePath.split("/").pop();
-    if (!fileName) return;
-    const newPath = `${entry.path}/${fileName}`;
-    try {
-      await invoke("rename_path", { oldPath: sourcePath, newPath });
-      const ws = useWorkspaceStore.getState();
-      if (ws.workspacePath) await ws.loadFileTree(ws.workspacePath);
-    } catch (err) {
-      console.error("Move failed:", err);
-    }
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Only left click, not during rename
+    if (e.button !== 0 || renaming) return;
+    onDragStart(entry.path, entry.name, e.clientY);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -344,16 +438,20 @@ function FileTreeNode({
     return (
       <div>
         <div
+          data-tree-path={entry.path}
+          data-tree-dir="true"
           className={`flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
-            dragOver ? "bg-[rgba(59,130,246,0.15)]" : "hover:bg-[var(--surface-hover)]"
+            isDropTarget
+              ? "bg-[rgba(59,130,246,0.15)]"
+              : isDragSource
+                ? "opacity-40"
+                : "hover:bg-[var(--surface-hover)]"
           }`}
           style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
-          draggable
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => setExpanded(!expanded)}
+          onMouseDown={handleMouseDown}
+          onClick={() => {
+            if (!dragSourcePath) setExpanded(!expanded);
+          }}
           onContextMenu={handleContextMenu}
         >
           {/* Tree indent guides */}
@@ -405,6 +503,9 @@ function FileTreeNode({
                 onDelete={onDelete}
                 onRename={onRename}
                 setContextMenu={setContextMenu}
+                onDragStart={onDragStart}
+                dragSourcePath={dragSourcePath}
+                dropTarget={dropTarget}
               />
             ))}
             {creating && (
@@ -435,6 +536,7 @@ function FileTreeNode({
                       onFileOpen(fullPath);
                     }
                   } catch (e) {
+                    useToastStore.getState().addToast("Failed to create", "error");
                     console.error("Create failed:", e);
                   }
                   setCreating(null);
@@ -450,15 +552,18 @@ function FileTreeNode({
 
   return (
     <div
+      data-tree-path={entry.path}
+      data-tree-dir="false"
       className={`relative flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
-        isSelected
-          ? "bg-[rgba(59,130,246,0.08)] dark:bg-[rgba(96,165,250,0.1)]"
-          : "hover:bg-[var(--surface-hover)]"
+        isDragSource
+          ? "opacity-40"
+          : isSelected
+            ? "bg-[rgba(59,130,246,0.08)] dark:bg-[rgba(96,165,250,0.1)]"
+            : "hover:bg-[var(--surface-hover)]"
       }`}
       style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
-      draggable
-      onDragStart={handleDragStart}
-      onClick={() => !renaming && onFileOpen(entry.path)}
+      onMouseDown={handleMouseDown}
+      onClick={() => !renaming && !dragSourcePath && onFileOpen(entry.path)}
       onContextMenu={handleContextMenu}
     >
       {/* Tree indent guides */}

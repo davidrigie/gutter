@@ -1,4 +1,8 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
+import { common, createLowlight } from "lowlight";
+import { toHtml } from "hast-util-to-html";
+
+const lowlight = createLowlight(common);
 
 interface SourceEditorProps {
   value: string;
@@ -7,6 +11,7 @@ interface SourceEditorProps {
 
 export function SourceEditor({ value, onChange }: SourceEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -14,14 +19,37 @@ export function SourceEditor({ value, onChange }: SourceEditorProps) {
     }
   }, []);
 
+  // Sync scroll between textarea and highlighted pre
+  const handleScroll = useCallback(() => {
+    if (textareaRef.current && preRef.current) {
+      preRef.current.scrollTop = textareaRef.current.scrollTop;
+      preRef.current.scrollLeft = textareaRef.current.scrollLeft;
+    }
+  }, []);
+
+  // Highlight markdown using lowlight
+  const highlighted = lowlight.highlight("markdown", value);
+  const html = toHtml(highlighted);
+
   return (
-    <div className="h-full overflow-auto bg-[#1e1e1e]">
+    <div className="h-full overflow-hidden relative bg-[var(--editor-bg)]">
+      {/* Highlighted underlay */}
+      <pre
+        ref={preRef}
+        className="source-highlight-pre"
+        dangerouslySetInnerHTML={{ __html: html + "\n" }}
+      />
+      {/* Transparent textarea overlay for editing */}
       <textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-full p-8 bg-transparent text-gray-200 font-mono text-sm leading-relaxed resize-none outline-none max-w-3xl mx-auto block"
+        onScroll={handleScroll}
+        className="source-textarea-overlay"
         spellCheck={false}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
       />
     </div>
   );

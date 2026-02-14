@@ -36,6 +36,7 @@ export function StatusBar() {
     toggleFileTree,
     toggleComments,
     toggleOutline,
+    toggleSourceMode,
   } = useEditorStore();
 
   return (
@@ -83,9 +84,13 @@ export function StatusBar() {
 
       <span className="text-[var(--editor-border)]">|</span>
 
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-[var(--surface-active)] text-[var(--text-secondary)] text-[11px] font-medium">
+      <button
+        onClick={toggleSourceMode}
+        className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-[var(--surface-active)] text-[var(--text-secondary)] text-[11px] font-medium hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+        title="Toggle source mode (Cmd+/)"
+      >
         {isSourceMode ? "Source" : "WYSIWYG"}
-      </span>
+      </button>
 
       {/* Undo/Redo */}
       <span className="ml-auto flex items-center gap-0.5">

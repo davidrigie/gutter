@@ -5,7 +5,7 @@ import { X, Circle } from "./Icons";
 
 interface TabBarProps {
   onSwitchTab: (path: string) => void;
-  onCloseTab: (path: string) => void;
+  onCloseTab: (path: string) => void | Promise<void>;
 }
 
 export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
@@ -30,17 +30,19 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
       },
       {
         label: "Close Others",
-        action: () => {
-          openTabs.forEach((t) => {
-            if (t.path !== tabPath) onCloseTab(t.path);
-          });
+        action: async () => {
+          for (const t of openTabs) {
+            if (t.path !== tabPath) await onCloseTab(t.path);
+          }
         },
         disabled: openTabs.length <= 1,
       },
       {
         label: "Close All",
-        action: () => {
-          openTabs.forEach((t) => onCloseTab(t.path));
+        action: async () => {
+          for (const t of openTabs) {
+            await onCloseTab(t.path);
+          }
         },
       },
       { label: "", action: () => {}, separator: true },

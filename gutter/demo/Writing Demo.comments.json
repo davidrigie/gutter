@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "comments": {
+    "c1": {
+      "thread": [
+        {
+          "id": "m_wd01",
+          "author": "Gutter Team",
+          "timestamp": "2025-01-15T11:00:00.000Z",
+          "body": "Comments work inside tables too! The markers are standard HTML so they survive in any context."
+        }
+      ],
+      "resolved": false,
+      "createdAt": "2025-01-15T11:00:00.000Z"
+    }
+  }
+}

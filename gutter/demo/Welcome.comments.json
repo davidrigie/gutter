@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "comments": {
+    "c1": {
+      "thread": [
+        {
+          "id": "m_w001",
+          "author": "Gutter Team",
+          "timestamp": "2025-01-15T10:00:00.000Z",
+          "body": "Comments are Gutter's core feature. They live in three places: inline HTML markers in the .md file, structured data in .comments.json, and a human-readable .comments.md companion."
+        },
+        {
+          "id": "m_w002",
+          "author": "Reviewer",
+          "timestamp": "2025-01-15T10:02:00.000Z",
+          "body": "The best part is these markers render as highlighted text in any markdown viewer — GitHub, VS Code, etc."
+        }
+      ],
+      "resolved": false,
+      "createdAt": "2025-01-15T10:00:00.000Z"
+    }
+  }
+}

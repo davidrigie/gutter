@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "comments": {
+    "c1": {
+      "thread": [
+        {
+          "id": "m_mn01",
+          "author": "Sarah",
+          "timestamp": "2025-01-20T14:30:00.000Z",
+          "body": "Really impressed with how smooth the editor feels. The TipTap integration was the right call."
+        },
+        {
+          "id": "m_mn02",
+          "author": "Mike",
+          "timestamp": "2025-01-20T14:31:00.000Z",
+          "body": "Agreed. Startup time is excellent thanks to Tauri."
+        }
+      ],
+      "resolved": false,
+      "createdAt": "2025-01-20T14:30:00.000Z"
+    },
+    "c2": {
+      "thread": [
+        {
+          "id": "m_mn03",
+          "author": "Dave",
+          "timestamp": "2025-01-20T14:35:00.000Z",
+          "body": "We should add a test that verifies round-trip fidelity with 100+ comments in a single document."
+        }
+      ],
+      "resolved": true,
+      "createdAt": "2025-01-20T14:35:00.000Z"
+    }
+  }
+}

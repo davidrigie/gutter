@@ -12,11 +12,25 @@ Open the file tree on the left to explore the demo workspace. Each file showcase
 
 ## Quick Tour
 
+### Guides
+
 - [[Writing Demo]] — Rich text formatting, lists, blockquotes
 - [[Code and Math]] — Code blocks, LaTeX math, Mermaid diagrams
+- [[Markdown Cheatsheet]] — Quick syntax reference
+- [[Keyboard Shortcuts]] — Complete shortcut list
+
+### Projects
+
+- [[Gutter Roadmap]] — Feature roadmap with task lists and diagrams
+- [[Design System]] — Color tokens, typography, and component patterns
 - [[Meeting Notes]] — A real-world example with comments and tasks
 - [[Research Notes]] — Wiki links and backlinks in action
-- [[demo]] — The original demo file
+
+### Journal
+
+- [[2025-01-15]] — Project kickoff
+- [[2025-01-20]] — Product review
+- [[2025-01-25]] — Sprint complete
 
 ## Keyboard Shortcuts
 

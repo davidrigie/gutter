@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when <mark>working</
 
 Gutter is a local-first WYSIWYG markdown editor with first-class commenting, built with Tauri v2 (Rust backend) + React 19 + TipTap 3 (ProseMirror). All code lives under `gutter/`.
 
+## Planning
+
+- **Active plan**: `POLISH_PLAN.md` — 12-phase plan to bring Gutter to app-store quality (phases 1-12, none started yet). Includes file tree fixes, dirty tab protection, toasts, settings UI, bubble menu, native menu bar, scrollbars, window persistence, workspace search, wiki-link autocomplete, interactive task lists, and design token cleanup.
+- **Completed plans**: Archived in `docs/completed-plans/`. Sprint 1 (19 phases) is fully shipped — see the "Already Completed" section in POLISH_PLAN.md for the full feature list.
+
 ## Commands
 
 All commands run from `gutter/`:
@@ -25,19 +30,22 @@ Rust backend compiles automatically via Tauri during `npm run tauri dev`. To reb
 
 ### Frontend ↔ Backend IPC
 
-Frontend calls Rust functions via `invoke()` from `@tauri-apps/api/core`. All Rust commands are in `src-tauri/src/commands/` and registered in `src-tauri/src/lib.rs`. Three command modules:
+Frontend calls Rust functions via `invoke()` from `@tauri-apps/api/core`. All Rust commands are in `src-tauri/src/commands/` and registered in `src-tauri/src/lib.rs`. Command modules:
 
-- **file_io.rs** — read/write/create/delete/rename files and directories
+- **file_io.rs** — read/write/create/delete/rename files and directories, `open_url` for external links
 - **comments.rs** — read/write/delete comment sidecar files (`.comments.json`, `.comments.md`)
 - **workspace.rs** — recursive directory listing (filters hidden files and comment files, max depth 10)
+- **watcher.rs** — file system watcher with `mark_write()` suppression to avoid false change notifications
 
 ### State Management (Zustand)
 
-Three stores in `src/stores/`:
+Stores in `src/stores/`:
 
 - **editorStore** — UI state: file path, dirty flag, theme, panel visibility, source mode, active comment
 - **commentStore** — comment thread data, CRUD ops, ID generation (`c1`, `c2`...), JSON export/import
 - **workspaceStore** — file tree structure, open tabs, active tab, tab dirty state
+- **settingsStore** — user preferences (font size, font family, auto-save, spell check, panel widths, recent files)
+- **historyStore** — local version history snapshots per file
 
 ### Comment System (Three-File Model)
 

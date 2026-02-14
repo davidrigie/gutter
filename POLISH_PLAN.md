@@ -94,13 +94,40 @@ Gutter has a solid feature set but needs polish to feel like a paid app. The aud
 - **Modify: **`**tauri.conf.json**` — Add CSP policy, add `fileAssociations` for .md/.markdown
 - **Modify: **`**lib.rs**` — Handle file-open from OS launch arguments
 
+## Phase 10: Wiki-Link Autocomplete + Interactive Task Lists
+*(Inspired by Gemini plan)*
+
+**Files: 3-4 new/modified**
+
+- **Modify: `src/components/Editor/extensions/WikiLink.ts`** — When user types `[[`, show a floating suggestion menu listing workspace files (fuzzy-filtered as they type). On selection, insert `[[File Name]]`. Reuse the slash command menu pattern (vanilla DOM popup positioned at cursor).
+- **Modify: `GutterEditor.tsx` or new extension** — Make `[ ]` / `[x]` task list checkboxes interactive in WYSIWYG mode. Clicking a checkbox toggles its state and updates the underlying markdown. TipTap has `@tiptap/extension-task-list` and `@tiptap/extension-task-item` that can be configured for this.
+
+## Phase 11: Drag-to-Link + Comment UX Polish
+*(Inspired by Gemini plan)*
+
+**Files: 3-4 modified**
+
+- **Modify: `GutterEditor.tsx`** — Handle drop events from the file tree: when a file is dragged from the tree into the editor, insert a `[[File Name]]` wiki link at the drop position instead of moving the file.
+- **Modify: `src/components/Comments/CommentsPanel.tsx`** — Smooth scroll to focused comment thread with brief highlight pulse animation. Clicking quoted text at top of a thread scrolls the editor to the comment's highlight position.
+- **Modify: `styles/editor.css`** — Add pulse animation for comment focus.
+
+## Phase 12: Design Token Audit + Icon Refinement
+*(Inspired by Gemini plan)*
+
+**Files: 3-5 modified**
+
+- **Modify: `styles/theme.css`** — Add missing semantic tokens (`--surface-elevated`, `--shadow-lg`). Audit and replace all hardcoded `rgba()` colors in CSS files with CSS variable references.
+- **Modify: `styles/editor.css`** — Replace hardcoded colors with variables.
+- **Modify: `src/components/StatusBar.tsx`** — Replace ASCII separators and text-only indicators with proper SVG icons. Ensure every icon button has a tooltip.
+- **Modify: various components** — Standardize modal/dropdown shadows to unified variable.
+
 ## Execution Order
 
-1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 9
+1 → 2 → 3 → 5 → 4 → 6 → 7 → 8 → 10 → 11 → 12 → 9
 
 Phase 1 implementation order: A (toasts) → B (open file) → C (reorder) → D (dirty tabs) → E (wire toasts)
 
-Phases 1-2 first (infrastructure). 3+5 are quick visual wins. 4+6 are Rust-side. 7 is the biggest remaining feature. 8+9 are release prep.
+Phases 1-2 first (infrastructure). 3+5 are quick visual wins. 4+6 are Rust-side. 7 is the biggest remaining feature. 8 is drag/export. 10-12 are Gemini-inspired refinements. 9 (release prep) is always last.
 
 ## Already Completed (Sprint 1)
 
@@ -150,4 +177,7 @@ All phases below are **not yet started**:
 - [ ] Phase 6: Window State Persistence
 - [ ] Phase 7: Workspace Search
 - [ ] Phase 8: Drag-from-Finder + PDF Export
+- [ ] Phase 10: Wiki-Link Autocomplete + Interactive Task Lists *(Gemini)*
+- [ ] Phase 11: Drag-to-Link + Comment UX Polish *(Gemini)*
+- [ ] Phase 12: Design Token Audit + Icon Refinement *(Gemini)*
 - [ ] Phase 9: Release Prep

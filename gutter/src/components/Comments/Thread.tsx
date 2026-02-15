@@ -8,10 +8,11 @@ interface ThreadProps {
   commentId: string;
   thread: CommentThread;
   isActive: boolean;
+  quotedText?: string;
   onClick: () => void;
 }
 
-export function Thread({ commentId, thread, isActive, onClick }: ThreadProps) {
+export function Thread({ commentId, thread, isActive, quotedText, onClick }: ThreadProps) {
   const { resolveThread, deleteThread } = useCommentStore();
   const [expanded, setExpanded] = useState(!thread.resolved);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -92,6 +93,20 @@ export function Thread({ commentId, thread, isActive, onClick }: ThreadProps) {
           )}
         </div>
       </div>
+
+      {/* Quoted text from the highlighted region */}
+      {quotedText && (
+        <div
+          className="mx-3 mb-1.5 text-[12px] text-[var(--text-tertiary)] italic border-l-[3px] border-l-[var(--accent)] pl-2 cursor-pointer truncate"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          title={quotedText}
+        >
+          "{quotedText.length > 80 ? quotedText.slice(0, 80) + "..." : quotedText}"
+        </div>
+      )}
 
       {/* Resolution status */}
       {thread.resolved && (

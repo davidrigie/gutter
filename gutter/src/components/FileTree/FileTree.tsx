@@ -179,19 +179,40 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
       }
     };
 
-    const handleMouseUp = async () => {
+    const handleMouseUp = async (e: MouseEvent) => {
       const d = dragRef.current;
-      if (d?.started && dropTarget) {
-        const fName = pathFileName(d.sourcePath);
-        if (fName) {
-          const newPath = joinPath(dropTarget, fName);
-          try {
-            await invoke("rename_path", { oldPath: d.sourcePath, newPath });
-            const ws = useWorkspaceStore.getState();
-            if (ws.workspacePath) await ws.loadFileTree(ws.workspacePath);
-          } catch (err) {
-            useToastStore.getState().addToast("Failed to move file", "error");
-            console.error("Move failed:", err);
+      if (d?.started) {
+        // Check if dropped over the editor — insert wiki link instead of moving
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        if (el?.closest(".ProseMirror")) {
+          window.dispatchEvent(
+            new CustomEvent("file-tree-drop-link", {
+              detail: {
+                path: d.sourcePath,
+                name: d.sourceName,
+                clientX: e.clientX,
+                clientY: e.clientY,
+              },
+            }),
+          );
+          dragRef.current = null;
+          setDrag(null);
+          setDropTarget(null);
+          return;
+        }
+
+        if (dropTarget) {
+          const fName = pathFileName(d.sourcePath);
+          if (fName) {
+            const newPath = joinPath(dropTarget, fName);
+            try {
+              await invoke("rename_path", { oldPath: d.sourcePath, newPath });
+              const ws = useWorkspaceStore.getState();
+              if (ws.workspacePath) await ws.loadFileTree(ws.workspacePath);
+            } catch (err) {
+              useToastStore.getState().addToast("Failed to move file", "error");
+              console.error("Move failed:", err);
+            }
           }
         }
       }

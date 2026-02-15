@@ -269,6 +269,9 @@
 .ProseMirror mark[data-comment-id].resolved {
   background: var(--comment-highlight-resolved);
 }
+.ProseMirror mark[data-comment-id].comment-pulse {
+  animation: commentPulse 400ms ease-in-out 2;
+}
 
 /* ─── Syntax highlighting ─── */
 .ProseMirror .hljs-keyword { color: #569cd6; }

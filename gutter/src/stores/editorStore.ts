@@ -16,6 +16,7 @@ interface EditorState {
   canUndo: boolean;
   canRedo: boolean;
   showOutline: boolean;
+  commentTexts: Record<string, string>;
 
   setFilePath: (path: string | null) => void;
   setContent: (content: string) => void;
@@ -29,6 +30,7 @@ interface EditorState {
   setActiveCommentId: (id: string | null) => void;
   setUndoRedo: (canUndo: boolean, canRedo: boolean) => void;
   toggleOutline: () => void;
+  setCommentTexts: (texts: Record<string, string>) => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -46,6 +48,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   canUndo: false,
   canRedo: false,
   showOutline: false,
+  commentTexts: {},
 
   setFilePath: (path) =>
     set({
@@ -68,4 +71,5 @@ export const useEditorStore = create<EditorState>((set) => ({
   setActiveCommentId: (id) => set({ activeCommentId: id }),
   setUndoRedo: (canUndo, canRedo) => set({ canUndo, canRedo }),
   toggleOutline: () => set((s) => ({ showOutline: !s.showOutline })),
+  setCommentTexts: (commentTexts) => set({ commentTexts }),
 }));

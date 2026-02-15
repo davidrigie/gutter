@@ -72,6 +72,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       setDirty,
       setActiveCommentId,
       setUndoRedo,
+      setCommentTexts,
     } = useEditorStore();
 
     const { addThread, getNextCommentId } = useCommentStore();
@@ -88,6 +89,30 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       x: number;
       y: number;
     } | null>(null);
+
+    const extractCommentTexts = useCallback((e: Editor) => {
+      const texts: Record<string, string> = {};
+      e.state.doc.descendants((node, pos) => {
+        node.marks.forEach((mark) => {
+          if (mark.type.name === "commentMark") {
+            const id = mark.attrs.commentId;
+            if (!texts[id]) {
+              // Find the full text range of this mark
+              let text = "";
+              let from = pos;
+              const end = pos + node.nodeSize;
+              e.state.doc.nodesBetween(from, end, (n) => {
+                if (n.isText && n.marks.some((m) => m.type.name === "commentMark" && m.attrs.commentId === id)) {
+                  text += n.text || "";
+                }
+              });
+              texts[id] = text;
+            }
+          }
+        });
+      });
+      setCommentTexts(texts);
+    }, [setCommentTexts]);
 
     const [linkEdit, setLinkEdit] = useState<{
       href: string;
@@ -223,6 +248,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         const words = text.split(/\s+/).filter(Boolean).length;
         setWordCount(words);
         setUndoRedo(e.can().undo(), e.can().redo());
+        extractCommentTexts(e);
       },
       onSelectionUpdate: ({ editor: e }) => {
         const { from } = e.state.selection;
@@ -615,6 +641,42 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       [createComment, navigateComment, getMarkdown, getEditor],
     );
 
+    // Drag-to-link: insert wiki link when file is dragged from tree onto editor
+    useEffect(() => {
+      const handler = (e: Event) => {
+        if (!editor) return;
+        const { name, clientX, clientY } = (e as CustomEvent).detail;
+        const posData = editor.view.posAtCoords({ left: clientX, top: clientY });
+        if (!posData) return;
+        const linkName = name.replace(/\.md$/, "");
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(posData.pos, `[[${linkName}]]`)
+          .run();
+      };
+      window.addEventListener("file-tree-drop-link", handler);
+      return () => window.removeEventListener("file-tree-drop-link", handler);
+    }, [editor]);
+
+    // Scroll-to-comment: scroll editor to comment mark and pulse it
+    useEffect(() => {
+      const handler = (e: Event) => {
+        if (!editor) return;
+        const { commentId } = (e as CustomEvent).detail;
+        const el = editor.view.dom.querySelector(
+          `mark[data-comment-id="${commentId}"]`,
+        ) as HTMLElement | null;
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("comment-pulse");
+          setTimeout(() => el.classList.remove("comment-pulse"), 800);
+        }
+      };
+      window.addEventListener("scroll-to-comment", handler);
+      return () => window.removeEventListener("scroll-to-comment", handler);
+    }, [editor]);
+
     // Load content when initialContent changes
     useEffect(() => {
       if (initialContent !== undefined && editor) {
@@ -625,8 +687,9 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         const text = editor.state.doc.textContent;
         const words = text.split(/\s+/).filter(Boolean).length;
         setWordCount(words);
+        extractCommentTexts(editor);
       }
-    }, [initialContent, editor, setDirty, setWordCount]);
+    }, [initialContent, editor, setDirty, setWordCount, extractCommentTexts]);
 
     return (
       <div className="h-full overflow-auto" onContextMenu={handleContextMenu}>

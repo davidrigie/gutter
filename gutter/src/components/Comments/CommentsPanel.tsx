@@ -9,7 +9,7 @@ type FilterMode = "all" | "open" | "resolved";
 
 export function CommentsPanel() {
   const { threads, getThreadIds } = useCommentStore();
-  const { activeCommentId, setActiveCommentId } = useEditorStore();
+  const { activeCommentId, setActiveCommentId, commentTexts } = useEditorStore();
   const [filter, setFilter] = useState<FilterMode>("open");
 
   const threadIds = getThreadIds();
@@ -100,7 +100,15 @@ export function CommentsPanel() {
             commentId={id}
             thread={threads[id]}
             isActive={activeCommentId === id}
-            onClick={() => setActiveCommentId(id)}
+            quotedText={commentTexts[id]}
+            onClick={() => {
+              setActiveCommentId(id);
+              window.dispatchEvent(
+                new CustomEvent("scroll-to-comment", {
+                  detail: { commentId: id },
+                }),
+              );
+            }}
           />
         ))}
       </div>

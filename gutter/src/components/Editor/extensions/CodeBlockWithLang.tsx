@@ -1,5 +1,6 @@
 import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from "@tiptap/react";
 import { useState, useRef, useEffect } from "react";
+import { BlockActionBar } from "../BlockActionBar";
 
 const LANGUAGES = [
   { value: "", label: "Plain text" },
@@ -24,7 +25,7 @@ const LANGUAGES = [
   { value: "kotlin", label: "Kotlin" },
 ];
 
-export function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
+export function CodeBlockView({ node, updateAttributes, deleteNode, editor, getPos }: NodeViewProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const language = node.attrs.language || "";
@@ -46,6 +47,15 @@ export function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
   return (
     <NodeViewWrapper className="code-block-wrapper">
       <div className="code-block-header" contentEditable={false}>
+        <BlockActionBar
+          onDelete={() => deleteNode()}
+          onDuplicate={() => {
+            const pos = getPos();
+            if (pos == null) return;
+            const end = pos + node.nodeSize;
+            editor.chain().focus().insertContentAt(end, { type: node.type.name, attrs: { ...node.attrs }, content: node.content.toJSON() }).run();
+          }}
+        />
         <div className="relative" ref={dropdownRef}>
           <button
             className="code-block-lang-btn"

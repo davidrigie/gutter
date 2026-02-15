@@ -11,6 +11,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
+import { ImageBlockView } from "./extensions/ImageBlock";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
@@ -26,7 +27,7 @@ import { Extension } from "@tiptap/react";
 import { NodeSelection } from "@tiptap/pm/state";
 import { parseMarkdown } from "./markdown/parser";
 import { serializeMarkdown } from "./markdown/serializer";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { useEditorStore } from "../../stores/editorStore";
 import { useCommentStore } from "../../stores/commentStore";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
@@ -41,7 +42,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { createFindReplacePlugin } from "../FindReplace";
 import { modKey, modLabel } from "../../utils/platform";
-import { parentDir } from "../../utils/path";
+import { parentDir, joinPath } from "../../utils/path";
 import "../../styles/editor.css";
 
 const FindReplaceExtension = Extension.create({
@@ -149,21 +150,29 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
 
     const handleImageInsert = useCallback(async (file: File) => {
       const filePath = useEditorStore.getState().filePath;
-      if (!filePath) return;
+      if (!filePath) {
+        const { addToast } = await import("../../stores/toastStore").then(m => m.useToastStore.getState());
+        addToast("Save the file first to insert images", "error");
+        return;
+      }
       const dirPath = parentDir(filePath);
       const ext = file.name.split(".").pop() || "png";
       const filename = `image-${Date.now()}.${ext}`;
       const buffer = await file.arrayBuffer();
       const data = Array.from(new Uint8Array(buffer));
       try {
-        const relativePath = await invoke<string>("save_image", {
+        await invoke<string>("save_image", {
           dirPath,
           filename,
           data,
         });
-        editorRef.current?.chain().focus().setImage({ src: relativePath }).run();
+        const absolutePath = joinPath(dirPath, "assets", filename);
+        const displaySrc = convertFileSrc(absolutePath);
+        editorRef.current?.chain().focus().setImage({ src: displaySrc }).run();
       } catch (e) {
         console.error("Failed to save image:", e);
+        const { addToast } = await import("../../stores/toastStore").then(m => m.useToastStore.getState());
+        addToast("Failed to save image", "error");
       }
     }, []);
 
@@ -177,7 +186,11 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           openOnClick: false,
           HTMLAttributes: { rel: "noopener noreferrer" },
         }),
-        Image,
+        Image.extend({
+          addNodeView() {
+            return ReactNodeViewRenderer(ImageBlockView);
+          },
+        }),
         Table.configure({ resizable: true }),
         TableRow,
         TableCell,
@@ -218,7 +231,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         TaskItem.configure({ nested: true }),
       ],
       content: initialContent
-        ? parseMarkdown(initialContent)
+        ? parseMarkdown(initialContent, parentDir(useEditorStore.getState().filePath || ""))
         : {
             type: "doc",
             content: [
@@ -711,6 +724,37 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       return () => window.removeEventListener("file-tree-drop-link", handler);
     }, [editor]);
 
+    // Drag-to-image: insert image when image file is dragged from tree onto editor
+    useEffect(() => {
+      const handler = async (e: Event) => {
+        if (!editor) return;
+        const { path, clientX, clientY } = (e as CustomEvent).detail;
+        const filePath = useEditorStore.getState().filePath;
+        if (!filePath) return;
+        const dirPath = parentDir(filePath);
+        const ext = path.split(".").pop() || "png";
+        const filename = `image-${Date.now()}.${ext}`;
+        try {
+          await invoke("copy_image", { source: path, dirPath, filename });
+          const absolutePath = joinPath(dirPath, "assets", filename);
+          const displaySrc = convertFileSrc(absolutePath);
+          const posData = editor.view.posAtCoords({ left: clientX, top: clientY });
+          if (posData) {
+            editor.chain().focus().insertContentAt(posData.pos, {
+              type: "image",
+              attrs: { src: displaySrc },
+            }).run();
+          } else {
+            editor.chain().focus().setImage({ src: displaySrc }).run();
+          }
+        } catch (err) {
+          console.error("Failed to insert image:", err);
+        }
+      };
+      window.addEventListener("file-tree-drop-image", handler);
+      return () => window.removeEventListener("file-tree-drop-image", handler);
+    }, [editor]);
+
     // Sync active comment ID → ProseMirror decoration plugin
     useEffect(() => {
       if (!editor) return;
@@ -780,7 +824,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
     // Load content when initialContent changes
     useEffect(() => {
       if (initialContent !== undefined && editor) {
-        const doc = parseMarkdown(initialContent);
+        const doc = parseMarkdown(initialContent, parentDir(useEditorStore.getState().filePath || ""));
         editor.commands.setContent(doc);
         setDirty(false);
 

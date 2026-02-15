@@ -4,10 +4,11 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { useState, useRef, useEffect, useMemo } from "react";
 import katex from "katex";
 import { modLabel } from "../../../utils/platform";
+import { BlockActionBar } from "../BlockActionBar";
 
 // ─── Block math: $$...$$ ───
 
-export function MathBlockView({ node, updateAttributes, selected }: NodeViewProps) {
+export function MathBlockView({ node, updateAttributes, selected, deleteNode, editor, getPos }: NodeViewProps) {
   const [editing, setEditing] = useState(false);
   const [latex, setLatex] = useState(node.attrs.latex || "");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -39,6 +40,15 @@ export function MathBlockView({ node, updateAttributes, selected }: NodeViewProp
 
   return (
     <NodeViewWrapper className={`math-block-wrapper ${selected ? "is-selected" : ""} ${node.attrs.commentId ? "has-comment" : ""}`} data-node-comment-id={node.attrs.commentId || undefined}>
+      <BlockActionBar
+        onDelete={() => deleteNode()}
+        onDuplicate={() => {
+          const pos = getPos();
+          if (pos == null) return;
+          const end = pos + node.nodeSize;
+          editor.chain().focus().insertContentAt(end, { type: node.type.name, attrs: { ...node.attrs } }).run();
+        }}
+      />
       <div contentEditable={false}>
         {editing ? (
           <div className="math-block-editor">

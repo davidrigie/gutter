@@ -239,6 +239,64 @@
   flex-shrink: 0;
 }
 
+/* ─── Block action bar (hover toolbar for block nodes) ─── */
+.block-action-bar {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 10;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+.mermaid-block-wrapper:hover .block-action-bar,
+.math-block-wrapper:hover .block-action-bar,
+.code-block-header .block-action-bar {
+  position: static;
+  margin-right: auto;
+}
+.code-block-wrapper:hover .block-action-bar,
+.frontmatter-block:hover .block-action-bar,
+.image-block-wrapper:hover .block-action-bar,
+.block-action-bar:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+.block-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.block-action-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+.block-action-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--status-error);
+}
+.dark .block-action-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--status-error);
+}
+
 /* ─── Comment marks ─── */
 .ProseMirror mark[data-comment-id] {
   background: var(--comment-highlight);
@@ -550,6 +608,7 @@
    ═══════════════════════════════════════════════════════ */
 
 .math-block-wrapper {
+  position: relative;
   margin: 0.75rem 0;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
@@ -629,6 +688,7 @@
    ═══════════════════════════════════════════════════════ */
 
 .mermaid-block-wrapper {
+  position: relative;
   margin: 0.75rem 0;
   border: 1px solid var(--editor-border);
   border-radius: var(--radius-md);
@@ -1244,6 +1304,7 @@
    ═══════════════════════════════════════════════════════ */
 
 .frontmatter-block {
+  position: relative;
   margin: 0 0 1.5rem 0;
   padding: 0.75rem 1rem;
   border: 1px solid var(--editor-border);

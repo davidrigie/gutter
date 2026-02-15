@@ -3,6 +3,7 @@ import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tip
 import { useState } from "react";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { modKey, modLabel } from "../../../utils/platform";
+import { BlockActionBar } from "../BlockActionBar";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -61,7 +62,7 @@ export const Frontmatter = Node.create({
   },
 });
 
-export function FrontmatterView({ node, updateAttributes }: NodeViewProps) {
+export function FrontmatterView({ node, updateAttributes, deleteNode, editor, getPos }: NodeViewProps) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(node.attrs.content as string);
 
@@ -126,6 +127,15 @@ export function FrontmatterView({ node, updateAttributes }: NodeViewProps) {
         className="frontmatter-block"
         onDoubleClick={() => setEditing(true)}
       >
+        <BlockActionBar
+          onDelete={() => deleteNode()}
+          onDuplicate={() => {
+            const pos = getPos();
+            if (pos == null) return;
+            const end = pos + node.nodeSize;
+            editor.chain().focus().insertContentAt(end, { type: node.type.name, attrs: { ...node.attrs } }).run();
+          }}
+        />
         <div className="frontmatter-label">Frontmatter</div>
         <div className="frontmatter-fields">
           {Object.entries(fields).map(([key, value]) => (

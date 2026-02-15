@@ -4,6 +4,7 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { useState, useRef, useEffect, useCallback } from "react";
 import mermaid from "mermaid";
 import { modLabel } from "../../../utils/platform";
+import { BlockActionBar } from "../BlockActionBar";
 
 mermaid.initialize({
   startOnLoad: false,
@@ -13,7 +14,7 @@ mermaid.initialize({
 
 let mermaidCounter = 0;
 
-export function MermaidBlockView({ node, updateAttributes, selected }: NodeViewProps) {
+export function MermaidBlockView({ node, updateAttributes, selected, deleteNode, editor, getPos }: NodeViewProps) {
   const [editing, setEditing] = useState(!node.attrs.code);
   const [code, setCode] = useState(node.attrs.code || "");
   const [svg, setSvg] = useState("");
@@ -63,6 +64,15 @@ export function MermaidBlockView({ node, updateAttributes, selected }: NodeViewP
 
   return (
     <NodeViewWrapper className={`mermaid-block-wrapper ${selected ? "is-selected" : ""} ${hasComment ? "has-comment" : ""}`} data-node-comment-id={node.attrs.commentId || undefined}>
+      <BlockActionBar
+        onDelete={() => deleteNode()}
+        onDuplicate={() => {
+          const pos = getPos();
+          if (pos == null) return;
+          const end = pos + node.nodeSize;
+          editor.chain().focus().insertContentAt(end, { type: node.type.name, attrs: { ...node.attrs } }).run();
+        }}
+      />
       <div contentEditable={false}>
         {editing ? (
           <div className="mermaid-block-editor">

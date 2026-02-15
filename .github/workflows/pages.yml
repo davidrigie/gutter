@@ -3,7 +3,7 @@ name: Deploy Landing Page
 on:
   push:
     branches: [main]
-    paths: ['site/**']
+    paths: ['site/**', 'screenshot.png']
   workflow_dispatch:
 
 permissions:
@@ -22,6 +22,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Copy root screenshot into site
+        run: cp screenshot.png site/screenshot.png
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4

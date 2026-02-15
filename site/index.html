@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gutter — A Markdown Editor with Inline Comments</title>
+  <meta name="description" content="A local-first WYSIWYG markdown editor with first-class inline commenting. Fast, native, and private.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Gutter — A Markdown Editor with Inline Comments">
+  <meta property="og:description" content="A local-first WYSIWYG markdown editor with first-class inline commenting.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://davidrigie.github.io/gutter/">
+  <meta property="og:image" content="https://davidrigie.github.io/gutter/screenshot.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Gutter — A Markdown Editor with Inline Comments">
+  <meta name="twitter:description" content="A local-first WYSIWYG markdown editor with first-class inline commenting.">
+  <meta name="twitter:image" content="https://davidrigie.github.io/gutter/screenshot.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%234f46e5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='112' fill='url(%23bg)'/%3E%3Crect x='72' y='88' width='172' height='336' rx='8' fill='%23fff' opacity='.95'/%3E%3Crect x='268' y='88' width='172' height='336' rx='8' fill='%23fff' opacity='.88'/%3E%3Crect x='244' y='88' width='24' height='336' fill='rgba(0,0,0,.06)'/%3E%3Cline x1='256' y1='88' x2='256' y2='424' stroke='rgba(99,102,241,.4)' stroke-width='2' stroke-dasharray='6,4'/%3E%3C/svg%3E">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1c25;
+      --surface-hover: #22242f;
+      --border: #2a2d3a;
+      --text: #e4e5ea;
+      --text-secondary: #9396a5;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-subtle: rgba(99, 102, 241, 0.12);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #ffffff;
+        --surface: #f5f5f7;
+        --surface-hover: #ebebef;
+        --border: #d1d5db;
+        --text: #1a1c25;
+        --text-secondary: #6b7280;
+        --accent: #6366f1;
+        --accent-hover: #4f46e5;
+        --accent-subtle: rgba(99, 102, 241, 0.08);
+      }
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hover); }
+
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(15, 17, 23, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    @media (prefers-color-scheme: light) {
+      nav { background: rgba(255, 255, 255, 0.85); }
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text);
+    }
+
+    .nav-brand svg { width: 32px; height: 32px; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { background: var(--surface-hover); color: var(--text); }
+
+    .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+
+    /* Hero */
+    .hero {
+      padding: 140px 24px 80px;
+      text-align: center;
+    }
+
+    .hero-inner {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 span { color: var(--accent); }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-screenshot {
+      max-width: 960px;
+      margin: 56px auto 0;
+    }
+
+    .hero-screenshot img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+    }
+
+    @media (prefers-color-scheme: light) {
+      .hero-screenshot img {
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+      }
+    }
+
+    /* Features */
+    .features {
+      padding: 80px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .features h2 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 48px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+    }
+
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: 12px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Download */
+    .download {
+      padding: 80px 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .download h2 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+    }
+
+    .download > p {
+      text-align: center;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+    }
+
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .platform-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .platform-card .platform-icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .platform-card h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .platform-card .platform-arch { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 20px; }
+
+    .platform-card .btn { width: 100%; justify-content: center; }
+    .platform-card .dl-links { display: flex; flex-direction: column; gap: 8px; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .footer-inner {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .footer-tech {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+    }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .feature-grid, .platform-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links a.hide-mobile { display: none; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">
+      <svg viewBox="0 0 512 512" fill="none">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366f1"/>
+            <stop offset="100%" stop-color="#4f46e5"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+        <rect x="72" y="88" width="172" height="336" rx="8" fill="#fff" opacity=".95"/>
+        <rect x="268" y="88" width="172" height="336" rx="8" fill="#fff" opacity=".88"/>
+        <rect x="244" y="88" width="24" height="336" fill="rgba(0,0,0,.06)"/>
+        <line x1="256" y1="88" x2="256" y2="424" stroke="rgba(99,102,241,.4)" stroke-width="2" stroke-dasharray="6,4"/>
+      </svg>
+      Gutter
+    </a>
+    <div class="nav-links">
+      <a href="#features" class="hide-mobile">Features</a>
+      <a href="#download" class="hide-mobile">Download</a>
+      <a href="https://github.com/davidrigie/gutter" target="_blank" rel="noopener">GitHub</a>
+      <a href="#download" class="btn btn-primary btn-sm">Download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-inner">
+    <h1>Markdown editing with <span>inline comments</span></h1>
+    <p>A local-first WYSIWYG editor that lets you highlight text and leave comments — right in your markdown files. Fast, native, and private.</p>
+    <div class="hero-ctas">
+      <a href="#download" class="btn btn-primary">Download for Free</a>
+      <a href="https://github.com/davidrigie/gutter" target="_blank" rel="noopener" class="btn btn-secondary">View on GitHub</a>
+    </div>
+  </div>
+  <div class="hero-screenshot">
+    <img src="screenshot.png" alt="Gutter editor screenshot" loading="eager" width="960" height="600">
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+  <h2>Everything you need, nothing you don't</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#9998;</div>
+      <h3>WYSIWYG Markdown</h3>
+      <p>Write in a clean visual editor that renders formatting as you type. Headings, bold, italic, links, code blocks, tables — all live.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128172;</div>
+      <h3>Inline Commenting</h3>
+      <p>Highlight any text and add comments. Stored as portable HTML markers in standard markdown — no proprietary format lock-in.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128279;</div>
+      <h3>Wiki Links</h3>
+      <p>Connect your notes with [[wiki links]]. Autocomplete suggests files as you type. Backlinks show what links to the current page.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128202;</div>
+      <h3>Math &amp; Diagrams</h3>
+      <p>Render LaTeX math equations and Mermaid diagrams inline. Write the code, see the result — no context switching.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128274;</div>
+      <h3>Local-First</h3>
+      <p>Your files stay on your machine. No accounts, no cloud sync, no telemetry. Plain markdown files you can version with git.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9889;</div>
+      <h3>Fast &amp; Native</h3>
+      <p>Built with Tauri and Rust. Starts in under a second, uses minimal memory, and feels like a native app on every platform.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Download -->
+<section class="download" id="download">
+  <h2>Download Gutter</h2>
+  <p>Free and open source. Available for macOS, Windows, and Linux.</p>
+  <div class="platform-grid">
+    <div class="platform-card">
+      <div class="platform-icon">&#63743;</div>
+      <h3>macOS</h3>
+      <p class="platform-arch">Apple Silicon &amp; Intel</p>
+      <div class="dl-links">
+        <a id="dl-mac-arm" href="https://github.com/davidrigie/gutter/releases/latest" class="btn btn-primary">Apple Silicon (.dmg)</a>
+        <a id="dl-mac-intel" href="https://github.com/davidrigie/gutter/releases/latest" class="btn btn-secondary">Intel (.dmg)</a>
+      </div>
+    </div>
+    <div class="platform-card">
+      <div class="platform-icon">&#128187;</div>
+      <h3>Windows</h3>
+      <p class="platform-arch">64-bit</p>
+      <div class="dl-links">
+        <a id="dl-win-exe" href="https://github.com/davidrigie/gutter/releases/latest" class="btn btn-primary">Download (.exe)</a>
+        <a id="dl-win-msi" href="https://github.com/davidrigie/gutter/releases/latest" class="btn btn-secondary">MSI Installer</a>
+      </div>
+    </div>
+    <div class="platform-card">
+      <div class="platform-icon">&#128039;</div>
+      <h3>Linux</h3>
+      <p class="platform-arch">x86_64</p>
+      <div class="dl-links">
+        <a id="dl-linux-appimage" href="https://github.com/davidrigie/gutter/releases/latest" class="btn btn-primary">AppImage</a>
+        <a id="dl-linux-deb" href="https://github.com/davidrigie/gutter/releases/latest" class="btn btn-secondary">.deb Package</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <p class="footer-tech">Built with Tauri, React, and TipTap</p>
+    <div class="footer-links">
+      <a href="https://github.com/davidrigie/gutter" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/davidrigie/gutter/issues" target="_blank" rel="noopener">Issues</a>
+      <a href="https://github.com/davidrigie/gutter/releases" target="_blank" rel="noopener">Releases</a>
+    </div>
+    <p class="footer-copy">&copy; 2025 David Rigie. MIT License.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var repo = 'davidrigie/gutter';
+  var map = {
+    'aarch64.dmg': 'dl-mac-arm',
+    'x64.dmg': 'dl-mac-intel',
+    '.exe': 'dl-win-exe',
+    '.msi': 'dl-win-msi',
+    '.AppImage': 'dl-linux-appimage',
+    '.deb': 'dl-linux-deb'
+  };
+
+  fetch('https://api.github.com/repos/' + repo + '/releases/latest')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.assets) return;
+      data.assets.forEach(function (asset) {
+        var name = asset.name;
+        Object.keys(map).forEach(function (suffix) {
+          if (name.endsWith(suffix)) {
+            var el = document.getElementById(map[suffix]);
+            if (el) el.href = asset.browser_download_url;
+          }
+        });
+      });
+    })
+    .catch(function () { /* fall back to /releases/latest links */ });
+})();
+</script>
+
+</body>
+</html>

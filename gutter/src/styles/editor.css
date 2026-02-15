@@ -154,8 +154,11 @@
 }
 .ProseMirror th, .ProseMirror td {
   border: 1px solid var(--editor-border);
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   text-align: left;
+}
+.ProseMirror th p, .ProseMirror td p {
+  margin: 0;
 }
 .ProseMirror th {
   background: var(--surface-secondary);
@@ -163,6 +166,93 @@
 }
 .ProseMirror tr:nth-child(even) td {
   background: var(--surface-hover);
+}
+
+/* Selected cell highlight (TipTap adds this class) */
+.ProseMirror .selectedCell {
+  background: rgba(59, 130, 246, 0.08) !important;
+  border-color: var(--accent);
+}
+.dark .ProseMirror .selectedCell {
+  background: rgba(96, 165, 250, 0.12) !important;
+}
+
+/* Column resize handle */
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Ensure table has relative positioning for resize handles */
+.ProseMirror table {
+  position: relative;
+}
+.ProseMirror td, .ProseMirror th {
+  position: relative;
+}
+
+/* ─── Floating Table Menu ─── */
+.table-menu {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  transform: translate(-50%, -100%);
+  animation: fadeInScale 120ms ease-out;
+}
+.dark .table-menu {
+  background: rgba(31, 41, 55, 0.85);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.table-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.table-menu-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+.dark .table-menu-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+.table-menu-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+.dark .table-menu-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.table-menu-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--editor-border);
+  margin: 0 2px;
+  flex-shrink: 0;
 }
 
 /* ─── Comment marks ─── */

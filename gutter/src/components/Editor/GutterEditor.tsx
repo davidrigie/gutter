@@ -97,6 +97,11 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       y: number;
     } | null>(null);
 
+    const [tableMenu, setTableMenu] = useState<{
+      x: number;
+      y: number;
+    } | null>(null);
+
     const linkInputRef = useRef<HTMLInputElement>(null);
 
     const commentInputRef = useRef<HTMLTextAreaElement>(null);
@@ -261,6 +266,25 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         } else {
           setLinkEdit(null);
         }
+
+        // Detect if cursor is inside a table for floating table menu
+        let inTable = false;
+        for (let d = resolved.depth; d > 0; d--) {
+          if (resolved.node(d).type.name === "table") {
+            inTable = true;
+            const tableStart = resolved.start(d);
+            const coords = e.view.coordsAtPos(tableStart);
+            const editorRect = e.view.dom.getBoundingClientRect();
+            setTableMenu({
+              x: editorRect.left + editorRect.width / 2,
+              y: coords.top - 4,
+            });
+            break;
+          }
+        }
+        if (!inTable) {
+          setTableMenu(null);
+        }
       },
       editorProps: {
         handlePaste: (_view, event) => {
@@ -289,6 +313,27 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           return false;
         },
         handleKeyDown: (_view, event) => {
+          // Tab / Shift+Tab navigation inside tables
+          if (event.key === "Tab" && editor) {
+            const { $anchor } = editor.state.selection;
+            let inTable = false;
+            for (let d = $anchor.depth; d > 0; d--) {
+              const nodeName = $anchor.node(d).type.name;
+              if (nodeName === "tableCell" || nodeName === "tableHeader") {
+                inTable = true;
+                break;
+              }
+            }
+            if (inTable) {
+              event.preventDefault();
+              if (event.shiftKey) {
+                editor.chain().focus().goToPreviousCell().run();
+              } else {
+                editor.chain().focus().goToNextCell().run();
+              }
+              return true;
+            }
+          }
           if (modKey(event) && event.key === "e") {
             event.preventDefault();
             editor?.chain().focus().toggleCode().run();
@@ -644,6 +689,74 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
               }}
             >
               Remove
+            </button>
+          </div>
+        )}
+
+        {tableMenu && editor && (
+          <div
+            className="table-menu"
+            style={{ left: tableMenu.x, top: tableMenu.y }}
+          >
+            {/* Add row above: grid with dashed top row + plus */}
+            <button className="table-menu-btn" title="Add row above" onClick={() => editor.chain().focus().addRowBefore().run()}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25">
+                <rect x="2" y="7" width="12" height="3.5" rx="0.5"/><rect x="2" y="11.5" width="12" height="3.5" rx="0.5"/>
+                <line x1="8" y1="1" x2="8" y2="5.5" strokeDasharray="0"/><line x1="5.75" y1="3.25" x2="10.25" y2="3.25"/>
+              </svg>
+            </button>
+            {/* Add row below: grid with dashed bottom row + plus */}
+            <button className="table-menu-btn" title="Add row below" onClick={() => editor.chain().focus().addRowAfter().run()}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25">
+                <rect x="2" y="1" width="12" height="3.5" rx="0.5"/><rect x="2" y="5.5" width="12" height="3.5" rx="0.5"/>
+                <line x1="8" y1="10.5" x2="8" y2="15"/><line x1="5.75" y1="12.75" x2="10.25" y2="12.75"/>
+              </svg>
+            </button>
+            <span className="table-menu-sep" />
+            {/* Add column left: grid with plus on left */}
+            <button className="table-menu-btn" title="Add column left" onClick={() => editor.chain().focus().addColumnBefore().run()}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25">
+                <rect x="7" y="2" width="3.5" height="12" rx="0.5"/><rect x="11.5" y="2" width="3.5" height="12" rx="0.5"/>
+                <line x1="1" y1="8" x2="5.5" y2="8"/><line x1="3.25" y1="5.75" x2="3.25" y2="10.25"/>
+              </svg>
+            </button>
+            {/* Add column right: grid with plus on right */}
+            <button className="table-menu-btn" title="Add column right" onClick={() => editor.chain().focus().addColumnAfter().run()}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25">
+                <rect x="1" y="2" width="3.5" height="12" rx="0.5"/><rect x="5.5" y="2" width="3.5" height="12" rx="0.5"/>
+                <line x1="10.5" y1="8" x2="15" y2="8"/><line x1="12.75" y1="5.75" x2="12.75" y2="10.25"/>
+              </svg>
+            </button>
+            <span className="table-menu-sep" />
+            {/* Delete row: two rows with strikethrough on one */}
+            <button className="table-menu-btn" title="Delete row" onClick={() => editor.chain().focus().deleteRow().run()}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25">
+                <rect x="2" y="2" width="12" height="3.5" rx="0.5"/><rect x="2" y="7" width="12" height="3.5" rx="0.5" opacity="0.35"/>
+                <line x1="1" y1="8.75" x2="15" y2="8.75" strokeWidth="1.5"/>
+                <rect x="2" y="12" width="12" height="3" rx="0.5"/>
+              </svg>
+            </button>
+            {/* Delete column: two cols with strikethrough on one */}
+            <button className="table-menu-btn" title="Delete column" onClick={() => editor.chain().focus().deleteColumn().run()}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25">
+                <rect x="1" y="2" width="3.5" height="12" rx="0.5"/><rect x="6.25" y="2" width="3.5" height="12" rx="0.5" opacity="0.35"/>
+                <line x1="8" y1="1" x2="8" y2="15" strokeWidth="1.5"/>
+                <rect x="11.5" y="2" width="3.5" height="12" rx="0.5"/>
+              </svg>
+            </button>
+            <span className="table-menu-sep" />
+            {/* Toggle header: grid with filled top row */}
+            <button className="table-menu-btn" title="Toggle header row" onClick={() => editor.chain().focus().toggleHeaderRow().run()}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25">
+                <rect x="2" y="2" width="12" height="3.5" rx="0.5" fill="currentColor"/>
+                <rect x="2" y="7" width="12" height="3.5" rx="0.5"/><rect x="2" y="12" width="12" height="3" rx="0.5"/>
+              </svg>
+            </button>
+            {/* Delete table: trash can */}
+            <button className="table-menu-btn table-menu-btn-danger" title="Delete table" onClick={() => editor.chain().focus().deleteTable().run()}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25">
+                <path d="M2.5 4.5h11M5.5 4.5V3a1 1 0 011-1h3a1 1 0 011 1v1.5M12.5 4.5l-.75 9a1.5 1.5 0 01-1.5 1.5H5.75a1.5 1.5 0 01-1.5-1.5l-.75-9"/>
+              </svg>
             </button>
           </div>
         )}

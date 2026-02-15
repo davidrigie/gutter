@@ -28,6 +28,9 @@ import { modKey, modLabel } from "./utils/platform";
 import { fileName as pathFileName, parentDir, joinPath, isImageFile } from "./utils/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
+// Helper to normalize markdown content for comparison (handles line endings and trailing whitespace)
+const normalizeMarkdown = (s: string) => s.replace(/\r\n/g, "\n").trim();
+
 function App() {
   const {
     isSourceMode,
@@ -64,6 +67,7 @@ function App() {
   const [showExport, setShowExport] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const markdownRef = useRef("");
+  const lastSaveTimeRef = useRef<number>(0);
 
   const editorInstanceRef = useRef<{
     createComment: () => void;
@@ -93,16 +97,30 @@ function App() {
     let fileChangeDebounce: ReturnType<typeof setTimeout>;
     const unlistenFile = listen<string>("file-changed", (event) => {
       const changedPath = event.payload;
-      const currentPath = useEditorStore.getState().filePath;
-      if (changedPath !== currentPath) return;
+      const { openTabs, activeTabPath } = useWorkspaceStore.getState();
+      
+      // Ensure the file is actually still open in a tab
+      const isFileOpen = openTabs.some(t => t.path === changedPath);
+      if (!isFileOpen) {
+        // If the file being reported is the one currently showing a prompt, clear it
+        if (changedPath === activeTabPath) {
+          setShowReloadPrompt(false);
+        }
+        return;
+      }
+
+      if (changedPath !== activeTabPath) return;
+
+      // Ignore changes that happen within 1.5s of our own save
+      if (Date.now() - lastSaveTimeRef.current < 1500) return;
 
       // Debounce: FSEvents can fire multiple times for one save
       clearTimeout(fileChangeDebounce);
       fileChangeDebounce = setTimeout(async () => {
         try {
           const diskContent = await invoke<string>("read_file", { path: changedPath });
-          // Only show prompt if disk content actually differs from editor content
-          if (diskContent !== markdownRef.current) {
+          // Only show prompt if normalized disk content actually differs from editor content
+          if (normalizeMarkdown(diskContent) !== normalizeMarkdown(markdownRef.current)) {
             setShowReloadPrompt(true);
           }
         } catch {
@@ -292,6 +310,7 @@ function App() {
   // Save handler — also saves comments and generates companion
   const handleSave = useCallback(async () => {
     const md = markdownRef.current;
+    lastSaveTimeRef.current = Date.now();
     // Suppress file-changed notifications for 2s after our own save
 
     await saveFile(md);
@@ -342,6 +361,7 @@ function App() {
           { title: "Unsaved Changes", kind: "warning" },
         );
         if (shouldSave && path === useEditorStore.getState().filePath) {
+          lastSaveTimeRef.current = Date.now();
           await handleSave();
         }
       }

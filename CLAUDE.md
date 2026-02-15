@@ -1,4 +1,4 @@
-# CLAUDE.md
+# [CLAUDE.md](http://CLAUDE.md)
 
 This file provides guidance to Claude Code (claude.ai/code) when <mark>working</mark><sup>[c1]</sup> with code in this repository.
 
@@ -61,7 +61,7 @@ Stores in `src/stores/`:
 
 This is the core differentiator. Understand this before touching comment-related code:
 
-1. **Inline markers in `.md`**: `<mark>highlighted text</mark><sup>[c1]</sup>` — survive standard markdown renderers
+1. **Inline markers in **`**.md**`: `<mark>highlighted text</mark><sup>[c1]</sup>` — survive standard markdown renderers
 2. `.comments.json` — structured thread data (source of truth), keyed by comment ID
 3. `.comments.md` — auto-generated human-readable companion, never hand-edited
 
@@ -110,9 +110,9 @@ In `src/components/Editor/markdown/`:
 
 ### Styling
 
-- **`src/styles/theme.css`** — CSS custom properties (design tokens), light/dark themes, animations. Semantic colors (`--text-primary`, `--surface-hover`, `--glass-bg`, `--surface-elevated`, etc.) defined here.
-- **`src/styles/editor.css`** — ProseMirror prose styles, context menu, slash menu, floating bars, code blocks, table menu, comment highlights, toast styles. Component-specific CSS lives here, not in component files.
-- **`src/components/Icons.tsx`** — shared SVG icon components (SidebarIcon, OutlineIcon, etc.)
+- `**src/styles/theme.css**` — CSS custom properties (design tokens), light/dark themes, animations. Semantic colors (`--text-primary`, `--surface-hover`, `--glass-bg`, `--surface-elevated`, etc.) defined here.
+- `**src/styles/editor.css**` — ProseMirror prose styles, context menu, slash menu, floating bars, code blocks, table menu, comment highlights, toast styles. Component-specific CSS lives here, not in component files.
+- `**src/components/Icons.tsx**` — shared SVG icon components (SidebarIcon, OutlineIcon, etc.)
 - Components use Tailwind utility classes referencing CSS variables: `text-[var(--text-primary)]`
 
 ### Key Keyboard Shortcuts
@@ -123,8 +123,8 @@ Mod+K (unified search), Mod+O (open), Mod+S (save), Mod+P (quick open files), Mo
 
 ### Utilities
 
-- **`src/utils/platform.ts`** — `isMac()`, `modLabel()`, `modKey(e)` for cross-platform keyboard handling
-- **`src/utils/path.ts`** — cross-platform path utilities: `splitPath()`, `fileName()`, `parentDir()`, `joinPath()`
+- `**src/utils/platform.ts**` — `isMac()`, `modLabel()`, `modKey(e)` for cross-platform keyboard handling
+- `**src/utils/path.ts**` — cross-platform path utilities: `splitPath()`, `fileName()`, `parentDir()`, `joinPath()`
 
 ## TypeScript Strictness
 

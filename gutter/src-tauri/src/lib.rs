@@ -17,7 +17,7 @@ pub fn run() {
             // This handles opening a file when an instance is already running (Windows/Linux)
             let path = args.iter().find(|arg| arg.ends_with(".md") || arg.ends_with(".markdown"));
             if let Some(p) = path {
-                app.emit("open-file", p).unwrap();
+                let _ = app.emit("open-file", p);
             }
         }))
         .manage(OpenFileState {
@@ -74,17 +74,27 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
-            if let RunEvent::Opened { urls } = event {
-                // macOS "Open With" handling
-                if let Some(url) = urls.first() {
-                    let path = url.to_file_path().unwrap().to_string_lossy().to_string();
-                    // Try to emit to frontend if it's already running
-                    if let Err(_) = app_handle.emit("open-file", &path) {
-                        // Otherwise buffer it
-                        let state = app_handle.state::<OpenFileState>();
-                        *state.path.lock().unwrap() = Some(path);
+            match event {
+                RunEvent::Opened { urls } => {
+                    if let Some(url) = urls.first() {
+                        if let Ok(path) = url.to_file_path() {
+                            let path_str = path.to_string_lossy().to_string();
+                            let state = app_handle.state::<OpenFileState>();
+                            *state.path.lock().unwrap() = Some(path_str.clone());
+                            let _ = app_handle.emit("open-file", path_str);
+                        }
                     }
                 }
+                RunEvent::ExitRequested { .. } => {
+                    // Default behavior is fine
+                }
+                RunEvent::Exit => {
+                    // Try to stop the watcher if it's still running
+                    let _ = commands::watcher::stop_watcher(app_handle.clone());
+                    // Force a clean exit to avoid macOS crash report
+                    std::process::exit(0);
+                }
+                _ => {}
             }
         });
 }

@@ -19,7 +19,6 @@ def function(x):
 - [x] two
 - [x] three
 - [x] four
-- [ ] [x]
 
 | two | three |
 | --- | --- |

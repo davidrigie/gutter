@@ -11,7 +11,7 @@ pub fn read_file(path: String) -> Result<String, String> {
 
 #[tauri::command]
 pub fn write_file(app: AppHandle, path: String, content: String) -> Result<(), String> {
-    watcher::mark_write(&app);
+    watcher::mark_write(&app, &path);
     fs::write(&path, &content).map_err(|e| format!("Failed to write file: {}", e))
 }
 

@@ -12,7 +12,7 @@ Gutter is a local-first WYSIWYG markdown editor with first-class commenting, bui
 
 ## Planning
 
-- **Active plan**: `POLISH_PLAN.md` — polish plan. Phases 1–8, 10 complete. Next up: Phase 9 (Style Optimization), Phase 11 (Release Prep).
+- **Active plan**: `POLISH_PLAN.md` — polish plan. Phases 1–10 complete. Next up: Phase 11 (Release Prep).
 - **Completed plans**: Archived in `docs/completed-plans/`. Sprint 1 (19 phases) is fully shipped — see the "Already Completed" section in POLISH_PLAN.md for the full feature list.
 
 ## Commands
@@ -110,8 +110,8 @@ In `src/components/Editor/markdown/`:
 
 ### Styling
 
-- **`src/styles/theme.css`** — CSS custom properties (design tokens), light/dark themes, animations. Semantic colors (`--text-primary`, `--surface-hover`, `--glass-bg`, `--surface-elevated`, etc.) defined here.
-- **`src/styles/editor.css`** — ProseMirror prose styles, context menu, slash menu, floating bars, code blocks, table menu, comment highlights, toast styles. Component-specific CSS lives here, not in component files.
+- **`src/styles/theme.css`** — CSS custom properties (design tokens), light/dark themes, animations, custom scrollbars. Indigo accent palette (`--accent`, `--accent-hover`, `--accent-subtle`, `--accent-muted`), warm paper surfaces, font families (`--font-sans`: Inter, `--font-serif`: Source Serif 4). Fonts loaded via `@fontsource-variable/inter` and `@fontsource-variable/source-serif-4` (imported in `main.tsx`).
+- **`src/styles/editor.css`** — ProseMirror prose styles (Source Serif 4 for prose content), context menu, slash menu, floating bars, code blocks, table menu, comment highlights, resize handle (centered pill), panel-header utility. Component-specific CSS lives here, not in component files.
 - **`src/components/Icons.tsx`** — shared SVG icon components (SidebarIcon, OutlineIcon, etc.)
 - Components use Tailwind utility classes referencing CSS variables: `text-[var(--text-primary)]`
 

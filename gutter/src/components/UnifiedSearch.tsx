@@ -243,7 +243,7 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
     const isSelected = idx === selectedIndex;
     const baseClass = `flex items-center gap-3 px-4 py-2 text-[13px] cursor-pointer transition-colors ${
       isSelected
-        ? "bg-[var(--surface-hover)] border-l-2 border-l-[var(--accent)]"
+        ? "bg-[var(--accent-subtle)] border-l-2 border-l-[var(--accent)]"
         : "border-l-2 border-l-transparent hover:bg-[var(--surface-hover)]"
     }`;
 
@@ -356,15 +356,15 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
   const commandStart = contentStart + contentResults.length;
   return (
     <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center pt-24 z-[200] animate-[fadeIn_120ms_ease-out]"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-24 z-[200] animate-[fadeIn_120ms_ease-out]"
       onClick={onClose}
     >
       <div
-        className="w-[32rem] bg-[var(--surface-primary)] rounded-xl border border-[var(--editor-border)] overflow-hidden animate-[fadeInScale_150ms_ease-out]"
-        style={{ boxShadow: "var(--shadow-lg)" }}
+        className="w-[32rem] bg-[var(--glass-bg)] backdrop-blur-[20px] rounded-xl border border-[var(--glass-border)] overflow-hidden animate-[fadeInScale_200ms_ease-out]"
+        style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-4 border-b border-[var(--editor-border)]">
+        <div className="flex items-center gap-3 px-4 border-b border-[var(--glass-border)]">
           <Search size={16} className="text-[var(--text-muted)] shrink-0" />
           <input
             ref={inputRef}
@@ -373,7 +373,7 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full py-3 text-[15px] bg-transparent outline-none placeholder:text-[var(--text-muted)]"
+            className="w-full py-3.5 text-[16px] bg-transparent outline-none placeholder:text-[var(--text-muted)]"
           />
         </div>
         <div ref={listRef} className="max-h-80 overflow-auto py-1">

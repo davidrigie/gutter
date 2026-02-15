@@ -125,12 +125,12 @@ export function ExportDialog({ markdown, onClose }: ExportDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[200]"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] animate-[fadeIn_120ms_ease-out]"
       onClick={onClose}
     >
       <div
-        className="w-80 bg-[var(--surface-primary)] rounded-xl border border-[var(--editor-border)] p-5"
-        style={{ boxShadow: "var(--shadow-lg)" }}
+        className="w-80 bg-[var(--glass-bg)] backdrop-blur-[20px] rounded-xl border border-[var(--glass-border)] p-5 animate-[fadeInScale_200ms_ease-out]"
+        style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-[15px] font-semibold text-[var(--text-primary)] mb-4">
@@ -149,7 +149,7 @@ export function ExportDialog({ markdown, onClose }: ExportDialogProps) {
 
         <div className="flex flex-col gap-2">
           <button
-            className="w-full px-4 py-2 rounded-lg bg-[var(--accent-primary,#3b82f6)] text-white text-[13px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-[13px] font-medium hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
             onClick={handleExportHtml}
             disabled={exporting}
           >

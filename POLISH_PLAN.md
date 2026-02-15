@@ -86,7 +86,9 @@ Small changes with outsized impact on perceived quality and responsiveness.
 - **Modify: **`**App.tsx**` — Bind `Cmd+K` to unified search. Retire separate Quick Open (Cmd+P) and Command Palette (Cmd+Shift+P), or keep them as aliases that pre-filter to the Files/Commands section.
 - **Modify: **`**styles/editor.css**` — Search modal styles: frosted glass backdrop, section headers, highlighted match text, keyboard selection indicator.
 
-## Phase 9: The Beautiful Editor
+## Phase 9: The Beautiful Editor ✅
+
+**COMPLETED** — Indigo ink palette (accent #6366f1 light / #818cf8 dark), Inter UI font + Source Serif 4 editorial serif for prose, warm paper surfaces (#fafaf9 light / #0c0c0f dark), warm amber comment highlights, glass chrome with blur(20px), spring animations, custom scrollbars, redesigned tabs (36px, bottom pill indicator), minimal status bar (26px), file tree accent left border, accent-subtle active states, glass overlays with shadow-xl, slide-up toasts with colored left borders, centered serif welcome screen. All hardcoded #3b82f6 replaced with var(--accent). New CSS tokens: accent-hover, accent-subtle, accent-muted, shadow-xl, transition-spring, transition-micro, font-sans, font-serif.
 
 ### Design Vision
 
@@ -388,7 +390,7 @@ These features are fully implemented and shipped:
 - [x] Phase 6: Design Token Audit + Icon Refinement
 - [x] Phase 7: Quick Wins — Performance & Visual Polish
 - [x] Phase 8: Unified Search (Cmd+K / Ctrl+K)
-- [ ] Phase 9: Style Optimization — World-Class Visual Polish (9a–9i)
+- [x] Phase 9: Style Optimization — World-Class Visual Polish (9a–9i)
 - [x] Phase 10: Native Menu Bar
 - [ ] Phase 11: Release Prep
 

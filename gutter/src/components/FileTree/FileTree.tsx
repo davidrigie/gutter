@@ -57,8 +57,14 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
 
   // Multi-select state
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const selectedPathsRef = useRef<Set<string>>(new Set());
   const lastClickedPath = useRef<string | null>(null);
   const expandedPathsRef = useRef<Set<string>>(new Set());
+
+  // Keep ref in sync
+  useEffect(() => {
+    selectedPathsRef.current = selectedPaths;
+  }, [selectedPaths]);
 
   // Clear selection when file tree changes (workspace switch, etc.)
   useEffect(() => {
@@ -163,19 +169,19 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
   );
 
   const handleFileClick = useCallback(
-    (path: string, e: React.MouseEvent) => {
+    (path: string, e: React.MouseEvent | MouseEvent) => {
       const isModKey = isMac() ? e.metaKey : e.ctrlKey;
+      let nextSelection: Set<string>;
+
       if (isModKey) {
         // Toggle selection
-        setSelectedPaths((prev) => {
-          const next = new Set(prev);
-          if (next.has(path)) {
-            next.delete(path);
-          } else {
-            next.add(path);
-          }
-          return next;
-        });
+        const next = new Set(selectedPathsRef.current);
+        if (next.has(path)) {
+          next.delete(path);
+        } else {
+          next.add(path);
+        }
+        nextSelection = next;
         lastClickedPath.current = path;
       } else if (e.shiftKey && lastClickedPath.current) {
         // Range select
@@ -186,14 +192,23 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
           const lo = Math.min(startIdx, endIdx);
           const hi = Math.max(startIdx, endIdx);
           const rangePaths = flat.slice(lo, hi + 1);
-          setSelectedPaths(new Set(rangePaths));
+          nextSelection = new Set(rangePaths);
+        } else {
+          nextSelection = new Set([path]);
+          lastClickedPath.current = path;
         }
       } else {
         // Plain click — open file and set single selection
-        setSelectedPaths(new Set([path]));
+        nextSelection = new Set([path]);
         lastClickedPath.current = path;
-        onFileOpen(path);
+        // Only open if it's a real React event (not a mousedown-triggered simulated click)
+        if ("nativeEvent" in e) {
+          onFileOpen(path);
+        }
       }
+
+      setSelectedPaths(nextSelection);
+      selectedPathsRef.current = nextSelection;
     },
     [fileTree, onFileOpen],
   );
@@ -295,18 +310,47 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
         }
 
         if (dropTarget) {
-          const fName = pathFileName(d.sourcePath);
-          if (fName) {
-            const newPath = joinPath(dropTarget, fName);
-            try {
-              await invoke("rename_path", { oldPath: d.sourcePath, newPath });
-              const ws = useWorkspaceStore.getState();
-              if (ws.workspacePath) await ws.loadFileTree(ws.workspacePath);
-            } catch (err) {
-              useToastStore.getState().addToast("Failed to move file", "error");
-              console.error("Move failed:", err);
+          const currentSelected = selectedPathsRef.current;
+          if (currentSelected.has(d.sourcePath) && currentSelected.size > 1) {
+            // Bulk move
+            for (const path of currentSelected) {
+              // Safety: don't move a folder into itself or its children
+              if (dropTarget === path || dropTarget.startsWith(path + "/")) {
+                continue;
+              }
+              const fName = pathFileName(path);
+              if (fName) {
+                const newPath = joinPath(dropTarget, fName);
+                try {
+                  await invoke("rename_path", { oldPath: path, newPath: newPath });
+                } catch (err) {
+                  console.error("Bulk move failed for:", path, err);
+                }
+              }
+            }
+            setSelectedPaths(new Set());
+          } else {
+            // Single move
+            // Safety: don't move a folder into itself or its children
+            if (dropTarget === d.sourcePath || dropTarget.startsWith(d.sourcePath + "/")) {
+              dragRef.current = null;
+              setDrag(null);
+              setDropTarget(null);
+              return;
+            }
+            const fName = pathFileName(d.sourcePath);
+            if (fName) {
+              const newPath = joinPath(dropTarget, fName);
+              try {
+                await invoke("rename_path", { oldPath: d.sourcePath, newPath: newPath });
+              } catch (err) {
+                useToastStore.getState().addToast("Failed to move file", "error");
+                console.error("Move failed:", err);
+              }
             }
           }
+          const ws = useWorkspaceStore.getState();
+          if (ws.workspacePath) await ws.loadFileTree(ws.workspacePath);
         }
       }
       dragRef.current = null;
@@ -430,7 +474,11 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
             onFileClick={handleFileClick}
             selectedPaths={selectedPaths}
             onBulkDelete={handleBulkDelete}
-            onFolderClick={() => setSelectedPaths(new Set())}
+            onFolderClick={() => {
+              const next = new Set<string>();
+              setSelectedPaths(next);
+              selectedPathsRef.current = next;
+            }}
             expandedPathsRef={expandedPathsRef}
             onCreateFile={handleCreateFile}
             onCreateFolder={handleCreateFolder}
@@ -554,6 +602,22 @@ const FileTreeNode = memo(function FileTreeNode({
   const handleMouseDown = (e: React.MouseEvent) => {
     // Only left click, not during rename
     if (e.button !== 0 || renaming) return;
+
+    const isModKey = isMac() ? e.metaKey : e.ctrlKey;
+    const isShift = e.shiftKey;
+
+    // If not already selected, or if using modifiers, update selection immediately.
+    // This ensures the drag label and context are correct for new selections.
+    // If ALREADY selected and no modifiers, we delay the "select only this" logic until onClick
+    // so that a drag can move the entire existing selection.
+    if (!isMultiSelected || isModKey || isShift) {
+      if (!entry.is_dir) {
+        onFileClick(entry.path, e);
+      } else {
+        onFolderClick();
+      }
+    }
+
     onDragStart(entry.path, entry.name, e.clientY);
   };
 
@@ -630,10 +694,16 @@ const FileTreeNode = memo(function FileTreeNode({
           }`}
           style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
           onMouseDown={handleMouseDown}
-          onClick={() => {
+          onClick={(e) => {
             if (!dragSourcePath) {
+              const isModKey = isMac() ? e.metaKey : e.ctrlKey;
+              const isShift = e.shiftKey;
+              // If we clicked an already-selected folder without modifiers, 
+              // we should clear other selections now.
+              if (!isModKey && !isShift) {
+                onFolderClick();
+              }
               setExpanded(!expanded);
-              onFolderClick();
             }
           }}
           onContextMenu={handleContextMenu}
@@ -754,7 +824,17 @@ const FileTreeNode = memo(function FileTreeNode({
       }`}
       style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
       onMouseDown={handleMouseDown}
-      onClick={(e) => !renaming && !dragSourcePath && onFileClick(entry.path, e)}
+      onClick={(e) => {
+        if (!dragSourcePath && !renaming) {
+          const isModKey = isMac() ? e.metaKey : e.ctrlKey;
+          const isShift = e.shiftKey;
+          // If we clicked an already-selected file without modifiers,
+          // clear others and open it.
+          if (!isModKey && !isShift) {
+            onFileClick(entry.path, e);
+          }
+        }
+      }}
       onContextMenu={handleContextMenu}
     >
       {/* Tree indent guides */}

@@ -29,7 +29,7 @@ export function StatusBar() {
   const toggleSourceMode = useEditorStore((s) => s.toggleSourceMode);
 
   return (
-    <div className="h-8 flex items-center px-2 border-t border-[var(--editor-border)] bg-[var(--surface-secondary)] text-[var(--text-tertiary)] select-none shrink-0 gap-2 text-[13px]">
+    <div className="h-8 flex items-center px-2 border-t border-[var(--editor-border)] bg-[var(--surface-secondary)] text-[var(--text-tertiary)] select-none shrink-0 gap-2 text-[13px] relative z-10">
       {/* Panel toggle buttons */}
       <button
         onClick={toggleFileTree}

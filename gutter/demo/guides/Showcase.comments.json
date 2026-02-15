@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "comments": {
+    "c1": {
+      "thread": [
+        {
+          "id": "m_s001",
+          "author": "Elena Voss",
+          "timestamp": "2026-02-10T09:15:00.000Z",
+          "body": "This is the core thesis. Every knowledge management failure I've seen traces back to this."
+        },
+        {
+          "id": "m_s002",
+          "author": "James Chen",
+          "timestamp": "2026-02-10T10:30:00.000Z",
+          "body": "Agreed. We lost two weeks of context when Sara left the infra team. Nobody knew why the caching layer was designed that way."
+        }
+      ],
+      "resolved": false,
+      "createdAt": "2026-02-10T09:15:00.000Z"
+    },
+    "c2": {
+      "thread": [
+        {
+          "id": "m_s003",
+          "author": "James Chen",
+          "timestamp": "2026-02-10T10:45:00.000Z",
+          "body": "Can we quantify this? I'd love to see data from the last quarter on how many docs were accessed but not updated in 90+ days."
+        },
+        {
+          "id": "m_s004",
+          "author": "Elena Voss",
+          "timestamp": "2026-02-10T11:00:00.000Z",
+          "body": "Good call — I'll pull the numbers. My guess is over 60% of our wiki is effectively stale."
+        }
+      ],
+      "resolved": false,
+      "createdAt": "2026-02-10T10:45:00.000Z"
+    }
+  }
+}

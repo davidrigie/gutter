@@ -204,6 +204,25 @@ function App() {
     [setFilePath, setContent, setDirty, addTab, setActiveTab, addRecentFile, loadCommentsFromFile],
   );
 
+  // Handle file-open from OS (startup or running)
+  useEffect(() => {
+    // Check for file passed at startup
+    invoke<string | null>("get_open_file_path").then((path) => {
+      if (path) {
+        handleFileTreeOpen(path);
+      }
+    });
+
+    // Listen for files opened while running
+    const unlisten = listen<string>("open-file", (event) => {
+      handleFileTreeOpen(event.payload);
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [handleFileTreeOpen]);
+
   // Wiki link click handler
   useEffect(() => {
     const handler = (e: Event) => {

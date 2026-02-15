@@ -732,12 +732,14 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         const filePath = useEditorStore.getState().filePath;
         if (!filePath) return;
         const dirPath = parentDir(filePath);
-        const ext = path.split(".").pop() || "png";
-        const filename = `image-${Date.now()}.${ext}`;
-        try {
-          await invoke("copy_image", { source: path, dirPath, filename });
-          const absolutePath = joinPath(dirPath, "assets", filename);
-          const displaySrc = convertFileSrc(absolutePath);
+                  const ext = path.split(".").pop() || "png";
+                  const filename = `image-${Date.now()}.${ext}`;
+                            try {
+                              await invoke("copy_image", { source: path, dirPath, filename });
+                  
+                    const absolutePath = joinPath(dirPath, "assets", filename);
+                    const displaySrc = convertFileSrc(absolutePath);
+        
           const posData = editor.view.posAtCoords({ left: clientX, top: clientY });
           if (posData) {
             editor.chain().focus().insertContentAt(posData.pos, {

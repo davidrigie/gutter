@@ -392,6 +392,6 @@ These features are fully implemented and shipped:
 - [x] Phase 8: Unified Search (Cmd+K / Ctrl+K)
 - [x] Phase 9: Style Optimization — World-Class Visual Polish (9a–9i)
 - [x] Phase 10: Native Menu Bar
-- [ ] Phase 11: Release Prep
+- [x] Phase 11: Release Prep
 
 

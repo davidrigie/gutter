@@ -47,7 +47,38 @@ pub fn create_directory(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn rename_path(old_path: String, new_path: String) -> Result<(), String> {
-    fs::rename(&old_path, &new_path).map_err(|e| format!("Failed to rename: {}", e))
+    // Try simple rename first
+    if let Ok(_) = fs::rename(&old_path, &new_path) {
+        return Ok(());
+    }
+
+    // Fallback for cross-device/partition moves
+    let source = Path::new(&old_path);
+    let dest = Path::new(&new_path);
+
+    if source.is_dir() {
+        copy_dir_recursive(source, dest).map_err(|e| format!("Failed to copy directory: {}", e))?;
+        fs::remove_dir_all(source).map_err(|e| format!("Failed to delete source directory: {}", e))?;
+    } else {
+        fs::copy(source, dest).map_err(|e| format!("Failed to copy file: {}", e))?;
+        fs::remove_file(source).map_err(|e| format!("Failed to delete source file: {}", e))?;
+    }
+
+    Ok(())
+}
+
+fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_recursive(&entry.path(), &dst.join(entry.file_name()))?;
+        } else {
+            fs::copy(&entry.path(), &dst.join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -108,4 +139,12 @@ pub fn open_url(url: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to open URL: {}", e))?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_open_file_path(app: tauri::AppHandle) -> Option<String> {
+    use tauri::Manager;
+    let state = app.state::<crate::OpenFileState>();
+    let path = state.path.lock().unwrap().take();
+    path
 }

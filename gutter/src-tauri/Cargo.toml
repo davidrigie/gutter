@@ -25,3 +25,12 @@ tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 notify = { version = "7", features = ["macos_kqueue"] }
 dirs = "5"
+url = "2"
+tauri-plugin-single-instance = "2"
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
+opt-level = "s"
+panic = "abort"

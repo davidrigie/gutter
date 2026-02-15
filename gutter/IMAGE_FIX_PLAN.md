@@ -12,6 +12,7 @@ This plan addresses the issue where images inserted via paste/drop fail to rende
 ## Proposed Fixes
 
 ### 1. Update `handleImageInsert` in `GutterEditor.tsx`
+
 Modify the handler to convert the path to a displayable URL immediately after saving:
 
 ```typescript
@@ -29,6 +30,7 @@ editorRef.current?.chain().focus().setImage({ src: displayUrl }).run();
 ```
 
 ### 2. Provide Context to Parser
+
 Update `GutterEditor.tsx` to pass the directory path whenever content is parsed:
 
 ```typescript
@@ -38,6 +40,7 @@ const doc = parseMarkdown(content, dirPath);
 ```
 
 ### 3. Improve Path Resolution in `parser.ts`
+
 The current `resolveImagePaths` is brittle. It should use a more robust way to handle `../` and absolute paths:
 
 ```typescript
@@ -56,10 +59,14 @@ function resolveImagePaths(node: JSONContent, dirPath: string) {
 ```
 
 ### 4. Optimize Binary Transfer (Optional but Recommended)
+
 Instead of `Array.from(new Uint8Array(buffer))`, use `Uint8Array` directly if the Tauri version and transport support it (Tauri 2.0 does), or use Base64 for more reliable (though less efficient) string transport.
 
 ## Verification Plan
+
 1. **Pasting:** Paste an image into a saved `.md` file; verify it appears immediately in the WYSIWYG view.
 2. **Reloading:** Save the file, close the tab, and re-open it; verify the image still renders.
 3. **Serialization:** Verify that the saved `.md` file contains the relative path `![alt](./assets/image.png)` and not the `asset://` URL.
 4. **Subdirectories:** Test image insertion in a file located in a deep subdirectory.
+
+

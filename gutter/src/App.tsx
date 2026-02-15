@@ -354,6 +354,12 @@ function App() {
           }
         } else {
           setImagePreview(null);
+          setEditorContent(undefined);
+          markdownRef.current = "";
+          setSourceContent("");
+          setFilePath(null);
+          setContent("");
+          setDirty(false);
         }
       }
     },
@@ -405,6 +411,52 @@ function App() {
     { name: "Next Comment", shortcut: `${mod}+Shift+N`, action: () => navigateComment("next") },
     { name: "Previous Comment", shortcut: `${mod}+Shift+P`, action: () => navigateComment("prev") },
   ];
+
+  // Native menu bar event listeners
+  useEffect(() => {
+    const unlisteners = [
+      listen("menu:open", () => handleOpenFile()),
+      listen("menu:save", () => handleSave()),
+      listen("menu:export", () => setShowExport(true)),
+      listen("menu:toggle-tree", () => toggleFileTree()),
+      listen("menu:toggle-comments", () => toggleComments()),
+      listen("menu:toggle-outline", () => toggleOutline()),
+      listen("menu:toggle-zen", () => toggleZenMode()),
+      listen("menu:toggle-focus", () => {
+        const ed = editorInstanceRef.current?.getEditor();
+        if (ed) ed.commands.toggleFocusMode();
+      }),
+      listen("menu:toggle-source", () => {
+        if (useEditorStore.getState().isSourceMode) {
+          switchToWysiwyg();
+        } else {
+          switchToSource();
+        }
+      }),
+      listen("menu:cycle-theme", () => cycleTheme()),
+      listen("menu:search", () => setUnifiedSearchMode("all")),
+      listen("menu:quick-open", () => setUnifiedSearchMode("files")),
+      listen("menu:find", () => setFindReplaceMode("find")),
+      listen("menu:replace", () => setFindReplaceMode("replace")),
+      listen("menu:new-comment", () => editorInstanceRef.current?.createComment()),
+      listen("menu:next-comment", () => navigateComment("next")),
+      listen("menu:prev-comment", () => navigateComment("prev")),
+    ];
+    return () => {
+      unlisteners.forEach((p) => p.then((fn) => fn()));
+    };
+  }, [
+    handleOpenFile,
+    handleSave,
+    toggleFileTree,
+    toggleComments,
+    toggleOutline,
+    toggleZenMode,
+    switchToSource,
+    switchToWysiwyg,
+    cycleTheme,
+    navigateComment,
+  ]);
 
   // Global keyboard shortcuts
   useEffect(() => {

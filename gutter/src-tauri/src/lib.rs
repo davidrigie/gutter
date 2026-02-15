@@ -1,4 +1,5 @@
 mod commands;
+mod menu;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -13,6 +14,7 @@ pub fn run() {
                         .build(),
                 )?;
             }
+            menu::setup_menu(app)?;
             commands::watcher::init(app);
             Ok(())
         })

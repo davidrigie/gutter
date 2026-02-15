@@ -12,7 +12,7 @@ Gutter is a local-first WYSIWYG markdown editor with first-class commenting, bui
 
 ## Planning
 
-- **Active plan**: `POLISH_PLAN.md` — 9-phase polish plan. Phases 1–8 complete. Next up: Phase 9 (Native Menu Bar), Phase 10 (Release Prep).
+- **Active plan**: `POLISH_PLAN.md` — polish plan. Phases 1–8, 10 complete. Next up: Phase 9 (Style Optimization), Phase 11 (Release Prep).
 - **Completed plans**: Archived in `docs/completed-plans/`. Sprint 1 (19 phases) is fully shipped — see the "Already Completed" section in POLISH_PLAN.md for the full feature list.
 
 ## Commands
@@ -43,6 +43,8 @@ Frontend calls Rust functions via `invoke()` from `@tauri-apps/api/core`. All Ru
 - **export.rs** — export to HTML with inline CSS
 - **settings.rs** — reads/writes `~/.gutter/config.json`
 - **search.rs** — full-text workspace search (headings + content), case-insensitive, returns capped results
+
+Additionally, `src-tauri/src/menu.rs` (not a command module) builds the native menu bar and emits `menu:*` events to the frontend.
 
 ### State Management (Zustand)
 

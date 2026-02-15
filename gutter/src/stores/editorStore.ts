@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { fileName as pathFileName } from "../utils/path";
 
 interface EditorState {
   filePath: string | null;
@@ -49,7 +50,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   setFilePath: (path) =>
     set({
       filePath: path,
-      fileName: path ? path.split("/").pop() || "Untitled" : "Untitled",
+      fileName: path ? pathFileName(path) || "Untitled" : "Untitled",
     }),
   setContent: (content) => set({ content, isDirty: true }),
   setDirty: (isDirty) => set({ isDirty }),

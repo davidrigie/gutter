@@ -27,6 +27,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { modKey, modLabel } from "./utils/platform";
+import { fileName as pathFileName, parentDir, joinPath } from "./utils/path";
 
 function App() {
   const {
@@ -165,7 +167,7 @@ function App() {
       setSourceContent(content);
       const path = useEditorStore.getState().filePath;
       if (path) {
-        const name = path.split("/").pop() || "Untitled";
+        const name = pathFileName(path) || "Untitled";
         addTab(path, name);
         addRecentFile(path);
         await loadCommentsFromFile(path);
@@ -186,7 +188,7 @@ function App() {
         setSourceContent(content);
         setContent(content);
         setDirty(false);
-        const name = path.split("/").pop() || "Untitled";
+        const name = pathFileName(path) || "Untitled";
         addTab(path, name);
         addRecentFile(path);
         await loadCommentsFromFile(path);
@@ -225,18 +227,18 @@ function App() {
         // Create the file in the same directory as the current file
         const currentPath = useEditorStore.getState().filePath;
         const dir = currentPath
-          ? currentPath.substring(0, currentPath.lastIndexOf("/"))
+          ? parentDir(currentPath)
           : workspacePath;
-        const fileName = target.endsWith(".md") ? target : `${target}.md`;
-        const newPath = `${dir}/${fileName}`;
+        const fName = target.endsWith(".md") ? target : `${target}.md`;
+        const newPath = joinPath(dir, fName);
         invoke("write_file", { path: newPath, content: `# ${target}\n\n` })
           .then(() => {
             if (workspacePath) loadFileTree(workspacePath);
             handleFileTreeOpen(newPath);
-            useToastStore.getState().addToast(`Created ${fileName}`, "success", 2000);
+            useToastStore.getState().addToast(`Created ${fName}`, "success", 2000);
           })
           .catch(() => {
-            useToastStore.getState().addToast(`Failed to create ${fileName}`, "error");
+            useToastStore.getState().addToast(`Failed to create ${fName}`, "error");
           });
       }
     };
@@ -249,8 +251,8 @@ function App() {
       const currentPath = useEditorStore.getState().filePath;
       if (!currentPath) return;
       // Resolve relative to current file's directory
-      const dir = currentPath.substring(0, currentPath.lastIndexOf("/"));
-      const resolved = `${dir}/${href}`;
+      const dir = parentDir(currentPath);
+      const resolved = joinPath(dir, href);
       // Add .md extension if not present
       const target = resolved.endsWith(".md") ? resolved : `${resolved}.md`;
       handleFileTreeOpen(target);
@@ -338,87 +340,88 @@ function App() {
   );
 
   // Commands for command palette
+  const mod = modLabel();
   const commands = [
-    { name: "Open File", shortcut: "Cmd+O", action: handleOpenFile },
-    { name: "Save File", shortcut: "Cmd+S", action: handleSave },
-    { name: "Toggle Source Mode", shortcut: "Cmd+/", action: isSourceMode ? switchToWysiwyg : switchToSource },
-    { name: "Toggle File Tree", shortcut: "Cmd+\\", action: toggleFileTree },
-    { name: "Toggle Comments Panel", shortcut: "Cmd+Shift+C", action: toggleComments },
-    { name: "Toggle Zen Mode", shortcut: "Cmd+Shift+F", action: toggleZenMode },
-    { name: "Toggle Dark/Light Mode", shortcut: "Cmd+Shift+D", action: () => cycleTheme() },
-    { name: "Toggle Focus Mode", shortcut: "Cmd+Shift+T", action: () => {
+    { name: "Open File", shortcut: `${mod}+O`, action: handleOpenFile },
+    { name: "Save File", shortcut: `${mod}+S`, action: handleSave },
+    { name: "Toggle Source Mode", shortcut: `${mod}+/`, action: isSourceMode ? switchToWysiwyg : switchToSource },
+    { name: "Toggle File Tree", shortcut: `${mod}+\\`, action: toggleFileTree },
+    { name: "Toggle Comments Panel", shortcut: `${mod}+Shift+C`, action: toggleComments },
+    { name: "Toggle Zen Mode", shortcut: `${mod}+Shift+F`, action: toggleZenMode },
+    { name: "Toggle Dark/Light Mode", shortcut: `${mod}+Shift+D`, action: () => cycleTheme() },
+    { name: "Toggle Focus Mode", shortcut: `${mod}+Shift+T`, action: () => {
       const e = editorInstanceRef.current?.getEditor();
       if (e) e.commands.toggleFocusMode();
     }},
     { name: "Toggle Document Outline", action: () => toggleOutline() },
-    { name: "Quick Open File", shortcut: "Cmd+P", action: () => setShowQuickOpen(true) },
-    { name: "Find", shortcut: "Cmd+F", action: () => setFindReplaceMode("find") },
-    { name: "Find and Replace", shortcut: "Cmd+H", action: () => setFindReplaceMode("replace") },
-    { name: "Export", shortcut: "Cmd+Shift+E", action: () => setShowExport(true) },
+    { name: "Quick Open File", shortcut: `${mod}+P`, action: () => setShowQuickOpen(true) },
+    { name: "Find", shortcut: `${mod}+F`, action: () => setFindReplaceMode("find") },
+    { name: "Find and Replace", shortcut: `${mod}+H`, action: () => setFindReplaceMode("replace") },
+    { name: "Export", shortcut: `${mod}+Shift+E`, action: () => setShowExport(true) },
     { name: "Version History", action: () => setShowHistory(true) },
     { name: "Toggle Spell Check", action: () => {
       const e = editorInstanceRef.current?.getEditor();
       if (e) e.commands.toggleSpellCheck();
     }},
-    { name: "New Comment", shortcut: "Cmd+Shift+M", action: () => editorInstanceRef.current?.createComment() },
-    { name: "Next Comment", shortcut: "Cmd+Shift+N", action: () => navigateComment("next") },
-    { name: "Previous Comment", shortcut: "Cmd+Shift+P", action: () => navigateComment("prev") },
+    { name: "New Comment", shortcut: `${mod}+Shift+M`, action: () => editorInstanceRef.current?.createComment() },
+    { name: "Next Comment", shortcut: `${mod}+Shift+N`, action: () => navigateComment("next") },
+    { name: "Previous Comment", shortcut: `${mod}+Shift+P`, action: () => navigateComment("prev") },
   ];
 
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === "o") {
+      if (modKey(e) && e.key === "o") {
         e.preventDefault();
         handleOpenFile();
-      } else if (e.metaKey && e.key === "s") {
+      } else if (modKey(e) && e.key === "s") {
         e.preventDefault();
         handleSave();
-      } else if (e.metaKey && e.key === "/") {
+      } else if (modKey(e) && e.key === "/") {
         e.preventDefault();
         if (isSourceMode) {
           switchToWysiwyg();
         } else {
           switchToSource();
         }
-      } else if (e.metaKey && e.key === "\\") {
+      } else if (modKey(e) && e.key === "\\") {
         e.preventDefault();
         toggleFileTree();
-      } else if (e.metaKey && e.shiftKey && e.key === "C") {
+      } else if (modKey(e) && e.shiftKey && e.key === "C") {
         e.preventDefault();
         toggleComments();
-      } else if (e.metaKey && e.shiftKey && e.key === "F") {
+      } else if (modKey(e) && e.shiftKey && e.key === "F") {
         e.preventDefault();
         toggleZenMode();
-      } else if (e.metaKey && e.shiftKey && e.key === "D") {
+      } else if (modKey(e) && e.shiftKey && e.key === "D") {
         e.preventDefault();
         cycleTheme();
-      } else if (e.metaKey && !e.shiftKey && e.key === "p") {
+      } else if (modKey(e) && !e.shiftKey && e.key === "p") {
         e.preventDefault();
         setShowQuickOpen(true);
-      } else if (e.metaKey && e.shiftKey && e.key === "P") {
+      } else if (modKey(e) && e.shiftKey && e.key === "P") {
         e.preventDefault();
         setShowCommandPalette(true);
-      } else if (e.metaKey && e.key === ".") {
+      } else if (modKey(e) && e.key === ".") {
         e.preventDefault();
         setShowCommandPalette(true);
-      } else if (e.metaKey && e.shiftKey && e.key === "M") {
+      } else if (modKey(e) && e.shiftKey && e.key === "M") {
         e.preventDefault();
         editorInstanceRef.current?.createComment();
-      } else if (e.metaKey && e.shiftKey && e.key === "N") {
+      } else if (modKey(e) && e.shiftKey && e.key === "N") {
         e.preventDefault();
         navigateComment("next");
-      } else if (e.metaKey && e.shiftKey && e.key === "E") {
+      } else if (modKey(e) && e.shiftKey && e.key === "E") {
         e.preventDefault();
         setShowExport(true);
-      } else if (e.metaKey && e.shiftKey && e.key === "T") {
+      } else if (modKey(e) && e.shiftKey && e.key === "T") {
         e.preventDefault();
         const ed = editorInstanceRef.current?.getEditor();
         if (ed) ed.commands.toggleFocusMode();
-      } else if (e.metaKey && e.key === "f" && !e.shiftKey) {
+      } else if (modKey(e) && e.key === "f" && !e.shiftKey) {
         e.preventDefault();
         setFindReplaceMode("find");
-      } else if (e.metaKey && e.key === "h" && !e.shiftKey) {
+      } else if (modKey(e) && e.key === "h" && !e.shiftKey) {
         e.preventDefault();
         setFindReplaceMode("replace");
       }
@@ -562,7 +565,7 @@ function App() {
           {/* Mode indicator */}
           {isSourceMode && (
             <div className="h-7 flex items-center px-3 text-[12px] bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-200 border-b border-[var(--editor-border)]">
-              Source Mode — Editing raw markdown (Cmd+/ to switch back)
+              Source Mode — Editing raw markdown ({modLabel()}+/ to switch back)
             </div>
           )}
 

@@ -2,6 +2,7 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
 import { useState } from "react";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { modKey, modLabel } from "../../../utils/platform";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -88,7 +89,7 @@ export function FrontmatterView({ node, updateAttributes }: NodeViewProps) {
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && e.metaKey) {
+              if (e.key === "Enter" && modKey(e)) {
                 e.preventDefault();
                 handleSave();
               }
@@ -102,7 +103,7 @@ export function FrontmatterView({ node, updateAttributes }: NodeViewProps) {
           />
           <div className="frontmatter-actions">
             <button className="frontmatter-btn" onClick={handleSave}>
-              Save (Cmd+Enter)
+              Save ({modLabel()}+Enter)
             </button>
             <button
               className="frontmatter-btn-secondary"

@@ -3,6 +3,7 @@ import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { useState, useRef, useEffect, useMemo } from "react";
 import katex from "katex";
+import { modLabel } from "../../../utils/platform";
 
 // ─── Block math: $$...$$ ───
 
@@ -62,7 +63,7 @@ export function MathBlockView({ node, updateAttributes, selected }: NodeViewProp
             />
             <div className="math-block-actions">
               <button className="math-block-btn save" onClick={handleSave}>
-                Save (Cmd+Enter)
+                Save ({modLabel()}+Enter)
               </button>
               <button
                 className="math-block-btn cancel"

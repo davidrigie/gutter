@@ -1,4 +1,5 @@
 import { useEditorStore } from "../stores/editorStore";
+import { modLabel } from "../utils/platform";
 import { Circle, MessageSquare } from "./Icons";
 
 function OutlineIcon({ size = 16, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) {
@@ -49,7 +50,7 @@ export function StatusBar() {
             ? "text-[var(--accent)] bg-[var(--surface-active)]"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
         }`}
-        title={showFileTree ? "Hide file tree (Cmd+\\)" : "Show file tree (Cmd+\\)"}
+        title={showFileTree ? `Hide file tree (${modLabel()}+\\)` : `Show file tree (${modLabel()}+\\)`}
       >
         <SidebarIcon size={15} />
       </button>
@@ -87,7 +88,7 @@ export function StatusBar() {
       <button
         onClick={toggleSourceMode}
         className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-[var(--surface-active)] text-[var(--text-secondary)] text-[11px] font-medium hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
-        title="Toggle source mode (Cmd+/)"
+        title={`Toggle source mode (${modLabel()}+/)`}
       >
         {isSourceMode ? "Source" : "WYSIWYG"}
       </button>
@@ -98,7 +99,7 @@ export function StatusBar() {
           className={`p-0.5 rounded text-[13px] ${canUndo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
           onClick={() => canUndo && document.execCommand("undo")}
           disabled={!canUndo}
-          title="Undo (Cmd+Z)"
+          title={`Undo (${modLabel()}+Z)`}
         >
           &#x21A9;
         </button>
@@ -106,7 +107,7 @@ export function StatusBar() {
           className={`p-0.5 rounded text-[13px] ${canRedo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
           onClick={() => canRedo && document.execCommand("redo")}
           disabled={!canRedo}
-          title="Redo (Cmd+Shift+Z)"
+          title={`Redo (${modLabel()}+Shift+Z)`}
         >
           &#x21AA;
         </button>
@@ -134,7 +135,7 @@ export function StatusBar() {
             ? "text-[var(--accent)] bg-[var(--surface-active)]"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
         }`}
-        title={showComments ? "Hide comments (Cmd+Shift+C)" : "Show comments (Cmd+Shift+C)"}
+        title={showComments ? `Hide comments (${modLabel()}+Shift+C)` : `Show comments (${modLabel()}+Shift+C)`}
       >
         <MessageSquare size={15} />
       </button>

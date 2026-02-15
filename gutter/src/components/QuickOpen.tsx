@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useWorkspaceStore, type FileEntry } from "../stores/workspaceStore";
 import { useSettingsStore } from "../stores/settingsStore";
+import { fileName as pathFileName } from "../utils/path";
 import { Search } from "./Icons";
 
 interface QuickOpenProps {
@@ -40,8 +41,8 @@ function fuzzyScore(query: string, text: string): number {
   if (qi < q.length) return -1; // not all chars matched
 
   // Boost for filename match vs path match
-  const fileName = text.split("/").pop() || text;
-  if (fileName.toLowerCase().includes(q)) {
+  const fName = pathFileName(text) || text;
+  if (fName.toLowerCase().includes(q)) {
     score += 10;
   }
 

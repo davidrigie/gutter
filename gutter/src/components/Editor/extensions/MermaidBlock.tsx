@@ -3,6 +3,7 @@ import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { useState, useRef, useEffect, useCallback } from "react";
 import mermaid from "mermaid";
+import { modLabel } from "../../../utils/platform";
 
 mermaid.initialize({
   startOnLoad: false,
@@ -95,7 +96,7 @@ export function MermaidBlockView({ node, updateAttributes, selected }: NodeViewP
             />
             <div className="mermaid-block-actions">
               <button className="mermaid-block-btn save" onClick={handleSave}>
-                Render (Cmd+Enter)
+                Render ({modLabel()}+Enter)
               </button>
               <button
                 className="mermaid-block-btn cancel"

@@ -1,5 +1,6 @@
 import { useCommentStore } from "../../stores/commentStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { modLabel } from "../../utils/platform";
 import { Thread } from "./Thread";
 import { useState, useCallback } from "react";
 import { MessageSquare } from "../Icons";
@@ -88,7 +89,7 @@ export function CommentsPanel() {
             </p>
             <p className="text-[12px]">
               {totalCount === 0
-                ? "Select text and press Cmd+Shift+M to add a comment."
+                ? `Select text and press ${modLabel()}+Shift+M to add a comment.`
                 : "Try changing the filter."}
             </p>
           </div>

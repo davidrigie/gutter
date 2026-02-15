@@ -36,6 +36,8 @@ import { SpellCheck } from "./extensions/SpellCheck";
 import { MarkdownLinkInput } from "./extensions/MarkdownLinkInput";
 import { LinkReveal } from "./extensions/LinkReveal";
 import { createFindReplacePlugin } from "../FindReplace";
+import { modKey, modLabel } from "../../utils/platform";
+import { parentDir } from "../../utils/path";
 import "../../styles/editor.css";
 
 const FindReplaceExtension = Extension.create({
@@ -100,7 +102,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
     const handleImageInsert = useCallback(async (file: File) => {
       const filePath = useEditorStore.getState().filePath;
       if (!filePath) return;
-      const dirPath = filePath.substring(0, filePath.lastIndexOf("/"));
+      const dirPath = parentDir(filePath);
       const ext = file.name.split(".").pop() || "png";
       const filename = `image-${Date.now()}.${ext}`;
       const buffer = await file.arrayBuffer();
@@ -194,7 +196,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
                 content: [
                   {
                     type: "text",
-                    text: 'Type "/" for commands, or open a file with Cmd+O.',
+                    text: `Type "/" for commands, or open a file with ${modLabel()}+O.`,
                   },
                 ],
               },
@@ -281,12 +283,12 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           return false;
         },
         handleKeyDown: (_view, event) => {
-          if (event.metaKey && event.key === "e") {
+          if (modKey(event) && event.key === "e") {
             event.preventDefault();
             editor?.chain().focus().toggleCode().run();
             return true;
           }
-          if (event.metaKey && event.key === "k") {
+          if (modKey(event) && event.key === "k") {
             event.preventDefault();
             if (editor?.state.selection.empty) {
               // No selection — insert placeholder link
@@ -358,29 +360,30 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         const items: ContextMenuItem[] = [];
 
         // Formatting options
+        const mod = modLabel();
         items.push(
           {
             label: "Bold",
             icon: "B",
-            shortcut: "Cmd+B",
+            shortcut: `${mod}+B`,
             action: () => editor.chain().focus().toggleBold().run(),
           },
           {
             label: "Italic",
             icon: "I",
-            shortcut: "Cmd+I",
+            shortcut: `${mod}+I`,
             action: () => editor.chain().focus().toggleItalic().run(),
           },
           {
             label: "Strikethrough",
             icon: "S",
-            shortcut: "Cmd+Shift+X",
+            shortcut: `${mod}+Shift+X`,
             action: () => editor.chain().focus().toggleStrike().run(),
           },
           {
             label: "Code",
             icon: "<>",
-            shortcut: "Cmd+E",
+            shortcut: `${mod}+E`,
             action: () => editor.chain().focus().toggleCode().run(),
           },
           { label: "", action: () => {}, separator: true },
@@ -390,7 +393,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         items.push({
           label: "Add Link",
           icon: "🔗",
-          shortcut: "Cmd+K",
+          shortcut: `${mod}+K`,
           action: () => {
             if (editor.state.selection.empty) {
               editor.chain().focus().insertContent({
@@ -411,7 +414,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           items.push({
             label: "Add Comment",
             icon: "💬",
-            shortcut: "Cmd+Shift+M",
+            shortcut: `${mod}+Shift+M`,
             action: () => createComment(),
           });
         }

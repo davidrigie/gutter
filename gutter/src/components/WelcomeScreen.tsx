@@ -1,23 +1,26 @@
 import { useSettingsStore } from "../stores/settingsStore";
+import { modLabel } from "../utils/platform";
+import { fileName as pathFileName } from "../utils/path";
 
 interface WelcomeScreenProps {
   onOpenFile: () => void;
   onOpenRecent: (path: string) => void;
 }
 
+const mod = modLabel();
 const shortcuts = [
-  { keys: "Cmd+O", action: "Open File" },
-  { keys: "Cmd+S", action: "Save" },
-  { keys: "Cmd+P", action: "Quick Open" },
-  { keys: "Cmd+Shift+P", action: "Command Palette" },
-  { keys: "Cmd+/", action: "Toggle Source Mode" },
-  { keys: "Cmd+\\", action: "Toggle File Tree" },
-  { keys: "Cmd+Shift+C", action: "Toggle Comments" },
-  { keys: "Cmd+Shift+F", action: "Zen Mode" },
-  { keys: "Cmd+Shift+D", action: "Toggle Theme" },
-  { keys: "Cmd+Shift+M", action: "New Comment" },
-  { keys: "Cmd+F", action: "Find" },
-  { keys: "Cmd+H", action: "Find & Replace" },
+  { keys: `${mod}+O`, action: "Open File" },
+  { keys: `${mod}+S`, action: "Save" },
+  { keys: `${mod}+P`, action: "Quick Open" },
+  { keys: `${mod}+Shift+P`, action: "Command Palette" },
+  { keys: `${mod}+/`, action: "Toggle Source Mode" },
+  { keys: `${mod}+\\`, action: "Toggle File Tree" },
+  { keys: `${mod}+Shift+C`, action: "Toggle Comments" },
+  { keys: `${mod}+Shift+F`, action: "Zen Mode" },
+  { keys: `${mod}+Shift+D`, action: "Toggle Theme" },
+  { keys: `${mod}+Shift+M`, action: "New Comment" },
+  { keys: `${mod}+F`, action: "Find" },
+  { keys: `${mod}+H`, action: "Find & Replace" },
 ];
 
 export function WelcomeScreen({ onOpenFile, onOpenRecent }: WelcomeScreenProps) {
@@ -49,7 +52,7 @@ export function WelcomeScreen({ onOpenFile, onOpenRecent }: WelcomeScreenProps) 
             </h3>
             <div className="space-y-1">
               {recentFiles.slice(0, 8).map((path) => {
-                const name = path.split("/").pop() || path;
+                const name = pathFileName(path) || path;
                 return (
                   <button
                     key={path}

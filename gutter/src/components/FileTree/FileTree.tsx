@@ -4,6 +4,7 @@ import { useToastStore } from "../../stores/toastStore";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
+import { fileName as pathFileName, joinPath } from "../../utils/path";
 import {
   ChevronRight,
   ChevronDown,
@@ -87,7 +88,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
         setCreatingIn(null);
         return;
       }
-      const fullPath = `${creatingIn.parentPath}/${name.trim()}`;
+      const fullPath = joinPath(creatingIn.parentPath, name.trim());
       try {
         if (creatingIn.type === "folder") {
           await invoke("create_directory", { path: fullPath });
@@ -131,7 +132,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
   const handleRename = useCallback(
     async (oldPath: string, newName: string) => {
       if (!newName.trim()) return;
-      const parts = oldPath.split("/");
+      const parts = oldPath.split(/[/\\]/);
       parts[parts.length - 1] = newName.trim();
       const newPath = parts.join("/");
       try {
@@ -181,9 +182,9 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     const handleMouseUp = async () => {
       const d = dragRef.current;
       if (d?.started && dropTarget) {
-        const fileName = d.sourcePath.split("/").pop();
-        if (fileName) {
-          const newPath = `${dropTarget}/${fileName}`;
+        const fName = pathFileName(d.sourcePath);
+        if (fName) {
+          const newPath = joinPath(dropTarget, fName);
           try {
             await invoke("rename_path", { oldPath: d.sourcePath, newPath });
             const ws = useWorkspaceStore.getState();
@@ -519,7 +520,7 @@ function FileTreeNode({
                     onCreateFile(entry.path);
                   }
                   // Actually create via invoke
-                  const fullPath = `${entry.path}/${name}`;
+                  const fullPath = joinPath(entry.path, name);
                   try {
                     const { invoke } = await import("@tauri-apps/api/core");
                     if (creating === "folder") {

@@ -65,7 +65,6 @@ function App() {
   const [showExport, setShowExport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const markdownRef = useRef("");
-  const suppressFileChangedUntil = useRef(0);
 
   const editorInstanceRef = useRef<{
     createComment: () => void;
@@ -92,13 +91,25 @@ function App() {
       }, 500);
     });
 
+    let fileChangeDebounce: ReturnType<typeof setTimeout>;
     const unlistenFile = listen<string>("file-changed", (event) => {
-      if (Date.now() < suppressFileChangedUntil.current) return;
       const changedPath = event.payload;
       const currentPath = useEditorStore.getState().filePath;
-      if (changedPath === currentPath) {
-        setShowReloadPrompt(true);
-      }
+      if (changedPath !== currentPath) return;
+
+      // Debounce: FSEvents can fire multiple times for one save
+      clearTimeout(fileChangeDebounce);
+      fileChangeDebounce = setTimeout(async () => {
+        try {
+          const diskContent = await invoke<string>("read_file", { path: changedPath });
+          // Only show prompt if disk content actually differs from editor content
+          if (diskContent !== markdownRef.current) {
+            setShowReloadPrompt(true);
+          }
+        } catch {
+          // File may have been deleted — ignore
+        }
+      }, 500);
     });
 
     return () => {
@@ -106,6 +117,7 @@ function App() {
       unlistenTree.then((fn) => fn());
       unlistenFile.then((fn) => fn());
       clearTimeout(debounceTimer);
+      clearTimeout(fileChangeDebounce);
     };
   }, [workspacePath, loadFileTree]);
 
@@ -145,7 +157,7 @@ function App() {
 
   // Open file handler
   const handleOpenFile = useCallback(async () => {
-    suppressFileChangedUntil.current = Date.now() + 5000;
+
     const content = await openFile();
     if (content !== null) {
       setEditorContent(content);
@@ -165,7 +177,7 @@ function App() {
   const handleFileTreeOpen = useCallback(
     async (path: string) => {
       try {
-        suppressFileChangedUntil.current = Date.now() + 5000;
+    
         setShowReloadPrompt(false);
         const content = await invoke<string>("read_file", { path });
         setFilePath(path);
@@ -255,7 +267,7 @@ function App() {
   const handleSave = useCallback(async () => {
     const md = markdownRef.current;
     // Suppress file-changed notifications for 2s after our own save
-    suppressFileChangedUntil.current = Date.now() + 5000;
+
     await saveFile(md);
     await saveComments();
     await generateCompanion(md);
@@ -271,7 +283,7 @@ function App() {
   // Tab handlers
   const handleSwitchTab = useCallback(
     async (path: string) => {
-      suppressFileChangedUntil.current = Date.now() + 5000;
+  
       setShowReloadPrompt(false);
       setActiveTab(path);
       try {

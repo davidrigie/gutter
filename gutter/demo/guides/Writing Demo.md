@@ -63,5 +63,3 @@ Content below the rule.
 | Diagrams | Done | Mermaid support |
 
 [Something](https://google.com)
-
-

@@ -61,13 +61,12 @@ export function createFindReplacePlugin() {
 }
 
 function findMatches(
-  doc: { textBetween: (from: number, to: number) => string; content: { size: number } },
+  doc: import("@tiptap/pm/model").Node,
   searchTerm: string,
   matchCase: boolean,
   useRegex: boolean,
 ): { from: number; to: number }[] {
   if (!searchTerm) return [];
-  const text = doc.textBetween(0, doc.content.size);
   const results: { from: number; to: number }[] = [];
 
   try {
@@ -79,11 +78,39 @@ function findMatches(
       regex = new RegExp(escaped, matchCase ? "g" : "gi");
     }
 
-    let match;
-    while ((match = regex.exec(text)) !== null) {
-      results.push({ from: match.index + 1, to: match.index + match[0].length + 1 });
-      if (match[0].length === 0) regex.lastIndex++;
-    }
+    // Walk each block node and search its text content with correct positions
+    doc.descendants((node, pos) => {
+      if (!node.isTextblock) return;
+      // Collect text segments with their positions within this block
+      const segments: { text: string; pos: number }[] = [];
+      node.forEach((child, childOffset) => {
+        if (child.isText && child.text) {
+          segments.push({ text: child.text, pos: pos + 1 + childOffset });
+        }
+      });
+
+      // Build the block's full text and a position map
+      let blockText = "";
+      const posMap: number[] = []; // posMap[stringIndex] = prosemirror position
+      for (const seg of segments) {
+        for (let i = 0; i < seg.text.length; i++) {
+          posMap.push(seg.pos + i);
+          blockText += seg.text[i];
+        }
+      }
+
+      // Run regex on this block's text
+      regex.lastIndex = 0;
+      let match;
+      while ((match = regex.exec(blockText)) !== null) {
+        if (match[0].length === 0) { regex.lastIndex++; continue; }
+        const from = posMap[match.index];
+        const to = posMap[match.index + match[0].length - 1] + 1;
+        results.push({ from, to });
+      }
+
+      return false; // don't descend into inline nodes
+    });
   } catch {
     // Invalid regex, return empty
   }
@@ -197,7 +224,11 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
 
     editor.chain().focus().command(({ tr }) => {
       for (const match of matches) {
-        tr.replaceWith(match.from, match.to, editor.schema.text(replaceTerm));
+        if (replaceTerm) {
+          tr.replaceWith(match.from, match.to, editor.schema.text(replaceTerm));
+        } else {
+          tr.delete(match.from, match.to);
+        }
       }
       return true;
     }).run();

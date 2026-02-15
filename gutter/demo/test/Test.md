@@ -12,5 +12,3 @@ def function(x):
 [[Meeting Notes.md]] this is a test
 
 [google.com](http://google.com)
-
-

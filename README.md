@@ -59,7 +59,7 @@ Gutter's core differentiator — inline comment threads that live alongside your
 
 ## Built With
 
-No humans were harmed (or employed) in the writing of this code. Every line — Rust, React, CSS, tests, this README — was written by [Claude Code](https://claude.ai/code). The human just vibed.
+Every line of code in this project was written by [Claude Code](https://claude.ai/code). A human was present.
 
 ## License
 

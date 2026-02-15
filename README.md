@@ -57,6 +57,10 @@ Gutter's core differentiator — inline comment threads that live alongside your
 - Structured thread data in `.comments.json` sidecar files
 - Auto-generated human-readable `.comments.md` companion
 
+## Built With
+
+This entire project — every line of Rust, React, CSS, and this README — was written by [Claude Code](https://claude.ai/code).
+
 ## License
 
 MIT

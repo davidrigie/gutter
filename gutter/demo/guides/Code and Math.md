@@ -115,4 +115,4 @@ sequenceDiagram
 
 See also: [[Writing Demo]] for text formatting, [[Welcome]] for shortcuts.'
 
-/
+![](asset://localhost/%2FUsers%2Fdaverigie%2FDocuments%2Fgutter%2Fgutter%2Fdemo%2Fguides%2Fassets%2Fimage-1771135562988.png)

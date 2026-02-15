@@ -1,6 +1,10 @@
 import { Extension } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { open } from "@tauri-apps/plugin-dialog";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { useEditorStore } from "../../../stores/editorStore";
+import { parentDir, joinPath } from "../../../utils/path";
 
 interface SlashCommandItem {
   title: string;
@@ -112,13 +116,36 @@ const SLASH_ITEMS: SlashCommandItem[] = [
   },
   {
     title: "Image",
-    description: "Insert image from URL",
+    description: "Insert image from file",
     icon: "img",
     action: (editor) => {
-      const url = window.prompt("Image URL:");
-      if (url) {
-        editor.chain().focus().setImage({ src: url }).run();
-      }
+      (async () => {
+        const filePath = useEditorStore.getState().filePath;
+        if (!filePath) {
+          const { useToastStore } = await import("../../../stores/toastStore");
+          useToastStore.getState().addToast("Save the file first to insert images", "error");
+          return;
+        }
+        const selected = await open({
+          multiple: false,
+          filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "svg"] }],
+        });
+        if (!selected) return;
+        const source = typeof selected === "string" ? selected : (selected as { path: string }).path;
+        const ext = source.split(".").pop() || "png";
+        const filename = `image-${Date.now()}.${ext}`;
+        const dirPath = parentDir(filePath);
+        try {
+          await invoke("copy_image", { source, dirPath, filename });
+          const absolutePath = joinPath(dirPath, "assets", filename);
+          const displaySrc = convertFileSrc(absolutePath);
+          editor.chain().focus().setImage({ src: displaySrc }).run();
+        } catch (e) {
+          console.error("Failed to insert image:", e);
+          const { useToastStore } = await import("../../../stores/toastStore");
+          useToastStore.getState().addToast("Failed to insert image", "error");
+        }
+      })();
     },
   },
   {

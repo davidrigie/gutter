@@ -54,7 +54,24 @@ This is the highest-priority phase — without it, the app is macOS-only despite
 
 **COMPLETED** — Added 13 new design tokens (glass-bg/border, focus-shadow, code-bg/block-bg/block-header, find-match/current/shadow, selection-bg, surface-elevated, status-error). Replaced ~50 hardcoded rgba/hex colors in editor.css with CSS variable references. Replaced hardcoded colors in MathBlock, SlashCommands, FileTree, ReplyInput, Thread components. StatusBar pipe separators replaced with styled dividers, undo/redo HTML entities replaced with SVG icons, SidebarIcon/OutlineIcon moved to shared Icons.tsx.
 
-## Phase 7: Unified Search (Cmd+K / Ctrl+K)
+## Phase 7: Quick Wins — Performance & Visual Polish
+
+**Files: 6-8 modified** | Details: [`docs/QUICK_WINS.md`](docs/QUICK_WINS.md)
+
+Small changes with outsized impact on perceived quality and responsiveness.
+
+### Performance
+- **Modify: `StatusBar.tsx`** — Switch from bulk `useEditorStore()` destructuring to individual Zustand selectors. Eliminates re-renders on every keystroke.
+- **Modify: `FileTree.tsx`** — Wrap `FileTreeNode` with `React.memo` to prevent recursive re-renders when props haven't changed.
+- **Modify: `CommentsPanel.tsx`** — Memoize `visibleThreads` filter with `useMemo`.
+- **Modify: `GutterEditor.tsx`** — Add shallow equality check in `extractCommentTexts` to avoid unnecessary CommentsPanel re-renders.
+
+### Visual Polish
+- **Modify: `theme.css`** — Add `--status-success`, `--status-info`, `--status-warning` tokens. Add `text-rendering: optimizeLegibility` and `font-feature-settings: "kern"`.
+- **Modify: `App.tsx`, `Thread.tsx`, `Toast.tsx`** — Replace remaining hardcoded Tailwind colors with CSS variable tokens.
+- **Modify: `TabBar.tsx`, `FileTree.tsx`, `Thread.tsx`** — Add transitions to tab active indicator, file tree selection, and comment thread state changes.
+
+## Phase 8: Unified Search (Cmd+K / Ctrl+K)
 
 **Files: 4-5 new/modified**
 
@@ -63,7 +80,7 @@ This is the highest-priority phase — without it, the app is macOS-only despite
 - **Modify: `App.tsx`** — Bind `Cmd+K` to unified search. Retire separate Quick Open (Cmd+P) and Command Palette (Cmd+Shift+P), or keep them as aliases that pre-filter to the Files/Commands section.
 - **Modify: `styles/editor.css`** — Search modal styles: frosted glass backdrop, section headers, highlighted match text, keyboard selection indicator.
 
-## Phase 8: Native Menu Bar
+## Phase 9: Native Menu Bar
 
 **Files: 3-4 new/modified**
 
@@ -72,17 +89,18 @@ This is the highest-priority phase — without it, the app is macOS-only despite
 - **Modify: `App.tsx`** — Listen for menu events via `listen()` from `@tauri-apps/api/event` and dispatch the same actions that keyboard shortcuts already trigger. Deduplicate shortcut logic into shared handler functions if not already done.
 - **Modify: `src-tauri/src/lib.rs`** — Dynamically update menu item state (e.g., checkmarks for toggleable items like Zen Mode, Source Mode) when frontend state changes, via `app.emit()` back to Rust or by using Tauri's menu item enabled/checked APIs.
 
-## Phase 9: Release Prep
+## Phase 10: Release Prep
 
-**Files: 3 modified**
+**Files: 5-6 modified**
 
+- **Modify: `FileTree.tsx`** — Multi-select support: Shift+click for range select, Cmd/Ctrl+click for toggle select. Selected files get visual highlight. Context menu actions (Delete, Move) apply to all selected files. Clear selection on single-click without modifier.
 - **Modify: `Cargo.toml`** — Add `[profile.release]` with LTO, strip, codegen-units=1, opt-level="s", panic="abort"
 - **Modify: `tauri.conf.json`** — Add CSP policy, add `fileAssociations` for .md/.markdown
 - **Modify: `lib.rs`** — Handle file-open from OS launch arguments
 
 ## Execution Order
 
-4 → 5 → 6 → 7 → 8 → 9
+7 → 8 → 9 → 10
 
 ## Already Completed (Sprint 1)
 
@@ -135,6 +153,7 @@ These features are fully implemented and shipped:
 - [x] Phase 4: Elegant Table Editing
 - [x] Phase 5: Drag-to-Link + Comment UX Polish
 - [x] Phase 6: Design Token Audit + Icon Refinement
-- [ ] Phase 7: Unified Search (Cmd+K / Ctrl+K)
-- [ ] Phase 8: Native Menu Bar
-- [ ] Phase 9: Release Prep
+- [ ] Phase 7: Quick Wins — Performance & Visual Polish
+- [ ] Phase 8: Unified Search (Cmd+K / Ctrl+K)
+- [ ] Phase 9: Native Menu Bar
+- [ ] Phase 10: Release Prep

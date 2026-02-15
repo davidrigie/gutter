@@ -3,6 +3,7 @@ import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
 import type { Node as UnistNode } from "unist";
 import type { JSONContent } from "@tiptap/react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface MdastNode extends UnistNode {
   children?: MdastNode[];
@@ -22,7 +23,7 @@ interface MdastNode extends UnistNode {
 const COMMENT_MARKER_RE =
   /<mark>([\s\S]*?)<\/mark><sup>\[c(\d+)\]<\/sup>/g;
 
-export function parseMarkdown(markdown: string): JSONContent {
+export function parseMarkdown(markdown: string, fileDirPath?: string): JSONContent {
   // Extract frontmatter before parsing
   let frontmatterContent: string | null = null;
   let body = markdown;
@@ -54,10 +55,33 @@ export function parseMarkdown(markdown: string): JSONContent {
   }
   docContent.push(...result);
 
-  return {
+  const doc: JSONContent = {
     type: "doc",
     content: docContent.length > 0 ? docContent : [{ type: "paragraph" }],
   };
+
+  // Resolve relative image paths to Tauri asset URLs for display
+  if (fileDirPath) {
+    resolveImagePaths(doc, fileDirPath);
+  }
+
+  return doc;
+}
+
+/** Walk the doc tree and convert relative image src to Tauri asset URLs */
+function resolveImagePaths(node: JSONContent, dirPath: string) {
+  if (node.type === "image" && node.attrs?.src) {
+    const src = node.attrs.src as string;
+    if (src.startsWith("./") || src.startsWith("../")) {
+      const absolute = dirPath + "/" + src.replace(/^\.\//, "");
+      node.attrs.src = convertFileSrc(absolute);
+    }
+  }
+  if (node.content) {
+    for (const child of node.content) {
+      resolveImagePaths(child, dirPath);
+    }
+  }
 }
 
 function extractMathBlocks(md: string): {

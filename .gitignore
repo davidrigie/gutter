@@ -4,3 +4,7 @@ target/
 .DS_Store
 *.log
 .env
+
+# Generated demo assets and history snapshots
+gutter/demo/**/assets/
+gutter/demo/**/.gutter/

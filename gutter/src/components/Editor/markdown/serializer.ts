@@ -1,6 +1,19 @@
 import type { JSONContent } from "@tiptap/react";
 
 /**
+ * Convert a Tauri asset protocol URL back to a relative path for markdown.
+ * asset URLs look like: https://asset.localhost/path/to/dir/assets/image.png
+ */
+function assetUrlToRelative(src: string): string {
+  // Detect Tauri asset protocol URLs
+  if (src.includes("asset.localhost")) {
+    const match = src.match(/\/assets\/[^?#]+/);
+    if (match) return "." + match[0];
+  }
+  return src;
+}
+
+/**
  * Serialize a TipTap JSON document back to markdown string.
  */
 export function serializeMarkdown(doc: JSONContent): string {
@@ -67,7 +80,7 @@ function serializeBlock(
 
     case "image": {
       const alt = node.attrs?.alt || "";
-      const src = node.attrs?.src || "";
+      const src = assetUrlToRelative(node.attrs?.src || "");
       const title = node.attrs?.title;
       if (title) {
         return `![${alt}](${src} "${title}")`;
@@ -159,7 +172,7 @@ function serializeInlineNode(node: JSONContent): string {
 
   if (node.type === "image") {
     const alt = node.attrs?.alt || "";
-    const src = node.attrs?.src || "";
+    const src = assetUrlToRelative(node.attrs?.src || "");
     return `![${alt}](${src})`;
   }
 

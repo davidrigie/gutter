@@ -44,7 +44,7 @@ Tracking upcoming features and milestones for the Gutter editor.
 
 ## Architecture Decisions
 
-See [[Meeting Notes]] for discussion context.
+See [[Meeting Notes]] for <mark>discussion</mark><sup>[c1]</sup> context.[[2025-01-25]]
 
 ```mermaid
 timeline

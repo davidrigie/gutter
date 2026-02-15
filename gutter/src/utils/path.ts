@@ -11,3 +11,10 @@ export function parentDir(p: string): string {
 export function joinPath(...segments: string[]): string {
   return segments.map(s => s.replace(/[/\\]$/, "")).join("/");
 }
+
+const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico"]);
+
+export function isImageFile(p: string): boolean {
+  const ext = p.split(".").pop()?.toLowerCase() || "";
+  return IMAGE_EXTENSIONS.has(ext);
+}

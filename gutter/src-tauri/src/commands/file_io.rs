@@ -76,6 +76,18 @@ pub fn save_image(dir_path: String, filename: String, data: Vec<u8>) -> Result<S
 }
 
 #[tauri::command]
+pub fn copy_image(source: String, dir_path: String, filename: String) -> Result<String, String> {
+    let assets_dir = Path::new(&dir_path).join("assets");
+    if !assets_dir.exists() {
+        fs::create_dir_all(&assets_dir)
+            .map_err(|e| format!("Failed to create assets directory: {}", e))?;
+    }
+    let dest = assets_dir.join(&filename);
+    fs::copy(&source, &dest).map_err(|e| format!("Failed to copy image: {}", e))?;
+    Ok(format!("./assets/{}", filename))
+}
+
+#[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     Command::new("open")

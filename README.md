@@ -59,7 +59,7 @@ Gutter's core differentiator — inline comment threads that live alongside your
 
 ## Built With
 
-Every line of code in this project was written by [Claude Code](https://claude.ai/code). A human was present.
+Every line of code, config, test, and this sentence was written by [Claude Code](https://claude.ai/code).
 
 ## License
 

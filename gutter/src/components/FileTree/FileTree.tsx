@@ -464,7 +464,7 @@ function FileTreeNode({
           data-tree-dir="true"
           className={`flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
             isDropTarget
-              ? "bg-[rgba(59,130,246,0.15)]"
+              ? "bg-[var(--selection-bg)]"
               : isDragSource
                 ? "opacity-40"
                 : "hover:bg-[var(--surface-hover)]"
@@ -580,7 +580,7 @@ function FileTreeNode({
         isDragSource
           ? "opacity-40"
           : isSelected
-            ? "bg-[rgba(59,130,246,0.08)] dark:bg-[rgba(96,165,250,0.1)]"
+            ? "bg-[var(--selection-bg)]"
             : "hover:bg-[var(--surface-hover)]"
       }`}
       style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}

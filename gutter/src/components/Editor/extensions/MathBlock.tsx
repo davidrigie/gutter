@@ -21,14 +21,14 @@ export function MathBlockView({ node, updateAttributes, selected }: NodeViewProp
 
   const renderedHtml = useMemo(() => {
     const src = node.attrs.latex || "";
-    if (!src) return "<span style=\"color:#999\">Empty equation — double-click to edit</span>";
+    if (!src) return "<span class=\"math-placeholder\">Empty equation — double-click to edit</span>";
     try {
       return katex.renderToString(src, {
         displayMode: true,
         throwOnError: false,
       });
     } catch {
-      return `<span style="color:red">Invalid LaTeX: ${src}</span>`;
+      return `<span class="math-error">Invalid LaTeX: ${src}</span>`;
     }
   }, [node.attrs.latex]);
 
@@ -175,14 +175,14 @@ export function MathInlineView({ node, updateAttributes, selected }: NodeViewPro
 
   const renderedHtml = useMemo(() => {
     const src = node.attrs.latex || "";
-    if (!src) return "<span style=\"color:#999\">$</span>";
+    if (!src) return "<span class=\"math-placeholder\">$</span>";
     try {
       return katex.renderToString(src, {
         displayMode: false,
         throwOnError: false,
       });
     } catch {
-      return `<span style="color:red">${src}</span>`;
+      return `<span class="math-error">${src}</span>`;
     }
   }, [node.attrs.latex]);
 

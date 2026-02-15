@@ -33,12 +33,9 @@ This is the highest-priority phase — without it, the app is macOS-only despite
 ### Rust Watcher Path Fix
 - **Modify: `src-tauri/src/commands/watcher.rs`** — Use `std::path::MAIN_SEPARATOR` or `Path::components()` instead of string matching for `.gutter` directory filtering.
 
-## Phase 3: Wiki-Link Autocomplete + Interactive Task Lists
+## Phase 3: Wiki-Link Autocomplete + Interactive Task Lists ✅
 
-**Files: 3-4 new/modified**
-
-- **Modify: `src/components/Editor/extensions/WikiLink.ts`** — When user types `[[`, show a floating suggestion menu listing workspace files (fuzzy-filtered as they type). On selection, insert `[[File Name]]`. Reuse the slash command menu pattern (vanilla DOM popup positioned at cursor).
-- **Modify: `GutterEditor.tsx` or new extension** — Make `[ ]` / `[x]` task list checkboxes interactive in WYSIWYG mode. Clicking a checkbox toggles its state and updates the underlying markdown. TipTap has `@tiptap/extension-task-list` and `@tiptap/extension-task-item` that can be configured for this.
+**COMPLETED** — Wiki-link autocomplete (`WikiLinkAutocomplete.ts`) shows workspace files when typing `[[` with fuzzy filtering and keyboard nav. Interactive task lists via `@tiptap/extension-task-list`/`task-item` with custom checkbox styling, parser/serializer support for `- [ ]`/`- [x]` round-trip, and "Task List" slash command.
 
 ## Phase 4: Elegant Table Editing
 
@@ -49,22 +46,13 @@ This is the highest-priority phase — without it, the app is macOS-only despite
 - **Modify: `styles/editor.css`** — Table styles: cell borders using theme vars, header row styling, selected cell highlight, resize handle styling. Tab key navigates between cells.
 - **Modify: `GutterEditor.tsx` editorProps** — Add `handleKeyDown` for Tab/Shift+Tab cell navigation (TipTap tables support `goToNextCell`/`goToPreviousCell`).
 
-## Phase 5: Drag-to-Link + Comment UX Polish
+## Phase 5: Drag-to-Link + Comment UX Polish ✅
 
-**Files: 3-4 modified**
+**COMPLETED** — Drag-to-link from file tree into editor inserts `[[WikiLink]]`. Comment panel scroll-to-thread with pulse animation. Scroll-to-comment from CommentsPanel to editor highlight position. Node-level comments on atom nodes (math, mermaid) via node attributes.
 
-- **Modify: `GutterEditor.tsx`** — Handle drop events from the file tree: when a file is dragged from the tree into the editor, insert a `[[File Name]]` wiki link at the drop position instead of moving the file.
-- **Modify: `src/components/Comments/CommentsPanel.tsx`** — Smooth scroll to focused comment thread with brief highlight pulse animation. Clicking quoted text at top of a thread scrolls the editor to the comment's highlight position.
-- **Modify: `styles/editor.css`** — Add pulse animation for comment focus.
+## Phase 6: Design Token Audit + Icon Refinement ✅
 
-## Phase 6: Design Token Audit + Icon Refinement
-
-**Files: 3-5 modified**
-
-- **Modify: `styles/theme.css`** — Add missing semantic tokens (`--surface-elevated`, `--shadow-lg`). Audit and replace all hardcoded `rgba()` colors in CSS files with CSS variable references.
-- **Modify: `styles/editor.css`** — Replace hardcoded colors with variables.
-- **Modify: `src/components/StatusBar.tsx`** — Replace ASCII separators and text-only indicators with proper SVG icons. Ensure every icon button has a tooltip.
-- **Modify: various components** — Standardize modal/dropdown shadows to unified variable.
+**COMPLETED** — Added 13 new design tokens (glass-bg/border, focus-shadow, code-bg/block-bg/block-header, find-match/current/shadow, selection-bg, surface-elevated, status-error). Replaced ~50 hardcoded rgba/hex colors in editor.css with CSS variable references. Replaced hardcoded colors in MathBlock, SlashCommands, FileTree, ReplyInput, Thread components. StatusBar pipe separators replaced with styled dividers, undo/redo HTML entities replaced with SVG icons, SidebarIcon/OutlineIcon moved to shared Icons.tsx.
 
 ## Phase 7: Unified Search (Cmd+K / Ctrl+K)
 
@@ -75,7 +63,16 @@ This is the highest-priority phase — without it, the app is macOS-only despite
 - **Modify: `App.tsx`** — Bind `Cmd+K` to unified search. Retire separate Quick Open (Cmd+P) and Command Palette (Cmd+Shift+P), or keep them as aliases that pre-filter to the Files/Commands section.
 - **Modify: `styles/editor.css`** — Search modal styles: frosted glass backdrop, section headers, highlighted match text, keyboard selection indicator.
 
-## Phase 8: Release Prep
+## Phase 8: Native Menu Bar
+
+**Files: 3-4 new/modified**
+
+- **New: `src-tauri/src/menu.rs`** — Build native menu using `tauri::menu`: File (New Tab, Open, Save, Save As, Close Tab), Edit (Undo, Redo, Cut, Copy, Paste, Select All, Find), View (Toggle Sidebar, Toggle Comments Panel, Toggle Zen Mode, Toggle Source Mode, Zoom In/Out, Cycle Theme), Window (Minimize, Zoom, Close). Use platform-aware accelerators (`Cmd` on macOS, `Ctrl` on Windows/Linux).
+- **Modify: `src-tauri/src/lib.rs`** — Register menu builder, attach to window. Wire `on_menu_event` to emit events to the frontend (e.g., `menu://file/save`, `menu://view/toggle-sidebar`).
+- **Modify: `App.tsx`** — Listen for menu events via `listen()` from `@tauri-apps/api/event` and dispatch the same actions that keyboard shortcuts already trigger. Deduplicate shortcut logic into shared handler functions if not already done.
+- **Modify: `src-tauri/src/lib.rs`** — Dynamically update menu item state (e.g., checkmarks for toggleable items like Zen Mode, Source Mode) when frontend state changes, via `app.emit()` back to Rust or by using Tauri's menu item enabled/checked APIs.
+
+## Phase 9: Release Prep
 
 **Files: 3 modified**
 
@@ -85,7 +82,7 @@ This is the highest-priority phase — without it, the app is macOS-only despite
 
 ## Execution Order
 
-2 → 3 → 4 → 5 → 6 → 7 → 8
+4 → 5 → 6 → 7 → 8 → 9
 
 ## Already Completed (Sprint 1)
 
@@ -127,14 +124,17 @@ These features are fully implemented and shipped:
 - [x] Typora-style line reveal (headings, bold, italic, links, wiki links)
 - [x] Floating link editor (edit URL, open, remove)
 - [x] Markdown link auto-conversion (type [text](url) → link)
+- [x] Wiki-link autocomplete (type [[ → fuzzy file picker)
+- [x] Interactive task lists (clickable checkboxes, - [ ]/- [x] round-trip)
 
 ## Polish Plan Status
 
 - [x] Phase 1: File Tree Fixes + Dirty Tab Protection + Toasts + Line Reveal
-- [ ] Phase 2: Cross-Platform Compatibility (Windows + Linux)
-- [ ] Phase 3: Wiki-Link Autocomplete + Interactive Task Lists
-- [ ] Phase 4: Elegant Table Editing
-- [ ] Phase 5: Drag-to-Link + Comment UX Polish
-- [ ] Phase 6: Design Token Audit + Icon Refinement
+- [x] Phase 2: Cross-Platform Compatibility (Windows + Linux)
+- [x] Phase 3: Wiki-Link Autocomplete + Interactive Task Lists
+- [x] Phase 4: Elegant Table Editing
+- [x] Phase 5: Drag-to-Link + Comment UX Polish
+- [x] Phase 6: Design Token Audit + Icon Refinement
 - [ ] Phase 7: Unified Search (Cmd+K / Ctrl+K)
-- [ ] Phase 8: Release Prep
+- [ ] Phase 8: Native Menu Bar
+- [ ] Phase 9: Release Prep

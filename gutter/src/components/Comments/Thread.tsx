@@ -35,7 +35,7 @@ export function Thread({ commentId, thread, isActive, quotedText, onClick }: Thr
     <div
       className={`mx-2 mb-2 rounded-lg border-l-[3px] transition-all cursor-pointer ${
         isActive
-          ? "border-l-[var(--accent)] bg-[rgba(59,130,246,0.06)] dark:bg-[rgba(96,165,250,0.08)]"
+          ? "border-l-[var(--accent)] bg-[var(--selection-bg)]"
           : "border-l-transparent hover:border-l-[var(--editor-border)] hover:shadow-sm"
       } ${thread.resolved ? "opacity-60" : ""}`}
       onClick={onClick}

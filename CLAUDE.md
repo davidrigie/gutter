@@ -2,13 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when <mark>working</mark><sup>[c1]</sup> with code in this repository.
 
+## Maintaining This File
+
+After completing significant work (new features, new files, architectural changes), update this file and `memory/MEMORY.md` to reflect the current state. Keeping these accurate saves time in future sessions — stale instructions lead to wrong assumptions, unnecessary exploration, and wasted context window. Key things to keep current: extension list, store fields, Rust command modules, keyboard shortcuts, and polish plan status.
+
 ## Project Overview
 
 Gutter is a local-first WYSIWYG markdown editor with first-class commenting, built with Tauri v2 (Rust backend) + React 19 + TipTap 3 (ProseMirror). All code lives under `gutter/`.
 
 ## Planning
 
-- **Active plan**: `POLISH_PLAN.md` — 12-phase plan to bring Gutter to app-store quality (phases 1-12, none started yet). Includes file tree fixes, dirty tab protection, toasts, settings UI, bubble menu, native menu bar, scrollbars, window persistence, workspace search, wiki-link autocomplete, interactive task lists, and design token cleanup.
+- **Active plan**: `POLISH_PLAN.md` — 9-phase polish plan. Phases 1–6 complete. Next up: Phase 7 (Unified Search), Phase 8 (Native Menu Bar), Phase 9 (Release Prep).
 - **Completed plans**: Archived in `docs/completed-plans/`. Sprint 1 (19 phases) is fully shipped — see the "Already Completed" section in POLISH_PLAN.md for the full feature list.
 
 ## Commands
@@ -36,26 +40,37 @@ Frontend calls Rust functions via `invoke()` from `@tauri-apps/api/core`. All Ru
 - **comments.rs** — read/write/delete comment sidecar files (`.comments.json`, `.comments.md`)
 - **workspace.rs** — recursive directory listing (filters hidden files and comment files, max depth 10)
 - **watcher.rs** — file system watcher with `mark_write()` suppression to avoid false change notifications
+- **export.rs** — export to HTML with inline CSS
+- **history.rs** — version history snapshot save/load/read
+- **settings.rs** — reads/writes `~/.gutter/config.json`
 
 ### State Management (Zustand)
 
 Stores in `src/stores/`:
 
-- **editorStore** — UI state: file path, dirty flag, theme, panel visibility, source mode, active comment
+- **editorStore** — UI state: file path, dirty flag, theme, panel visibility, source mode, active comment, `commentTexts` (maps commentId → quoted text), `canUndo`/`canRedo`, `showOutline`
 - **commentStore** — comment thread data, CRUD ops, ID generation (`c1`, `c2`...), JSON export/import
 - **workspaceStore** — file tree structure, open tabs, active tab, tab dirty state
-- **settingsStore** — user preferences (font size, font family, auto-save, spell check, panel widths, recent files)
+- **settingsStore** — user preferences (font size, font family, auto-save, spell check, panel widths, recent files, focus mode, typewriter mode, default author)
 - **historyStore** — local version history snapshots per file
+- **toastStore** — toast notification system with type, duration, auto-dismiss
+- **backlinkStore** — scans workspace for backlinks to current file
 
 ### Comment System (Three-File Model)
 
 This is the core differentiator. Understand this before touching comment-related code:
 
-1. **Inline markers in **`**.md**`: `<mark>highlighted text</mark><sup>[c1]</sup>` — survive standard markdown renderers
-2. `**.comments.json**` — structured thread data (source of truth), keyed by comment ID
-3. `**.comments.md**` — auto-generated human-readable companion, never hand-edited
+1. **Inline markers in `.md`**: `<mark>highlighted text</mark><sup>[c1]</sup>` — survive standard markdown renderers
+2. `.comments.json` — structured thread data (source of truth), keyed by comment ID
+3. `.comments.md` — auto-generated human-readable companion, never hand-edited
 
 Flow: parser.ts extracts markers → CommentMark TipTap extension renders them → serializer.ts writes them back → useComments.ts handles persistence. The `buildCompanionMarkdown()` function in useComments.ts generates the companion file.
+
+**Node-level comments**: Atom nodes (Mermaid, Math) can't use inline marks — they use a `commentId` node attribute instead. Detect via `selection instanceof NodeSelection && selection.node.type.spec.atom`. Node views expose `data-node-comment-id` for DOM queries.
+
+**Active comment highlighting**: A ProseMirror plugin (`activeCommentPluginKey`) syncs the active comment from Zustand via transaction meta and adds decorations to highlight it.
+
+**Scroll-to-comment**: `scroll-to-comment` CustomEvent from CommentsPanel → GutterEditor walks doc for both mark-based AND node-attribute-based comments.
 
 **Critical invariant**: `serialize(parse(markdown)) ≈ markdown` — round-trip fidelity must be preserved. Comment markers are inline HTML that must survive exactly.
 
@@ -63,11 +78,27 @@ Flow: parser.ts extracts markers → CommentMark TipTap extension renders them �
 
 Custom TipTap extensions in `src/components/Editor/extensions/`:
 
-- **CommentMark.ts** — mark extension for comment highlights
+- **CommentMark.ts** — mark extension for comment highlights (text selections)
 - **SlashCommands.tsx** — vanilla DOM slash command menu (no `@tiptap/suggestion` dependency)
 - **CodeBlockWithLang.tsx** — code blocks with language selector dropdown
 - **MathBlock.tsx** — KaTeX rendering, block (`$$`) and inline (`$`)
 - **MermaidBlock.tsx** — Mermaid diagram rendering with edit mode
+- **WikiLink.ts** — hides `[[`/`]]` brackets on non-active lines, styles wiki links
+- **WikiLinkAutocomplete.ts** — fuzzy file picker triggered on `[[`
+- **LinkReveal.ts** — Typora-style line reveal for headings, bold, italic, strike, code, links, wiki links
+- **MarkdownLinkInput.ts** — auto-converts typed `[text](url)` to links
+- **FocusMode.ts** — dims non-active paragraphs, typewriter mode
+- **Frontmatter.tsx** — YAML frontmatter support with edit mode
+- **SpellCheck.ts** — toggleable spell check
+
+### Cross-Component Communication (CustomEvents)
+
+Several features use `CustomEvent` dispatched on `document`:
+
+- `wiki-link-click` — WikiLink extension → App (navigates to file)
+- `internal-link-click` — regular markdown links → App
+- `file-tree-drop-link` — FileTree drag → GutterEditor (inserts `[[WikiLink]]`)
+- `scroll-to-comment` — CommentsPanel → GutterEditor (scrolls to highlight)
 
 ### Markdown Parser/Serializer
 
@@ -78,13 +109,21 @@ In `src/components/Editor/markdown/`:
 
 ### Styling
 
-- `**src/styles/theme.css**` — CSS custom properties (design tokens), light/dark themes, animations. All semantic colors (`--text-primary`, `--surface-hover`, etc.) defined here.
-- `**src/styles/editor.css**` — ProseMirror prose styles, context menu, slash menu, floating bars, code blocks. Component-specific CSS lives here, not in component files.
+- **`src/styles/theme.css`** — CSS custom properties (design tokens), light/dark themes, animations. Semantic colors (`--text-primary`, `--surface-hover`, `--glass-bg`, `--surface-elevated`, etc.) defined here.
+- **`src/styles/editor.css`** — ProseMirror prose styles, context menu, slash menu, floating bars, code blocks, table menu, comment highlights, toast styles. Component-specific CSS lives here, not in component files.
+- **`src/components/Icons.tsx`** — shared SVG icon components (SidebarIcon, OutlineIcon, etc.)
 - Components use Tailwind utility classes referencing CSS variables: `text-[var(--text-primary)]`
 
 ### Key Keyboard Shortcuts
 
-Defined in `App.tsx` `handleKeyDown`: Cmd+O (open), Cmd+S (save), Cmd+/ (toggle source), Cmd+\ (file tree), Cmd+Shift+C (comments), Cmd+Shift+F (zen mode), Cmd+Shift+D (theme), Cmd+Shift+P (command palette), Cmd+Shift+M (new comment), Cmd+Shift+N (next comment).
+Defined in `App.tsx` `handleKeyDown`. Uses `modKey(e)` helper from `src/utils/platform.ts` for cross-platform support (Cmd on macOS, Ctrl on Windows/Linux):
+
+Mod+O (open), Mod+S (save), Mod+P (quick open), Mod+F (find), Mod+H (find & replace), Mod+/ (toggle source), Mod+\ (file tree), Mod+. (command palette), Mod+Shift+C (comments), Mod+Shift+F (zen mode), Mod+Shift+D (theme), Mod+Shift+P (command palette alt), Mod+Shift+M (new comment), Mod+Shift+N (next comment), Mod+Shift+E (export), Mod+Shift+T (focus mode).
+
+### Utilities
+
+- **`src/utils/platform.ts`** — `isMac()`, `modLabel()`, `modKey(e)` for cross-platform keyboard handling
+- **`src/utils/path.ts`** — cross-platform path utilities: `splitPath()`, `fileName()`, `parentDir()`, `joinPath()`
 
 ## TypeScript Strictness
 
@@ -92,4 +131,4 @@ tsconfig has `strict: true`, `noUnusedLocals: true`, `noUnusedParameters: true`.
 
 ## Testing
 
-Tests in `gutter/tests/`: parser, serializer, round-trip fidelity, comment store CRUD, companion file generation. Run a single test file: `npx vitest run tests/parser.test.ts`.
+Tests in `gutter/tests/`: parser, serializer, round-trip fidelity, comment store CRUD, companion file generation, smoke tests. Run a single test file: `npx vitest run tests/parser.test.ts`.

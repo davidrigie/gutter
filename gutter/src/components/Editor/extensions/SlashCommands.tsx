@@ -378,7 +378,7 @@ class SlashMenu {
 
     if (this.filteredItems.length === 0) {
       const empty = document.createElement("div");
-      empty.style.cssText = "padding:8px 12px;font-size:12px;color:#9ca3af";
+      empty.style.cssText = "padding:8px 12px;font-size:12px;color:var(--text-muted)";
       empty.textContent = "No results";
       this.wrapper.appendChild(empty);
       return;

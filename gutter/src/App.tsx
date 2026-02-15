@@ -570,7 +570,7 @@ function App() {
           )}
 
           <main
-            className={`flex-1 overflow-auto ${isZenMode ? "max-w-3xl mx-auto w-full" : ""}`}
+            className={`flex-1 flex flex-col overflow-auto ${isZenMode ? "max-w-3xl mx-auto w-full" : ""}`}
           >
             {openTabs.length === 0 && editorContent === undefined ? (
               <WelcomeScreen

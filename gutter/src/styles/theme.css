@@ -26,6 +26,30 @@
   --surface-secondary: #f9fafb;
   --surface-hover: rgba(0, 0, 0, 0.04);
   --surface-active: rgba(0, 0, 0, 0.06);
+  --surface-elevated: #ffffff;
+
+  /* ─── Glass / backdrop ─── */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08);
+
+  /* ─── Focus ring ─── */
+  --focus-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+
+  /* ─── Code block ─── */
+  --code-bg: rgba(0, 0, 0, 0.07);
+  --code-block-bg: #f8f9fa;
+  --code-block-header: #eff1f3;
+
+  /* ─── Find / replace ─── */
+  --find-match: rgba(255, 213, 0, 0.4);
+  --find-match-current: rgba(255, 140, 0, 0.6);
+  --find-match-shadow: 0 0 0 1px rgba(255, 140, 0, 0.8);
+
+  /* ─── Selection ─── */
+  --selection-bg: rgba(59, 130, 246, 0.08);
+
+  /* ─── Status ─── */
+  --status-error: #ef4444;
 
   /* ─── Radii ─── */
   --radius-sm: 4px;
@@ -109,6 +133,24 @@ button, a, input, textarea, select {
   --surface-secondary: #1f2937;
   --surface-hover: rgba(255, 255, 255, 0.06);
   --surface-active: rgba(255, 255, 255, 0.08);
+  --surface-elevated: #1f2937;
+
+  --glass-bg: rgba(31, 41, 55, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --focus-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+
+  --code-bg: rgba(255, 255, 255, 0.12);
+  --code-block-bg: #1e1e1e;
+  --code-block-header: #2d2d2d;
+
+  --find-match: rgba(255, 213, 0, 0.4);
+  --find-match-current: rgba(255, 140, 0, 0.6);
+  --find-match-shadow: 0 0 0 1px rgba(255, 140, 0, 0.8);
+
+  --selection-bg: rgba(96, 165, 250, 0.1);
+
+  --status-error: #f87171;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.2);

@@ -40,7 +40,7 @@ export function ReplyInput({ commentId, onSubmit, autoFocus }: ReplyInputProps) 
           }
         }}
         placeholder="Reply..."
-        className="w-full text-[13px] px-2 py-1.5 rounded-md border border-[var(--editor-border)] bg-[var(--surface-primary)] outline-none transition-all focus:border-[var(--accent)] focus:shadow-[0_0_0_2px_rgba(59,130,246,0.15)]"
+        className="w-full text-[13px] px-2 py-1.5 rounded-md border border-[var(--editor-border)] bg-[var(--surface-primary)] outline-none transition-all focus:border-[var(--accent)] focus:[box-shadow:var(--focus-shadow)]"
       />
     </div>
   );

@@ -27,8 +27,8 @@ export function WelcomeScreen({ onOpenFile, onOpenRecent }: WelcomeScreenProps) 
   const { recentFiles } = useSettingsStore();
 
   return (
-    <div className="h-full flex items-center justify-center">
-      <div className="max-w-lg w-full px-8 py-12 text-center">
+    <div className="flex-1">
+      <div className="max-w-lg w-full px-8 py-12 m-auto text-center">
         <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-1">
           Gutter
         </h1>

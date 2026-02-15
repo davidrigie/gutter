@@ -1,23 +1,13 @@
 import { useEditorStore } from "../stores/editorStore";
 import { modLabel } from "../utils/platform";
-import { Circle, MessageSquare } from "./Icons";
+import { Circle, MessageSquare, UndoIcon, RedoIcon, SidebarIcon, OutlineIcon } from "./Icons";
 
-function OutlineIcon({ size = 16, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) {
+function Divider() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <line x1="4" y1="6" x2="20" y2="6" />
-      <line x1="8" y1="12" x2="20" y2="12" />
-      <line x1="8" y1="18" x2="20" y2="18" />
-    </svg>
-  );
-}
-
-function SidebarIcon({ size = 16, ...props }: { size?: number } & React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <line x1="9" y1="3" x2="9" y2="21" />
-    </svg>
+    <div
+      className="w-px h-3.5 shrink-0"
+      style={{ background: "var(--editor-border)" }}
+    />
   );
 }
 
@@ -67,13 +57,13 @@ export function StatusBar() {
         <OutlineIcon size={15} />
       </button>
 
-      <span className="text-[var(--editor-border)]">|</span>
+      <Divider />
 
       <span className="truncate max-w-xs font-medium" title={filePath || undefined}>
         {filePath || fileName}
       </span>
 
-      <span className="text-[var(--editor-border)]">|</span>
+      <Divider />
 
       <span className="flex items-center gap-1.5">
         <Circle
@@ -83,7 +73,7 @@ export function StatusBar() {
         <span>{isDirty ? "Unsaved" : "Saved"}</span>
       </span>
 
-      <span className="text-[var(--editor-border)]">|</span>
+      <Divider />
 
       <button
         onClick={toggleSourceMode}
@@ -96,36 +86,36 @@ export function StatusBar() {
       {/* Undo/Redo */}
       <span className="ml-auto flex items-center gap-0.5">
         <button
-          className={`p-0.5 rounded text-[13px] ${canUndo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
+          className={`p-0.5 rounded ${canUndo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
           onClick={() => canUndo && document.execCommand("undo")}
           disabled={!canUndo}
           title={`Undo (${modLabel()}+Z)`}
         >
-          &#x21A9;
+          <UndoIcon size={14} />
         </button>
         <button
-          className={`p-0.5 rounded text-[13px] ${canRedo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
+          className={`p-0.5 rounded ${canRedo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
           onClick={() => canRedo && document.execCommand("redo")}
           disabled={!canRedo}
           title={`Redo (${modLabel()}+Shift+Z)`}
         >
-          &#x21AA;
+          <RedoIcon size={14} />
         </button>
       </span>
 
-      <span className="text-[var(--editor-border)]">|</span>
+      <Divider />
 
       <span className="text-[var(--text-muted)]">
         Ln {cursorPosition.line}, Col {cursorPosition.col}
       </span>
 
-      <span className="text-[var(--editor-border)]">|</span>
+      <Divider />
 
       <span className="text-[var(--text-muted)]">
         {wordCount} words
       </span>
 
-      <span className="text-[var(--editor-border)]">|</span>
+      <Divider />
 
       {/* Comments panel toggle */}
       <button

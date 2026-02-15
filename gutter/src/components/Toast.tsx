@@ -8,9 +8,9 @@ const iconMap = {
 };
 
 const colorMap = {
-  success: "text-green-500",
-  error: "text-red-500",
-  info: "text-blue-500",
+  success: "text-[var(--status-success)]",
+  error: "text-[var(--status-error)]",
+  info: "text-[var(--status-info)]",
 };
 
 export function ToastContainer() {

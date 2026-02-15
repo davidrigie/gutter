@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, memo } from "react";
 import { useWorkspaceStore, type FileEntry } from "../../stores/workspaceStore";
 import { useToastStore } from "../../stores/toastStore";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -493,7 +493,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
   );
 }
 
-function FileTreeNode({
+const FileTreeNode = memo(function FileTreeNode({
   entry,
   depth,
   onFileOpen,
@@ -795,7 +795,7 @@ function FileTreeNode({
       )}
     </div>
   );
-}
+});
 
 function RenameInput({
   initialName,

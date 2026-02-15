@@ -605,11 +605,11 @@ function App() {
           <TabBar onSwitchTab={handleSwitchTab} onCloseTab={handleCloseTab} />
 
           {showReloadPrompt && (
-            <div className="h-8 flex items-center justify-between px-3 text-[12px] bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 border-b border-[var(--editor-border)]">
+            <div className="h-8 flex items-center justify-between px-3 text-[12px] bg-[color-mix(in_srgb,var(--status-info),transparent_90%)] text-[var(--status-info)] border-b border-[var(--editor-border)]">
               <span>This file has been modified externally.</span>
               <div className="flex gap-2">
                 <button
-                  className="px-2 py-0.5 rounded text-[11px] bg-blue-600 text-white hover:bg-blue-700"
+                  className="px-2 py-0.5 rounded text-[11px] bg-[var(--accent)] text-white hover:opacity-90"
                   onClick={async () => {
                     const path = useEditorStore.getState().filePath;
                     if (path) {
@@ -626,7 +626,7 @@ function App() {
                   Reload
                 </button>
                 <button
-                  className="px-2 py-0.5 rounded text-[11px] hover:bg-blue-100 dark:hover:bg-blue-800"
+                  className="px-2 py-0.5 rounded text-[11px] hover:bg-[var(--surface-hover)]"
                   onClick={() => setShowReloadPrompt(false)}
                 >
                   Dismiss
@@ -645,7 +645,7 @@ function App() {
 
           {/* Mode indicator */}
           {isSourceMode && (
-            <div className="h-7 flex items-center px-3 text-[12px] bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-200 border-b border-[var(--editor-border)]">
+            <div className="h-7 flex items-center px-3 text-[12px] bg-[color-mix(in_srgb,var(--status-warning),transparent_90%)] text-[var(--status-warning)] border-b border-[var(--editor-border)]">
               Source Mode — Editing raw markdown ({modLabel()}+/ to switch back)
             </div>
           )}

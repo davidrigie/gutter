@@ -2,7 +2,7 @@ import { useCommentStore } from "../../stores/commentStore";
 import { useEditorStore } from "../../stores/editorStore";
 import { modLabel } from "../../utils/platform";
 import { Thread } from "./Thread";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { MessageSquare } from "../Icons";
 
 type FilterMode = "all" | "open" | "resolved";
@@ -17,11 +17,15 @@ export function CommentsPanel() {
   const resolvedCount = threadIds.filter((id) => threads[id]?.resolved).length;
   const openCount = totalCount - resolvedCount;
 
-  const visibleThreads = threadIds.filter((id) => {
-    if (filter === "all") return true;
-    if (filter === "open") return !threads[id]?.resolved;
-    return threads[id]?.resolved;
-  });
+  const visibleThreads = useMemo(
+    () =>
+      threadIds.filter((id) => {
+        if (filter === "all") return true;
+        if (filter === "open") return !threads[id]?.resolved;
+        return threads[id]?.resolved;
+      }),
+    [threadIds, threads, filter],
+  );
 
   const handleExportComments = useCallback(() => {
     const lines: string[] = ["# Comments Export\n"];

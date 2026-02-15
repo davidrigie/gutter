@@ -51,7 +51,7 @@ export function Thread({ commentId, thread, isActive, quotedText, onClick }: Thr
                 e.stopPropagation();
                 resolveThread(commentId, "User");
               }}
-              className="p-1 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+              className="p-1 rounded text-[var(--status-success)] hover:bg-[var(--surface-hover)] transition-colors"
               title="Resolve"
             >
               <Check size={14} />
@@ -69,8 +69,8 @@ export function Thread({ commentId, thread, isActive, quotedText, onClick }: Thr
             }}
             className={`p-1 rounded transition-colors ${
               showDeleteConfirm
-                ? "text-red-600 bg-red-50 dark:bg-red-900/30"
-                : "text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+                ? "text-[var(--status-error)] bg-[var(--surface-hover)]"
+                : "text-[var(--text-muted)] hover:text-[var(--status-error)] hover:bg-[var(--surface-hover)]"
             }`}
             title={showDeleteConfirm ? "Click again to confirm" : "Delete"}
           >
@@ -110,7 +110,7 @@ export function Thread({ commentId, thread, isActive, quotedText, onClick }: Thr
 
       {/* Resolution status */}
       {thread.resolved && (
-        <div className="px-3 pb-1 text-[11px] text-green-600 dark:text-green-400">
+        <div className="px-3 pb-1 text-[11px] text-[var(--status-success)]">
           Resolved by {thread.resolvedBy} — {thread.resolvedAt && formatDate(thread.resolvedAt)}
         </div>
       )}

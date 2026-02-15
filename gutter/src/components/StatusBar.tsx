@@ -12,23 +12,21 @@ function Divider() {
 }
 
 export function StatusBar() {
-  const {
-    wordCount,
-    cursorPosition,
-    filePath,
-    isDirty,
-    isSourceMode,
-    fileName,
-    showFileTree,
-    showComments,
-    showOutline,
-    canUndo,
-    canRedo,
-    toggleFileTree,
-    toggleComments,
-    toggleOutline,
-    toggleSourceMode,
-  } = useEditorStore();
+  const wordCount = useEditorStore((s) => s.wordCount);
+  const cursorPosition = useEditorStore((s) => s.cursorPosition);
+  const filePath = useEditorStore((s) => s.filePath);
+  const isDirty = useEditorStore((s) => s.isDirty);
+  const isSourceMode = useEditorStore((s) => s.isSourceMode);
+  const fileName = useEditorStore((s) => s.fileName);
+  const showFileTree = useEditorStore((s) => s.showFileTree);
+  const showComments = useEditorStore((s) => s.showComments);
+  const showOutline = useEditorStore((s) => s.showOutline);
+  const canUndo = useEditorStore((s) => s.canUndo);
+  const canRedo = useEditorStore((s) => s.canRedo);
+  const toggleFileTree = useEditorStore((s) => s.toggleFileTree);
+  const toggleComments = useEditorStore((s) => s.toggleComments);
+  const toggleOutline = useEditorStore((s) => s.toggleOutline);
+  const toggleSourceMode = useEditorStore((s) => s.toggleSourceMode);
 
   return (
     <div className="h-8 flex items-center px-2 border-t border-[var(--editor-border)] bg-[var(--surface-secondary)] text-[var(--text-tertiary)] select-none shrink-0 gap-2 text-[13px]">
@@ -68,7 +66,7 @@ export function StatusBar() {
       <span className="flex items-center gap-1.5">
         <Circle
           size={7}
-          className={isDirty ? "text-amber-500" : "text-green-500"}
+          className={isDirty ? "text-[var(--status-warning)]" : "text-[var(--status-success)]"}
         />
         <span>{isDirty ? "Unsaved" : "Saved"}</span>
       </span>

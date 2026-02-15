@@ -273,6 +273,22 @@
   animation: commentPulse 400ms ease-in-out 2;
 }
 
+/* ─── Node-level comments (mermaid, math, etc.) ─── */
+.has-comment {
+  outline: 2px solid var(--comment-highlight-active);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+.comment-active-node {
+  outline: 2px solid var(--comment-highlight-active);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+.has-comment.comment-pulse,
+[data-node-comment-id].comment-pulse {
+  animation: nodePulse 400ms ease-in-out 2;
+}
+
 /* ─── Syntax highlighting ─── */
 .ProseMirror .hljs-keyword { color: #569cd6; }
 .ProseMirror .hljs-string { color: #ce9178; }

@@ -136,3 +136,8 @@ button, a, input, textarea, select {
   0%, 100% { background: var(--comment-highlight); }
   50% { background: var(--comment-highlight-active); }
 }
+
+@keyframes nodePulse {
+  0%, 100% { outline-color: var(--comment-highlight-active); }
+  50% { outline-color: var(--accent); }
+}

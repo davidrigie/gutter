@@ -59,8 +59,10 @@ export function MermaidBlockView({ node, updateAttributes, selected }: NodeViewP
     setEditing(false);
   };
 
+  const hasComment = !!node.attrs.commentId;
+
   return (
-    <NodeViewWrapper className={`mermaid-block-wrapper ${selected ? "is-selected" : ""}`}>
+    <NodeViewWrapper className={`mermaid-block-wrapper ${selected ? "is-selected" : ""} ${hasComment ? "has-comment" : ""}`} data-node-comment-id={node.attrs.commentId || undefined}>
       <div contentEditable={false}>
         {editing ? (
           <div className="mermaid-block-editor">
@@ -140,6 +142,14 @@ export const MermaidBlock = Node.create({
     return {
       code: {
         default: "",
+      },
+      commentId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-comment-id") || null,
+        renderHTML: (attributes) => {
+          if (!attributes.commentId) return {};
+          return { "data-comment-id": attributes.commentId };
+        },
       },
     };
   },

@@ -38,7 +38,7 @@ export function MathBlockView({ node, updateAttributes, selected }: NodeViewProp
   };
 
   return (
-    <NodeViewWrapper className={`math-block-wrapper ${selected ? "is-selected" : ""}`}>
+    <NodeViewWrapper className={`math-block-wrapper ${selected ? "is-selected" : ""} ${node.attrs.commentId ? "has-comment" : ""}`} data-node-comment-id={node.attrs.commentId || undefined}>
       <div contentEditable={false}>
         {editing ? (
           <div className="math-block-editor">
@@ -98,6 +98,14 @@ export const MathBlock = Node.create({
     return {
       latex: {
         default: "",
+      },
+      commentId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-comment-id") || null,
+        renderHTML: (attributes) => {
+          if (!attributes.commentId) return {};
+          return { "data-comment-id": attributes.commentId };
+        },
       },
     };
   },
@@ -214,7 +222,8 @@ export function MathInlineView({ node, updateAttributes, selected }: NodeViewPro
   return (
     <NodeViewWrapper
       as="span"
-      className={`math-inline-wrapper ${selected ? "is-selected" : ""}`}
+      className={`math-inline-wrapper ${selected ? "is-selected" : ""} ${node.attrs.commentId ? "has-comment" : ""}`}
+      data-node-comment-id={node.attrs.commentId || undefined}
     >
       <span
         contentEditable={false}
@@ -237,6 +246,14 @@ export const MathInline = Node.create({
     return {
       latex: {
         default: "",
+      },
+      commentId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-comment-id") || null,
+        renderHTML: (attributes) => {
+          if (!attributes.commentId) return {};
+          return { "data-comment-id": attributes.commentId };
+        },
       },
     };
   },

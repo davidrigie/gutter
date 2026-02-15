@@ -17,12 +17,13 @@ import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
-import { CommentMark } from "./extensions/CommentMark";
+import { CommentMark, activeCommentPluginKey } from "./extensions/CommentMark";
 import { SlashCommands } from "./extensions/SlashCommands";
 import { MathBlock, MathBlockView, MathInline, MathInlineView } from "./extensions/MathBlock";
 import { MermaidBlock, MermaidBlockView } from "./extensions/MermaidBlock";
 import { CodeBlockView } from "./extensions/CodeBlockWithLang";
 import { Extension } from "@tiptap/react";
+import { NodeSelection } from "@tiptap/pm/state";
 import { parseMarkdown } from "./markdown/parser";
 import { serializeMarkdown } from "./markdown/serializer";
 import { invoke } from "@tauri-apps/api/core";
@@ -67,6 +68,7 @@ export interface GutterEditorHandle {
 export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
   function GutterEditor({ initialContent, onUpdate }, ref) {
     const {
+      activeCommentId,
       setWordCount,
       setCursorPosition,
       setDirty,
@@ -93,13 +95,26 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
     const extractCommentTexts = useCallback((e: Editor) => {
       const texts: Record<string, string> = {};
       e.state.doc.descendants((node, pos) => {
+        // Node-level comments (atom nodes like mermaid, math)
+        if (node.type.spec.atom && node.attrs.commentId) {
+          const id = node.attrs.commentId;
+          if (!texts[id]) {
+            if (node.type.name === "mermaidBlock") {
+              texts[id] = "[Mermaid diagram]";
+            } else if (node.type.name === "mathBlock" || node.type.name === "mathInline") {
+              texts[id] = "[Math: " + (node.attrs.latex || "").slice(0, 40) + "]";
+            } else {
+              texts[id] = "[Block]";
+            }
+          }
+        }
+        // Inline mark comments
         node.marks.forEach((mark) => {
           if (mark.type.name === "commentMark") {
             const id = mark.attrs.commentId;
             if (!texts[id]) {
-              // Find the full text range of this mark
               let text = "";
-              let from = pos;
+              const from = pos;
               const end = pos + node.nodeSize;
               e.state.doc.nodesBetween(from, end, (n) => {
                 if (n.isText && n.marks.some((m) => m.type.name === "commentMark" && m.attrs.commentId === id)) {
@@ -548,6 +563,30 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       if (from === to) return;
 
       const commentId = getNextCommentId();
+      const selection = editor.state.selection;
+
+      // Handle atom node selections (mermaid, math, etc.)
+      if (selection instanceof NodeSelection && selection.node.type.spec.atom) {
+        const nodeName = selection.node.type.name;
+        const selectedText = nodeName === "mermaidBlock"
+          ? "[Mermaid diagram]"
+          : nodeName === "mathBlock" || nodeName === "mathInline"
+            ? "[Math: " + (selection.node.attrs.latex || "").slice(0, 40) + "]"
+            : "[Block]";
+
+        // Set commentId attribute on the node
+        editor.chain().focus().updateAttributes(nodeName, { commentId }).run();
+
+        const coords = editor.view.coordsAtPos(to);
+        setCommentCreation({
+          commentId,
+          selectedText,
+          x: coords.left,
+          y: coords.bottom + 8,
+        });
+        return;
+      }
+
       const selectedText = editor.state.doc.textBetween(from, to);
 
       editor
@@ -566,6 +605,21 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       });
     }, [editor, getNextCommentId]);
 
+    // Remove a comment — clears either a mark or a node attribute
+    const removeCommentFromEditor = useCallback((cId: string) => {
+      if (!editor) return;
+      // Try removing the mark
+      editor.chain().focus().unsetMark("commentMark").run();
+      // Also clear any node-level commentId attributes
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.spec.atom && node.attrs.commentId === cId) {
+          editor.view.dispatch(
+            editor.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, commentId: null }),
+          );
+        }
+      });
+    }, [editor]);
+
     // Handle comment submission
     const handleCommentSubmit = useCallback(
       (body: string) => {
@@ -574,22 +628,20 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           addThread(commentCreation.commentId, "User", body.trim());
           setActiveCommentId(commentCreation.commentId);
         } else {
-          // Cancel — remove the mark
-          if (editor) {
-            editor.chain().focus().unsetMark("commentMark").run();
-          }
+          // Cancel — remove the mark or node attribute
+          removeCommentFromEditor(commentCreation.commentId);
         }
         setCommentCreation(null);
       },
-      [commentCreation, addThread, setActiveCommentId, editor],
+      [commentCreation, addThread, setActiveCommentId, removeCommentFromEditor],
     );
 
     const handleCommentCancel = useCallback(() => {
-      if (editor && commentCreation) {
-        editor.chain().focus().unsetMark("commentMark").run();
+      if (commentCreation) {
+        removeCommentFromEditor(commentCreation.commentId);
       }
       setCommentCreation(null);
-    }, [editor, commentCreation]);
+    }, [commentCreation, removeCommentFromEditor]);
 
     // Focus comment input when it appears
     useEffect(() => {
@@ -659,19 +711,67 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       return () => window.removeEventListener("file-tree-drop-link", handler);
     }, [editor]);
 
-    // Scroll-to-comment: scroll editor to comment mark and pulse it
+    // Sync active comment ID → ProseMirror decoration plugin
+    useEffect(() => {
+      if (!editor) return;
+      const { tr } = editor.state;
+      tr.setMeta(activeCommentPluginKey, activeCommentId ?? null);
+      editor.view.dispatch(tr);
+    }, [editor, activeCommentId]);
+
+    // Scroll-to-comment: find comment (mark or node attr) in doc, scroll & pulse
     useEffect(() => {
       const handler = (e: Event) => {
         if (!editor) return;
         const { commentId } = (e as CustomEvent).detail;
-        const el = editor.view.dom.querySelector(
-          `mark[data-comment-id="${commentId}"]`,
-        ) as HTMLElement | null;
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          el.classList.add("comment-pulse");
-          setTimeout(() => el.classList.remove("comment-pulse"), 800);
+
+        // Walk the doc to find the comment — either a mark or a node attribute
+        let targetPos = -1;
+        let isNodeComment = false;
+        editor.state.doc.descendants((node, pos) => {
+          if (targetPos !== -1) return false;
+          // Check node-level comment (atom nodes like mermaid, math)
+          if (node.type.spec.atom && node.attrs.commentId === commentId) {
+            targetPos = pos;
+            isNodeComment = true;
+            return false;
+          }
+          // Check inline mark comment
+          if (node.marks.some((m) => m.type.name === "commentMark" && m.attrs.commentId === commentId)) {
+            targetPos = pos;
+            return false;
+          }
+        });
+        if (targetPos === -1) return;
+
+        // Scroll to the position
+        if (isNodeComment) {
+          // For node selections, use NodeSelection
+          const tr = editor.state.tr.setSelection(
+            NodeSelection.create(editor.state.doc, targetPos),
+          );
+          editor.view.dispatch(tr.scrollIntoView());
+        } else {
+          editor.chain().setTextSelection(targetPos).scrollIntoView().run();
         }
+
+        // After DOM settles, find the element and pulse it
+        requestAnimationFrame(() => {
+          // Try mark first, then node-level comment
+          let el = editor.view.dom.querySelector(
+            `mark[data-comment-id="${commentId}"]`,
+          ) as HTMLElement | null;
+          if (!el) {
+            el = editor.view.dom.querySelector(
+              `[data-node-comment-id="${commentId}"]`,
+            ) as HTMLElement | null;
+          }
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.classList.add("comment-pulse");
+            setTimeout(() => el!.classList.remove("comment-pulse"), 800);
+          }
+        });
       };
       window.addEventListener("scroll-to-comment", handler);
       return () => window.removeEventListener("scroll-to-comment", handler);

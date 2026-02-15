@@ -30,7 +30,6 @@
     "@tiptap/react": "^3.19.0",
     "@tiptap/starter-kit": "^3.19.0",
     "@tiptap/suggestion": "^3.19.0",
-    "diff": "^8.0.3",
     "katex": "^0.16.28",
     "lowlight": "^3.3.0",
     "mermaid": "^11.12.2",
@@ -48,7 +47,6 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "@tauri-apps/cli": "^2.10.0",
-    "@types/diff": "^7.0.2",
     "@types/katex": "^0.16.8",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

@@ -41,7 +41,6 @@ Frontend calls Rust functions via `invoke()` from `@tauri-apps/api/core`. All Ru
 - **workspace.rs** — recursive directory listing (filters hidden files and comment files, max depth 10)
 - **watcher.rs** — file system watcher with `mark_write()` suppression to avoid false change notifications
 - **export.rs** — export to HTML with inline CSS
-- **history.rs** — version history snapshot save/load/read
 - **settings.rs** — reads/writes `~/.gutter/config.json`
 
 ### State Management (Zustand)
@@ -52,7 +51,6 @@ Stores in `src/stores/`:
 - **commentStore** — comment thread data, CRUD ops, ID generation (`c1`, `c2`...), JSON export/import
 - **workspaceStore** — file tree structure, open tabs, active tab, tab dirty state
 - **settingsStore** — user preferences (font size, font family, auto-save, spell check, panel widths, recent files, focus mode, typewriter mode, default author)
-- **historyStore** — local version history snapshots per file
 - **toastStore** — toast notification system with type, duration, auto-dismiss
 - **backlinkStore** — scans workspace for backlinks to current file
 

@@ -5,6 +5,5 @@ target/
 *.log
 .env
 
-# Generated demo assets and history snapshots
+# Generated demo assets
 gutter/demo/**/assets/
-gutter/demo/**/.gutter/

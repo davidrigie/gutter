@@ -40,9 +40,6 @@ pub fn run() {
             commands::watcher::start_watcher,
             commands::watcher::stop_watcher,
             commands::export::export_html,
-            commands::history::save_snapshot,
-            commands::history::list_snapshots,
-            commands::history::read_snapshot,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

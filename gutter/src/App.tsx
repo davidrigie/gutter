@@ -15,8 +15,6 @@ import { DocumentOutline } from "./components/DocumentOutline";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { BacklinksPanel } from "./components/BacklinksPanel";
 import { ExportDialog } from "./components/ExportDialog";
-import { VersionHistory } from "./components/VersionHistory";
-import { useHistoryStore } from "./stores/historyStore";
 import { useEditorStore } from "./stores/editorStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useCommentStore } from "./stores/commentStore";
@@ -66,7 +64,6 @@ function App() {
   const [showQuickOpen, setShowQuickOpen] = useState(false);
   const [showReloadPrompt, setShowReloadPrompt] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const markdownRef = useRef("");
 
@@ -286,8 +283,6 @@ function App() {
     const path = useEditorStore.getState().filePath;
     if (path) {
       setTabDirty(path, false);
-      // Auto-snapshot for version history
-      useHistoryStore.getState().saveSnapshot(path, md);
       useToastStore.getState().addToast("File saved", "success", 2000);
     }
   }, [saveFile, saveComments, generateCompanion, setTabDirty]);
@@ -403,7 +398,6 @@ function App() {
     { name: "Find", shortcut: `${mod}+F`, action: () => setFindReplaceMode("find") },
     { name: "Find and Replace", shortcut: `${mod}+H`, action: () => setFindReplaceMode("replace") },
     { name: "Export", shortcut: `${mod}+Shift+E`, action: () => setShowExport(true) },
-    { name: "Version History", action: () => setShowHistory(true) },
     { name: "Toggle Spell Check", action: () => {
       const e = editorInstanceRef.current?.getEditor();
       if (e) e.commands.toggleSpellCheck();
@@ -715,20 +709,6 @@ function App() {
       </div>
 
       <StatusBar />
-
-      {showHistory && (
-        <VersionHistory
-          onRestore={(content) => {
-            setEditorContent(content);
-            markdownRef.current = content;
-            setSourceContent(content);
-            setContent(content);
-            setDirty(true);
-            setShowHistory(false);
-          }}
-          onClose={() => setShowHistory(false)}
-        />
-      )}
 
       {showExport && (
         <ExportDialog

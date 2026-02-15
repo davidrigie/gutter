@@ -23,7 +23,7 @@ Grab the latest build from the [releases page](https://github.com/davidrigie/gut
 - **Windows** — Installer (.exe) and MSI
 - **Linux** — AppImage and .deb
 
-Builds are currently unsigned — your OS may show a warning on first launch.
+> **Note:** Builds are currently unsigned. Your OS may show a security warning on first launch — this is expected. On macOS, right-click the app and choose "Open" to bypass Gatekeeper.
 
 ## Development
 

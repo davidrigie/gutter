@@ -4,7 +4,8 @@ import { useToastStore } from "../../stores/toastStore";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
-import { fileName as pathFileName, joinPath } from "../../utils/path";
+import { fileName as pathFileName, joinPath, isImageFile } from "../../utils/path";
+import { isMac } from "../../utils/platform";
 import {
   ChevronRight,
   ChevronDown,
@@ -15,6 +16,27 @@ import {
   FilePlus,
   FolderPlus,
 } from "../Icons";
+
+/** Flatten visible (expanded) file entries in display order — files only */
+function flattenVisibleFiles(
+  entries: FileEntry[],
+  expandedPaths: Set<string>,
+): string[] {
+  const result: string[] = [];
+  const walk = (items: FileEntry[]) => {
+    for (const entry of items) {
+      if (entry.is_dir) {
+        if (expandedPaths.has(entry.path) && entry.children) {
+          walk(entry.children);
+        }
+      } else {
+        result.push(entry.path);
+      }
+    }
+  };
+  walk(entries);
+  return result;
+}
 
 interface DragState {
   sourcePath: string;
@@ -32,6 +54,17 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
   const [drag, setDrag] = useState<DragState | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
+
+  // Multi-select state
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const lastClickedPath = useRef<string | null>(null);
+  const expandedPathsRef = useRef<Set<string>>(new Set());
+
+  // Clear selection when file tree changes (workspace switch, etc.)
+  useEffect(() => {
+    setSelectedPaths(new Set());
+    lastClickedPath.current = null;
+  }, [workspacePath]);
 
   const handleOpenFile = useCallback(async () => {
     const selected = await open({
@@ -129,6 +162,63 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     [workspacePath, loadFileTree],
   );
 
+  const handleFileClick = useCallback(
+    (path: string, e: React.MouseEvent) => {
+      const isModKey = isMac() ? e.metaKey : e.ctrlKey;
+      if (isModKey) {
+        // Toggle selection
+        setSelectedPaths((prev) => {
+          const next = new Set(prev);
+          if (next.has(path)) {
+            next.delete(path);
+          } else {
+            next.add(path);
+          }
+          return next;
+        });
+        lastClickedPath.current = path;
+      } else if (e.shiftKey && lastClickedPath.current) {
+        // Range select
+        const flat = flattenVisibleFiles(fileTree, expandedPathsRef.current);
+        const startIdx = flat.indexOf(lastClickedPath.current);
+        const endIdx = flat.indexOf(path);
+        if (startIdx !== -1 && endIdx !== -1) {
+          const lo = Math.min(startIdx, endIdx);
+          const hi = Math.max(startIdx, endIdx);
+          const rangePaths = flat.slice(lo, hi + 1);
+          setSelectedPaths(new Set(rangePaths));
+        }
+      } else {
+        // Plain click — open file and set single selection
+        setSelectedPaths(new Set([path]));
+        lastClickedPath.current = path;
+        onFileOpen(path);
+      }
+    },
+    [fileTree, onFileOpen],
+  );
+
+  const handleBulkDelete = useCallback(
+    async (paths: Set<string>) => {
+      const count = paths.size;
+      if (count === 0) return;
+      if (!window.confirm(`Delete ${count} item${count > 1 ? "s" : ""}?`)) return;
+      for (const p of paths) {
+        try {
+          await invoke("delete_path", { path: p });
+        } catch (e) {
+          useToastStore.getState().addToast(`Failed to delete ${pathFileName(p)}`, "error");
+          console.error("Failed to delete:", e);
+        }
+      }
+      setSelectedPaths(new Set());
+      if (workspacePath) {
+        await loadFileTree(workspacePath);
+      }
+    },
+    [workspacePath, loadFileTree],
+  );
+
   const handleRename = useCallback(
     async (oldPath: string, newName: string) => {
       if (!newName.trim()) return;
@@ -182,11 +272,14 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     const handleMouseUp = async (e: MouseEvent) => {
       const d = dragRef.current;
       if (d?.started) {
-        // Check if dropped over the editor — insert wiki link instead of moving
+        // Check if dropped over the editor
         const el = document.elementFromPoint(e.clientX, e.clientY);
         if (el?.closest(".ProseMirror")) {
+          const eventName = isImageFile(d.sourceName)
+            ? "file-tree-drop-image"
+            : "file-tree-drop-link";
           window.dispatchEvent(
-            new CustomEvent("file-tree-drop-link", {
+            new CustomEvent(eventName, {
               detail: {
                 path: d.sourcePath,
                 name: d.sourceName,
@@ -248,12 +341,33 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
       ]
     : [];
 
+  // Keyboard handler for file tree container
+  const handleTreeKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const isModKey = isMac() ? e.metaKey : e.ctrlKey;
+      if (e.key === "Escape") {
+        setSelectedPaths(new Set());
+      } else if ((e.key === "Backspace" || e.key === "Delete") && selectedPaths.size > 0) {
+        e.preventDefault();
+        handleBulkDelete(selectedPaths);
+      } else if (isModKey && e.key === "a") {
+        e.preventDefault();
+        const allFiles = flattenVisibleFiles(fileTree, expandedPathsRef.current);
+        setSelectedPaths(new Set(allFiles));
+      }
+    },
+    [selectedPaths, handleBulkDelete, fileTree],
+  );
+
   return (
     <div
       className="h-full flex flex-col bg-[var(--surface-secondary)]"
+      tabIndex={0}
+      onKeyDown={handleTreeKeyDown}
       onContextMenu={(e) => {
         if (workspacePath) {
           e.preventDefault();
+          setSelectedPaths(new Set());
           setContextMenu({
             x: e.clientX,
             y: e.clientY,
@@ -313,6 +427,11 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
             entry={entry}
             depth={0}
             onFileOpen={onFileOpen}
+            onFileClick={handleFileClick}
+            selectedPaths={selectedPaths}
+            onBulkDelete={handleBulkDelete}
+            onFolderClick={() => setSelectedPaths(new Set())}
+            expandedPathsRef={expandedPathsRef}
             onCreateFile={handleCreateFile}
             onCreateFolder={handleCreateFolder}
             onDelete={handleDeletePath}
@@ -356,7 +475,9 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
             obs.observe(el.parentNode!, { childList: true });
           }}
         >
-          {drag.sourceName}
+          {selectedPaths.size > 1 && selectedPaths.has(drag.sourcePath)
+            ? `${selectedPaths.size} items`
+            : drag.sourceName}
         </div>
       )}
 
@@ -376,6 +497,11 @@ function FileTreeNode({
   entry,
   depth,
   onFileOpen,
+  onFileClick,
+  selectedPaths,
+  onBulkDelete,
+  onFolderClick,
+  expandedPathsRef,
   onCreateFile,
   onCreateFolder,
   onDelete,
@@ -388,6 +514,11 @@ function FileTreeNode({
   entry: FileEntry;
   depth: number;
   onFileOpen: (path: string) => void;
+  onFileClick: (path: string, e: React.MouseEvent) => void;
+  selectedPaths: Set<string>;
+  onBulkDelete: (paths: Set<string>) => void;
+  onFolderClick: () => void;
+  expandedPathsRef: React.MutableRefObject<Set<string>>;
   onCreateFile: (parentPath: string) => void;
   onCreateFolder: (parentPath: string) => void;
   onDelete: (path: string) => void;
@@ -404,9 +535,21 @@ function FileTreeNode({
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const isMd = entry.name.endsWith(".md") || entry.name.endsWith(".markdown");
   const activeTabPath = useWorkspaceStore((s) => s.activeTabPath);
-  const isSelected = entry.path === activeTabPath;
+  const isActiveTab = entry.path === activeTabPath;
+  const isMultiSelected = selectedPaths.has(entry.path);
   const isDragSource = dragSourcePath === entry.path;
   const isDropTarget = dropTarget === entry.path && entry.is_dir;
+
+  // Track expanded state for flattenVisibleFiles
+  useEffect(() => {
+    if (entry.is_dir) {
+      if (expanded) {
+        expandedPathsRef.current.add(entry.path);
+      } else {
+        expandedPathsRef.current.delete(entry.path);
+      }
+    }
+  }, [expanded, entry.is_dir, entry.path, expandedPathsRef]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // Only left click, not during rename
@@ -417,6 +560,22 @@ function FileTreeNode({
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // If right-clicking on a multi-selected item, show bulk menu
+    if (!entry.is_dir && isMultiSelected && selectedPaths.size > 1) {
+      const count = selectedPaths.size;
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items: [
+          {
+            label: `Delete ${count} items`,
+            action: () => onBulkDelete(selectedPaths),
+          },
+        ],
+      });
+      return;
+    }
 
     const items: ContextMenuItem[] = [];
     if (entry.is_dir) {
@@ -472,7 +631,10 @@ function FileTreeNode({
           style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
           onMouseDown={handleMouseDown}
           onClick={() => {
-            if (!dragSourcePath) setExpanded(!expanded);
+            if (!dragSourcePath) {
+              setExpanded(!expanded);
+              onFolderClick();
+            }
           }}
           onContextMenu={handleContextMenu}
         >
@@ -520,6 +682,11 @@ function FileTreeNode({
                 entry={child}
                 depth={depth + 1}
                 onFileOpen={onFileOpen}
+                onFileClick={onFileClick}
+                selectedPaths={selectedPaths}
+                onBulkDelete={onBulkDelete}
+                onFolderClick={onFolderClick}
+                expandedPathsRef={expandedPathsRef}
                 onCreateFile={onCreateFile}
                 onCreateFolder={onCreateFolder}
                 onDelete={onDelete}
@@ -579,13 +746,13 @@ function FileTreeNode({
       className={`relative flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
         isDragSource
           ? "opacity-40"
-          : isSelected
+          : isMultiSelected || isActiveTab
             ? "bg-[var(--selection-bg)]"
             : "hover:bg-[var(--surface-hover)]"
       }`}
       style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
       onMouseDown={handleMouseDown}
-      onClick={() => !renaming && !dragSourcePath && onFileOpen(entry.path)}
+      onClick={(e) => !renaming && !dragSourcePath && onFileClick(entry.path, e)}
       onContextMenu={handleContextMenu}
     >
       {/* Tree indent guides */}

@@ -28,7 +28,8 @@ import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { modKey, modLabel } from "./utils/platform";
-import { fileName as pathFileName, parentDir, joinPath } from "./utils/path";
+import { fileName as pathFileName, parentDir, joinPath, isImageFile } from "./utils/path";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 function App() {
   const {
@@ -66,6 +67,7 @@ function App() {
   const [showReloadPrompt, setShowReloadPrompt] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const markdownRef = useRef("");
 
   const editorInstanceRef = useRef<{
@@ -162,6 +164,7 @@ function App() {
 
     const content = await openFile();
     if (content !== null) {
+      setImagePreview(null);
       setEditorContent(content);
       markdownRef.current = content;
       setSourceContent(content);
@@ -178,8 +181,15 @@ function App() {
   // Open specific file (from file tree)
   const handleFileTreeOpen = useCallback(
     async (path: string) => {
+      if (isImageFile(path)) {
+        const name = pathFileName(path) || "Image";
+        addTab(path, name);
+        setActiveTab(path);
+        setImagePreview(convertFileSrc(path));
+        return;
+      }
       try {
-    
+        setImagePreview(null);
         setShowReloadPrompt(false);
         const content = await invoke<string>("read_file", { path });
         setFilePath(path);
@@ -196,7 +206,7 @@ function App() {
         console.error("Failed to open file:", e);
       }
     },
-    [setFilePath, setContent, setDirty, addTab, addRecentFile, loadCommentsFromFile],
+    [setFilePath, setContent, setDirty, addTab, setActiveTab, addRecentFile, loadCommentsFromFile],
   );
 
   // Wiki link click handler
@@ -285,9 +295,15 @@ function App() {
   // Tab handlers
   const handleSwitchTab = useCallback(
     async (path: string) => {
-  
       setShowReloadPrompt(false);
       setActiveTab(path);
+
+      if (isImageFile(path)) {
+        setImagePreview(convertFileSrc(path));
+        return;
+      }
+
+      setImagePreview(null);
       try {
         const content = await invoke<string>("read_file", { path });
         setFilePath(path);
@@ -317,9 +333,38 @@ function App() {
           await handleSave();
         }
       }
+      // If closing the currently previewed image tab, clear preview
+      const wasActive = useWorkspaceStore.getState().activeTabPath === path;
       removeTab(path);
+
+      if (wasActive) {
+        // removeTab sets activeTabPath to last remaining tab (or null)
+        const newActive = useWorkspaceStore.getState().activeTabPath;
+        if (newActive) {
+          if (isImageFile(newActive)) {
+            setImagePreview(convertFileSrc(newActive));
+          } else {
+            setImagePreview(null);
+            // Load the new active tab's content
+            try {
+              const content = await invoke<string>("read_file", { path: newActive });
+              setFilePath(newActive);
+              setEditorContent(content);
+              markdownRef.current = content;
+              setSourceContent(content);
+              setContent(content);
+              setDirty(false);
+              await loadCommentsFromFile(newActive);
+            } catch {
+              // Tab may have been for a deleted file
+            }
+          }
+        } else {
+          setImagePreview(null);
+        }
+      }
     },
-    [openTabs, removeTab, handleSave],
+    [openTabs, removeTab, handleSave, setFilePath, setContent, setDirty, loadCommentsFromFile],
   );
 
   // Comment navigation
@@ -485,6 +530,43 @@ function App() {
     };
   }, []);
 
+  // Handle files dragged from OS file explorer
+  useEffect(() => {
+    const unlisten = getCurrentWindow().onDragDropEvent(async (event) => {
+      if (event.payload.type !== "drop") return;
+      const { paths } = event.payload;
+      for (const path of paths) {
+        if (isImageFile(path)) {
+          const filePath = useEditorStore.getState().filePath;
+          if (!filePath) {
+            useToastStore.getState().addToast("Save the file first to insert images", "error");
+            return;
+          }
+          const dirPath = parentDir(filePath);
+          const ext = path.split(".").pop() || "png";
+          const filename = `image-${Date.now()}.${ext}`;
+          try {
+            await invoke("copy_image", { source: path, dirPath, filename });
+            const absolutePath = joinPath(dirPath, "assets", filename);
+            const displaySrc = convertFileSrc(absolutePath);
+            const editor = editorInstanceRef.current?.getEditor();
+            if (editor) {
+              editor.chain().focus().setImage({ src: displaySrc }).run();
+            }
+          } catch (e) {
+            console.error("Failed to insert dropped image:", e);
+            useToastStore.getState().addToast("Failed to insert image", "error");
+          }
+        } else if (path.endsWith(".md") || path.endsWith(".markdown")) {
+          handleFileTreeOpen(path);
+        }
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [handleFileTreeOpen]);
+
   // Update document title
   useEffect(() => {
     document.title = `${isDirty ? "● " : ""}${fileName} — Gutter`;
@@ -577,7 +659,18 @@ function App() {
           <main
             className={`flex-1 flex flex-col overflow-auto ${isZenMode ? "max-w-3xl mx-auto w-full" : ""}`}
           >
-            {openTabs.length === 0 && editorContent === undefined ? (
+            {imagePreview ? (
+              <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
+                <img
+                  src={imagePreview}
+                  className="max-w-full max-h-full object-contain rounded shadow-lg"
+                  onError={() => {
+                    setImagePreview(null);
+                    useToastStore.getState().addToast("Failed to load image", "error");
+                  }}
+                />
+              </div>
+            ) : openTabs.length === 0 && editorContent === undefined ? (
               <WelcomeScreen
                 onOpenFile={handleOpenFile}
                 onOpenRecent={handleFileTreeOpen}

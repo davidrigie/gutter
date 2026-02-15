@@ -35,6 +35,9 @@ import { WikiLink } from "./extensions/WikiLink";
 import { SpellCheck } from "./extensions/SpellCheck";
 import { MarkdownLinkInput } from "./extensions/MarkdownLinkInput";
 import { LinkReveal } from "./extensions/LinkReveal";
+import { WikiLinkAutocomplete } from "./extensions/WikiLinkAutocomplete";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
 import { createFindReplacePlugin } from "../FindReplace";
 import { modKey, modLabel } from "../../utils/platform";
 import { parentDir } from "../../utils/path";
@@ -165,6 +168,9 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         SpellCheck,
         MarkdownLinkInput,
         LinkReveal,
+        WikiLinkAutocomplete,
+        TaskList,
+        TaskItem.configure({ nested: true }),
       ],
       content: initialContent
         ? parseMarkdown(initialContent)

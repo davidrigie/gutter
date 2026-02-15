@@ -15,6 +15,7 @@ interface MdastNode extends UnistNode {
   ordered?: boolean;
   start?: number;
   depth?: number;
+  checked?: boolean | null;
   align?: (string | null)[];
 }
 
@@ -136,15 +137,33 @@ function convertNode(node: MdastNode): JSONContent | JSONContent[] | null {
         content: convertChildren(node),
       };
 
-    case "list":
+    case "list": {
+      // Check if any child is a task item (has checked !== null/undefined)
+      const isTaskList = node.children?.some(
+        (child) => child.checked !== null && child.checked !== undefined,
+      );
+      if (isTaskList) {
+        return {
+          type: "taskList",
+          content: convertChildren(node),
+        };
+      }
       return {
         type: node.ordered ? "orderedList" : "bulletList",
         attrs: node.ordered ? { start: node.start || 1 } : undefined,
         content: convertChildren(node),
       };
+    }
 
     case "listItem": {
       const content = convertChildren(node);
+      if (node.checked !== null && node.checked !== undefined) {
+        return {
+          type: "taskItem",
+          attrs: { checked: node.checked },
+          content: content.length > 0 ? content : [{ type: "paragraph" }],
+        };
+      }
       return {
         type: "listItem",
         content: content.length > 0 ? content : [{ type: "paragraph" }],

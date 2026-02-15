@@ -75,6 +75,14 @@ const SLASH_ITEMS: SlashCommandItem[] = [
     },
   },
   {
+    title: "Task List",
+    description: "Interactive checklist",
+    icon: "\u2611",
+    action: (editor) => {
+      editor.chain().focus().toggleTaskList().run();
+    },
+  },
+  {
     title: "Link",
     description: "Insert a hyperlink",
     icon: "\uD83D\uDD17",

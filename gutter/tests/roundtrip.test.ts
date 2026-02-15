@@ -55,6 +55,20 @@ describe("Markdown Round-Trip", () => {
     expect(output).toContain("<mark>highlighted</mark><sup>[c1]</sup>");
   });
 
+  it("round-trips task lists", () => {
+    const taskMd = `- [ ] unchecked item\n- [x] checked item\n- [ ] another unchecked\n`;
+    const doc = parseMarkdown(taskMd);
+    const output = serializeMarkdown(doc);
+    expect(output).toContain("- [ ] unchecked item");
+    expect(output).toContain("- [x] checked item");
+    expect(output).toContain("- [ ] another unchecked");
+
+    // Double round-trip
+    const doc2 = parseMarkdown(output);
+    const output2 = serializeMarkdown(doc2);
+    expect(output2).toBe(output);
+  });
+
   it("round-trips twice without change", () => {
     const doc1 = parseMarkdown(TEST_FIXTURE);
     const md1 = serializeMarkdown(doc1);

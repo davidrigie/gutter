@@ -53,6 +53,9 @@ function serializeBlock(
     case "orderedList":
       return serializeList(node, true);
 
+    case "taskList":
+      return serializeTaskList(node);
+
     case "codeBlock": {
       const lang = node.attrs?.language || "";
       const code = node.content?.map((c) => c.text || "").join("") || "";
@@ -118,8 +121,28 @@ function serializeListItem(node: JSONContent): string {
       if (child.type === "bulletList" || child.type === "orderedList") {
         return serializeList(child, child.type === "orderedList");
       }
+      if (child.type === "taskList") {
+        return serializeTaskList(child);
+      }
       const text = serializeBlock(child, node.content!, i);
       return text;
+    })
+    .join("\n");
+}
+
+function serializeTaskList(node: JSONContent): string {
+  if (!node.content) return "";
+  return node.content
+    .map((item) => {
+      const checked = item.attrs?.checked ? "x" : " ";
+      const content = serializeListItem(item);
+      const lines = content.split("\n");
+      const first = `- [${checked}] ${lines[0]}`;
+      const rest = lines
+        .slice(1)
+        .map((line) => "  " + line)
+        .join("\n");
+      return rest ? first + "\n" + rest : first;
     })
     .join("\n");
 }

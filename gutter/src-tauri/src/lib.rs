@@ -40,6 +40,7 @@ pub fn run() {
             commands::watcher::start_watcher,
             commands::watcher::stop_watcher,
             commands::export::export_html,
+            commands::search::search_workspace,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

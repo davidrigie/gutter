@@ -176,6 +176,10 @@ function serializeInlineNode(node: JSONContent): string {
     return `![${alt}](${src})`;
   }
 
+  if (node.type === "mathInline") {
+    return `$${node.attrs?.latex || ""}$`;
+  }
+
   if (node.type !== "text" || !node.text) return "";
 
   let text = node.text;

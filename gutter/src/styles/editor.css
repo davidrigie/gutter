@@ -1413,3 +1413,39 @@
 .resize-handle:active {
   background: var(--accent);
 }
+
+/* ═══════════════════════════════════════════════════════
+   UNIFIED SEARCH
+   ═══════════════════════════════════════════════════════ */
+
+.unified-search-section {
+  padding: 6px 16px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.unified-search-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: var(--surface-active);
+  color: var(--text-muted);
+}
+
+.unified-search-line-num {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  min-width: 22px;
+  text-align: right;
+}

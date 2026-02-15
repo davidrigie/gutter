@@ -351,11 +351,39 @@ function tryMatchBareMark(
   return null;
 }
 
+/** Split a text string on $...$ patterns, producing text nodes and mathInline nodes */
+function extractInlineMath(text: string): JSONContent | JSONContent[] {
+  // Match $...$ but not $$...$$ (block math) and not escaped \$
+  // The content must not start/end with space and must be non-empty
+  const re = /(?<!\$)\$(?!\$)([^\s$][^$]*?[^\s$]|[^\s$])\$(?!\$)/g;
+  const parts: JSONContent[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: "text", text: text.slice(lastIndex, match.index) });
+    }
+    parts.push({ type: "mathInline", attrs: { latex: match[1] } });
+    lastIndex = re.lastIndex;
+  }
+
+  if (parts.length === 0) {
+    return { type: "text", text };
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({ type: "text", text: text.slice(lastIndex) });
+  }
+
+  return parts;
+}
+
 function convertInlineNode(node: MdastNode): JSONContent | JSONContent[] | null {
   switch (node.type) {
     case "text":
       if (!node.value) return null;
-      return { type: "text", text: node.value };
+      return extractInlineMath(node.value);
 
     case "strong": {
       const children = convertInlineChildren(node);

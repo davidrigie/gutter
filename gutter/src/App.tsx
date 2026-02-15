@@ -5,12 +5,11 @@ import { FileTree } from "./components/FileTree/FileTree";
 import { CommentsPanel } from "./components/Comments/CommentsPanel";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
-import { CommandPalette } from "./components/CommandPalette";
+import { UnifiedSearch } from "./components/UnifiedSearch";
 import { ToastContainer } from "./components/Toast";
 import { useToastStore } from "./stores/toastStore";
 import { ResizeHandle } from "./components/ResizeHandle";
 import { FindReplace } from "./components/FindReplace";
-import { QuickOpen } from "./components/QuickOpen";
 import { DocumentOutline } from "./components/DocumentOutline";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { BacklinksPanel } from "./components/BacklinksPanel";
@@ -59,9 +58,8 @@ function App() {
 
   const [editorContent, setEditorContent] = useState<string | undefined>(undefined);
   const [sourceContent, setSourceContent] = useState("");
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [unifiedSearchMode, setUnifiedSearchMode] = useState<"all" | "files" | "commands" | null>(null);
   const [findReplaceMode, setFindReplaceMode] = useState<"find" | "replace" | null>(null);
-  const [showQuickOpen, setShowQuickOpen] = useState(false);
   const [showReloadPrompt, setShowReloadPrompt] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -382,6 +380,7 @@ function App() {
   // Commands for command palette
   const mod = modLabel();
   const commands = [
+    { name: "Search", shortcut: `${mod}+K`, action: () => setUnifiedSearchMode("all") },
     { name: "Open File", shortcut: `${mod}+O`, action: handleOpenFile },
     { name: "Save File", shortcut: `${mod}+S`, action: handleSave },
     { name: "Toggle Source Mode", shortcut: `${mod}+/`, action: isSourceMode ? switchToWysiwyg : switchToSource },
@@ -394,7 +393,7 @@ function App() {
       if (e) e.commands.toggleFocusMode();
     }},
     { name: "Toggle Document Outline", action: () => toggleOutline() },
-    { name: "Quick Open File", shortcut: `${mod}+P`, action: () => setShowQuickOpen(true) },
+    { name: "Quick Open File", shortcut: `${mod}+P`, action: () => setUnifiedSearchMode("files") },
     { name: "Find", shortcut: `${mod}+F`, action: () => setFindReplaceMode("find") },
     { name: "Find and Replace", shortcut: `${mod}+H`, action: () => setFindReplaceMode("replace") },
     { name: "Export", shortcut: `${mod}+Shift+E`, action: () => setShowExport(true) },
@@ -435,15 +434,18 @@ function App() {
       } else if (modKey(e) && e.shiftKey && e.key === "D") {
         e.preventDefault();
         cycleTheme();
+      } else if (modKey(e) && !e.shiftKey && e.key === "k") {
+        e.preventDefault();
+        setUnifiedSearchMode("all");
       } else if (modKey(e) && !e.shiftKey && e.key === "p") {
         e.preventDefault();
-        setShowQuickOpen(true);
+        setUnifiedSearchMode("files");
       } else if (modKey(e) && e.shiftKey && e.key === "P") {
         e.preventDefault();
-        setShowCommandPalette(true);
+        setUnifiedSearchMode("commands");
       } else if (modKey(e) && e.key === ".") {
         e.preventDefault();
-        setShowCommandPalette(true);
+        setUnifiedSearchMode("commands");
       } else if (modKey(e) && e.shiftKey && e.key === "M") {
         e.preventDefault();
         editorInstanceRef.current?.createComment();
@@ -717,17 +719,12 @@ function App() {
         />
       )}
 
-      {showQuickOpen && (
-        <QuickOpen
-          onOpenFile={handleFileTreeOpen}
-          onClose={() => setShowQuickOpen(false)}
-        />
-      )}
-
-      {showCommandPalette && (
-        <CommandPalette
+      {unifiedSearchMode && (
+        <UnifiedSearch
           commands={commands}
-          onClose={() => setShowCommandPalette(false)}
+          onOpenFile={handleFileTreeOpen}
+          onClose={() => setUnifiedSearchMode(null)}
+          filterMode={unifiedSearchMode}
         />
       )}
 

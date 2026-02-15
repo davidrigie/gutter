@@ -12,7 +12,7 @@ Gutter is a local-first WYSIWYG markdown editor with first-class commenting, bui
 
 ## Planning
 
-- **Active plan**: `POLISH_PLAN.md` — 9-phase polish plan. Phases 1–6 complete. Next up: Phase 7 (Unified Search), Phase 8 (Native Menu Bar), Phase 9 (Release Prep).
+- **Active plan**: `POLISH_PLAN.md` — 9-phase polish plan. Phases 1–8 complete. Next up: Phase 9 (Native Menu Bar), Phase 10 (Release Prep).
 - **Completed plans**: Archived in `docs/completed-plans/`. Sprint 1 (19 phases) is fully shipped — see the "Already Completed" section in POLISH_PLAN.md for the full feature list.
 
 ## Commands
@@ -42,6 +42,7 @@ Frontend calls Rust functions via `invoke()` from `@tauri-apps/api/core`. All Ru
 - **watcher.rs** — file system watcher with `mark_write()` suppression to avoid false change notifications
 - **export.rs** — export to HTML with inline CSS
 - **settings.rs** — reads/writes `~/.gutter/config.json`
+- **search.rs** — full-text workspace search (headings + content), case-insensitive, returns capped results
 
 ### State Management (Zustand)
 
@@ -116,7 +117,7 @@ In `src/components/Editor/markdown/`:
 
 Defined in `App.tsx` `handleKeyDown`. Uses `modKey(e)` helper from `src/utils/platform.ts` for cross-platform support (Cmd on macOS, Ctrl on Windows/Linux):
 
-Mod+O (open), Mod+S (save), Mod+P (quick open), Mod+F (find), Mod+H (find & replace), Mod+/ (toggle source), Mod+\ (file tree), Mod+. (command palette), Mod+Shift+C (comments), Mod+Shift+F (zen mode), Mod+Shift+D (theme), Mod+Shift+P (command palette alt), Mod+Shift+M (new comment), Mod+Shift+N (next comment), Mod+Shift+E (export), Mod+Shift+T (focus mode).
+Mod+K (unified search), Mod+O (open), Mod+S (save), Mod+P (quick open files), Mod+F (find), Mod+H (find & replace), Mod+/ (toggle source), Mod+\ (file tree), Mod+. (commands), Mod+Shift+C (comments), Mod+Shift+F (zen mode), Mod+Shift+D (theme), Mod+Shift+P (commands alt), Mod+Shift+M (new comment), Mod+Shift+N (next comment), Mod+Shift+E (export), Mod+Shift+T (focus mode).
 
 ### Utilities
 

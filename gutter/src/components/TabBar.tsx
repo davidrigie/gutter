@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useWorkspaceStore } from "../stores/workspaceStore";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
-import { X } from "./Icons";
+import { X, Circle } from "./Icons";
 
 interface TabBarProps {
   onSwitchTab: (path: string) => void;
@@ -62,6 +62,7 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
   const handleDragStart = (e: React.DragEvent, index: number) => {
     dragIndex.current = index;
     e.dataTransfer.effectAllowed = "move";
+    // Make drag image slightly transparent
     const el = e.currentTarget as HTMLElement;
     el.style.opacity = "0.5";
   };
@@ -82,10 +83,7 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
 
   return (
     <>
-      <div
-        className="flex items-center bg-[var(--surface-secondary)] overflow-x-auto shrink-0"
-        style={{ height: 36, boxShadow: "inset 0 -1px 0 var(--editor-border)" }}
-      >
+      <div className="flex items-center h-10 bg-[var(--surface-secondary)] border-b border-[var(--editor-border)] overflow-x-auto shrink-0">
         {openTabs.map((tab, index) => {
           const isActive = tab.path === activeTabPath;
           return (
@@ -95,8 +93,8 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
                 tab.isPinned ? "px-2" : "px-3"
               } ${
                 isActive
-                  ? "text-[var(--text-primary)] bg-[var(--editor-bg)]"
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                  ? "text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
               draggable
               onDragStart={(e) => handleDragStart(e, index)}
@@ -112,10 +110,7 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
               onContextMenu={(e) => handleTabContextMenu(e, tab.path)}
             >
               {tab.isDirty && (
-                <span
-                  className="shrink-0 rounded-full bg-[var(--accent)]"
-                  style={{ width: 5, height: 5 }}
-                />
+                <Circle size={6} className="text-[var(--accent)] shrink-0" />
               )}
               {tab.isPinned && (
                 <span className="text-[10px] text-[var(--text-muted)]" title="Pinned">
@@ -124,7 +119,7 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
               )}
               {!tab.isPinned && (
                 <>
-                  <span className="text-[12px]">{tab.name}</span>
+                  <span className="text-[13px]">{tab.name}</span>
                   <button
                     className="ml-0.5 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-active)] transition-opacity"
                     onClick={(e) => {
@@ -132,7 +127,7 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
                       onCloseTab(tab.path);
                     }}
                   >
-                    <X size={12} className="text-[var(--text-muted)]" />
+                    <X size={14} className="text-[var(--text-muted)]" />
                   </button>
                 </>
               )}
@@ -142,10 +137,7 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
                 </span>
               )}
               {isActive && (
-                <div
-                  className="absolute bottom-[2px] left-1/2 -translate-x-1/2 rounded-full bg-[var(--accent)]"
-                  style={{ width: 20, height: 3 }}
-                />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]" />
               )}
             </div>
           );

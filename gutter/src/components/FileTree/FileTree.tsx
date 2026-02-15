@@ -638,6 +638,21 @@ const FileTreeNode = memo(function FileTreeNode({
           }}
           onContextMenu={handleContextMenu}
         >
+          {/* Tree indent guides */}
+          {depth > 0 && (
+            <div
+              className="absolute left-0 top-0 bottom-0"
+              style={{ width: depth * 16 + 8 }}
+            >
+              {Array.from({ length: depth }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute top-0 bottom-0 border-l border-[var(--editor-border)]"
+                  style={{ left: `${(i + 1) * 16 + 4}px` }}
+                />
+              ))}
+            </div>
+          )}
           <span className="text-[var(--text-muted)] shrink-0">
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
@@ -731,21 +746,30 @@ const FileTreeNode = memo(function FileTreeNode({
       className={`relative flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
         isDragSource
           ? "opacity-40"
-          : isMultiSelected
+          : isMultiSelected || isActiveTab
             ? "bg-[var(--selection-bg)]"
-            : isActiveTab
-              ? "bg-transparent"
-              : "hover:bg-[var(--surface-hover)]"
+            : "hover:bg-[var(--surface-hover)]"
       }`}
-      style={{
-        paddingLeft: `${depth * 16 + 8}px`,
-        paddingRight: 8,
-        borderLeft: isActiveTab ? "2px solid var(--accent)" : "2px solid transparent",
-      }}
+      style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
       onMouseDown={handleMouseDown}
       onClick={(e) => !renaming && !dragSourcePath && onFileClick(entry.path, e)}
       onContextMenu={handleContextMenu}
     >
+      {/* Tree indent guides */}
+      {depth > 0 && (
+        <div
+          className="absolute left-0 top-0 bottom-0"
+          style={{ width: depth * 16 + 8 }}
+        >
+          {Array.from({ length: depth }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-0 bottom-0 border-l border-[var(--editor-border)] opacity-40"
+              style={{ left: `${(i + 1) * 16 + 4}px` }}
+            />
+          ))}
+        </div>
+      )}
       <span className="text-[var(--text-muted)] shrink-0 ml-[18px]">
         {isMd ? <FileTextIcon size={14} /> : <FileIcon size={14} />}
       </span>

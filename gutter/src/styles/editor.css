@@ -4,43 +4,40 @@
 
 .ProseMirror {
   outline: none;
-  padding: 3rem;
+  padding: 2rem;
   max-width: 48rem;
   margin: 0 auto;
   min-height: 100%;
-  font-family: var(--font-serif);
-  font-size: 1rem;
-  line-height: 1.8;
 }
 
 .ProseMirror h1 {
-  font-size: 2.25rem;
+  font-size: 2rem;
   font-weight: 700;
-  margin: 2rem 0 0.75rem;
+  margin: 1.5rem 0 0.75rem;
   line-height: 1.2;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 .ProseMirror h2 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  margin: 1.5rem 0 0.625rem;
-  line-height: 1.25;
-  letter-spacing: -0.015em;
+  margin: 1.25rem 0 0.625rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
 }
 .ProseMirror h3 {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin: 1.25rem 0 0.5rem;
-  line-height: 1.35;
+  margin: 1rem 0 0.5rem;
+  line-height: 1.4;
   color: var(--text-primary);
 }
 .ProseMirror h4 { font-size: 1.125rem; font-weight: 600; margin: 1rem 0 0.5rem; color: var(--text-primary); }
 .ProseMirror h5 { font-size: 1rem; font-weight: 600; margin: 0.75rem 0 0.375rem; color: var(--text-primary); }
 .ProseMirror h6 { font-size: 0.875rem; font-weight: 600; margin: 0.75rem 0 0.375rem; color: var(--text-secondary); }
 
-.ProseMirror p { margin: 0.875rem 0; line-height: 1.8; }
+.ProseMirror p { margin: 0.625rem 0; line-height: 1.7; }
 
 .ProseMirror ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
 .ProseMirror ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
@@ -48,11 +45,13 @@
 .ProseMirror li > ul, .ProseMirror li > ol { margin: 0; }
 
 .ProseMirror blockquote {
-  border-left: 3px solid var(--text-muted);
-  padding-left: 1.25rem;
-  margin: 1rem 0;
+  border-left: 4px solid var(--accent);
+  padding-left: 1rem;
+  margin: 0.75rem 0;
   color: var(--text-secondary);
-  font-style: italic;
+  background: var(--surface-hover);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0.5rem 1rem;
 }
 .dark .ProseMirror blockquote {
   color: var(--text-secondary);
@@ -63,7 +62,7 @@
   border-radius: var(--radius-sm);
   padding: 0.15rem 0.4rem;
   font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, monospace;
-  font-size: 0.85em;
+  font-size: 0.88em;
 }
 
 .ProseMirror pre {
@@ -88,9 +87,8 @@
 .ProseMirror hr {
   border: none;
   height: 1px;
-  background: var(--editor-border);
-  margin: 2.5rem auto;
-  max-width: 6rem;
+  background: linear-gradient(90deg, transparent, var(--editor-border), transparent);
+  margin: 2rem 0;
 }
 
 .ProseMirror a {
@@ -147,7 +145,7 @@
 }
 .ProseMirror th, .ProseMirror td {
   border: 1px solid var(--editor-border);
-  padding: 0.375rem 0.625rem;
+  padding: 0.25rem 0.5rem;
   text-align: left;
 }
 .ProseMirror th p, .ProseMirror td p {
@@ -156,6 +154,9 @@
 .ProseMirror th {
   background: var(--surface-secondary);
   font-weight: 600;
+}
+.ProseMirror tr:nth-child(even) td {
+  background: var(--surface-hover);
 }
 
 /* Selected cell highlight (TipTap adds this class) */
@@ -193,13 +194,13 @@
   gap: 2px;
   padding: 4px;
   background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   transform: translate(-50%, -100%);
-  animation: fadeInScale 150ms var(--transition-spring);
+  animation: fadeInScale 120ms ease-out;
 }
 .table-menu-btn {
   display: flex;
@@ -344,17 +345,17 @@
 .ProseMirror .hljs-type { color: #4ec9b0; }
 
 /* Light mode syntax highlighting overrides */
-:root .ProseMirror .hljs-keyword { color: #5c3ec9; }
+:root .ProseMirror .hljs-keyword { color: #0550ae; }
 :root .ProseMirror .hljs-string { color: #0a3069; }
-:root .ProseMirror .hljs-number { color: #5c3ec9; }
+:root .ProseMirror .hljs-number { color: #0550ae; }
 :root .ProseMirror .hljs-comment { color: #6e7781; }
-:root .ProseMirror .hljs-function { color: #6f42c1; }
-:root .ProseMirror .hljs-built_in { color: #5c3ec9; }
-:root .ProseMirror .hljs-attr { color: #5c3ec9; }
-:root .ProseMirror .hljs-title { color: #6f42c1; }
+:root .ProseMirror .hljs-function { color: #8250df; }
+:root .ProseMirror .hljs-built_in { color: #0550ae; }
+:root .ProseMirror .hljs-attr { color: #0550ae; }
+:root .ProseMirror .hljs-title { color: #8250df; }
 :root .ProseMirror .hljs-params { color: #24292f; }
-:root .ProseMirror .hljs-literal { color: #5c3ec9; }
-:root .ProseMirror .hljs-type { color: #5c3ec9; }
+:root .ProseMirror .hljs-literal { color: #0550ae; }
+:root .ProseMirror .hljs-type { color: #0550ae; }
 
 /* Dark mode restores VS Code-style colors */
 .dark .ProseMirror .hljs-keyword { color: #569cd6; }
@@ -376,8 +377,8 @@
 
 .slash-menu {
   background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -385,7 +386,7 @@
   min-width: 240px;
   max-height: 320px;
   overflow-y: auto;
-  animation: fadeInScale 150ms ease-out;
+  animation: fadeInScale 120ms ease-out;
 }
 .slash-menu-item {
   display: flex;
@@ -514,7 +515,7 @@
   overflow-y: auto;
   min-width: 140px;
   box-shadow: var(--shadow-lg);
-  animation: fadeInScale 150ms ease-out;
+  animation: fadeInScale 120ms ease-out;
 }
 .dark .code-block-lang-dropdown {
   background: var(--code-block-bg);
@@ -611,10 +612,7 @@
   margin: 0.75rem 0;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast);
-}
-.math-block-wrapper:hover {
-  border-color: var(--editor-border);
+  transition: border-color 0.15s;
 }
 .math-block-wrapper.is-selected {
   border-color: var(--accent);
@@ -692,12 +690,9 @@
 .mermaid-block-wrapper {
   position: relative;
   margin: 0.75rem 0;
-  border: 1px solid transparent;
+  border: 1px solid var(--editor-border);
   border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast);
-}
-.mermaid-block-wrapper:hover {
-  border-color: var(--editor-border);
+  transition: border-color 0.15s;
 }
 .mermaid-block-wrapper.is-selected {
   border-color: var(--accent);
@@ -794,14 +789,14 @@
   position: fixed;
   z-index: var(--z-overlay);
   background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   padding: 4px;
   min-width: 180px;
   box-shadow: var(--shadow-lg);
-  animation: fadeInScale 150ms ease-out;
+  animation: fadeInScale 120ms ease-out;
 }
 .context-menu-item {
   display: flex;
@@ -864,8 +859,8 @@
   position: fixed;
   z-index: 60;
   background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
@@ -974,30 +969,6 @@
 /* ═══════════════════════════════════════════════════════
    RESIZE HANDLE
    ═══════════════════════════════════════════════════════ */
-
-.resize-handle {
-  width: 8px;
-  cursor: col-resize;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 10;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.resize-handle::after {
-  content: "";
-  width: 3px;
-  height: 24px;
-  border-radius: 2px;
-  background: transparent;
-  transition: background var(--transition-fast);
-}
-.resize-handle:hover::after,
-.resize-handle:active::after {
-  background: var(--accent-muted);
-}
 
 /* ═══════════════════════════════════════════════════════
    FIND & REPLACE
@@ -1125,8 +1096,8 @@
 
 .wiki-autocomplete {
   background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -1134,7 +1105,7 @@
   min-width: 220px;
   max-width: 360px;
   overflow-y: auto;
-  animation: fadeInScale 150ms ease-out;
+  animation: fadeInScale 120ms ease-out;
 }
 .wiki-autocomplete-item {
   display: flex;
@@ -1200,13 +1171,14 @@
 /* Kill paragraph margins inside task items so text lines up with checkbox */
 .ProseMirror ul[data-type="taskList"] li > div > p {
   margin: 0;
-  line-height: 1.8;
+  line-height: 1.7;
 }
 .ProseMirror ul[data-type="taskList"] li > label {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  height: 1.8em;
+  /* line-height 1.7 on a ~1rem font ≈ 1.7rem tall line; center 16px checkbox in that */
+  height: 1.7em;
   cursor: pointer;
   user-select: none;
 }
@@ -1266,7 +1238,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 3rem;
+  padding: 2rem;
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
@@ -1428,6 +1400,20 @@
   transition: opacity 0.3s ease;
 }
 
+.resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  background: transparent;
+  transition: background var(--transition-fast);
+}
+.resize-handle:hover,
+.resize-handle:active {
+  background: var(--accent);
+}
+
 /* ═══════════════════════════════════════════════════════
    UNIFIED SEARCH
    ═══════════════════════════════════════════════════════ */
@@ -1462,23 +1448,4 @@
   color: var(--text-muted);
   min-width: 22px;
   text-align: right;
-}
-
-/* ═══════════════════════════════════════════════════════
-   PANEL HEADER (shared utility)
-   ═══════════════════════════════════════════════════════ */
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--editor-border);
-}
-.panel-header-title {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
 }

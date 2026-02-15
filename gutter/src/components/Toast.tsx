@@ -13,12 +13,6 @@ const colorMap = {
   info: "text-[var(--status-info)]",
 };
 
-const borderColorMap: Record<string, string> = {
-  success: "var(--status-success)",
-  error: "var(--status-error)",
-  info: "var(--status-info)",
-};
-
 export function ToastContainer() {
   const toasts = useToastStore((s) => s.toasts);
   const removeToast = useToastStore((s) => s.removeToast);
@@ -32,8 +26,7 @@ export function ToastContainer() {
         return (
           <div
             key={toast.id}
-            className="pointer-events-auto flex items-center gap-2 px-3 py-2.5 bg-[var(--surface-elevated)] border border-[var(--editor-border)] rounded-xl shadow-md text-[13px] text-[var(--text-primary)] animate-[slideUp_200ms_ease-out]"
-            style={{ borderLeft: `3px solid ${borderColorMap[toast.type]}` }}
+            className="pointer-events-auto flex items-center gap-2 px-3 py-2.5 bg-[var(--surface-primary)] border border-[var(--editor-border)] rounded-lg shadow-md text-[13px] text-[var(--text-primary)] animate-[fadeInScale_150ms_ease-out]"
           >
             <Icon size={16} className={`shrink-0 ${colorMap[toast.type]}`} />
             <span className="flex-1">{toast.message}</span>

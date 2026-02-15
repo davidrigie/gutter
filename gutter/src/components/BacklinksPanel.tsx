@@ -34,7 +34,7 @@ export function BacklinksPanel({ onOpenFile }: BacklinksPanelProps) {
       {backlinks.map((bl) => (
         <button
           key={bl.sourcePath}
-          className="w-full text-left p-2 rounded-md hover:bg-[var(--surface-hover)] transition-colors mb-1 border-l-2 border-l-transparent hover:border-l-[var(--accent)]"
+          className="w-full text-left p-2 rounded-md hover:bg-[var(--surface-hover)] transition-colors mb-1"
           onClick={() => onOpenFile(bl.sourcePath)}
         >
           <div className="text-[13px] font-medium text-[var(--text-primary)]">

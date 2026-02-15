@@ -356,12 +356,12 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
   const commandStart = contentStart + contentResults.length;
   return (
     <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center pt-24 z-[200] animate-[fadeIn_120ms_ease-out]"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-24 z-[200] animate-[fadeIn_120ms_ease-out]"
       onClick={onClose}
     >
       <div
-        className="w-[32rem] bg-[var(--surface-primary)] rounded-xl border border-[var(--editor-border)] overflow-hidden animate-[fadeInScale_150ms_ease-out]"
-        style={{ boxShadow: "var(--shadow-lg)" }}
+        className="w-[32rem] bg-[var(--glass-bg)] backdrop-blur-[20px] rounded-xl border border-[var(--glass-border)] overflow-hidden animate-[fadeInScale_150ms_ease-out]"
+        style={{ boxShadow: "var(--shadow-xl)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-4 border-b border-[var(--editor-border)]">

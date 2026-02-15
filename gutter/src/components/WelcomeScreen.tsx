@@ -27,9 +27,9 @@ export function WelcomeScreen({ onOpenFile, onOpenRecent }: WelcomeScreenProps) 
   const { recentFiles } = useSettingsStore();
 
   return (
-    <div className="flex-1">
-      <div className="max-w-lg w-full px-8 py-12 m-auto text-center">
-        <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-1">
+    <div className="flex-1 flex items-center justify-center">
+      <div className="max-w-lg w-full px-8 py-12 text-center animate-[fadeIn_300ms_ease-out]">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-1" style={{ fontFamily: "var(--font-serif)" }}>
           Gutter
         </h1>
         <p className="text-[14px] text-[var(--text-muted)] mb-8">
@@ -39,7 +39,7 @@ export function WelcomeScreen({ onOpenFile, onOpenRecent }: WelcomeScreenProps) 
         <div className="flex justify-center gap-3 mb-10">
           <button
             onClick={onOpenFile}
-            className="px-5 py-2 rounded-lg bg-[var(--accent-primary,#3b82f6)] text-white text-[14px] font-medium hover:opacity-90 transition-opacity"
+            className="px-5 py-2 rounded-lg bg-[var(--accent)] text-white text-[14px] font-medium hover:opacity-90 transition-opacity"
           >
             Open File
           </button>

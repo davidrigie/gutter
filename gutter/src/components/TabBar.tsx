@@ -137,7 +137,7 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
                 </span>
               )}
               {isActive && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)]" />
+                <div className="absolute bottom-0 left-1 right-1 h-0.5 bg-[var(--accent)] rounded-full" />
               )}
             </div>
           );

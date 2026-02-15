@@ -8,6 +8,7 @@
   max-width: 48rem;
   margin: 0 auto;
   min-height: 100%;
+  font-family: var(--font-serif);
 }
 
 .ProseMirror h1 {
@@ -259,11 +260,23 @@
   box-shadow: var(--shadow-sm);
 }
 .mermaid-block-wrapper:hover .block-action-bar,
-.math-block-wrapper:hover .block-action-bar,
-.code-block-header .block-action-bar {
+.math-block-wrapper:hover .block-action-bar {
   position: static;
   margin-right: auto;
 }
+.code-block-header .block-action-bar {
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
+  margin-right: auto;
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.mermaid-block-wrapper:hover .block-action-bar,
+.math-block-wrapper:hover .block-action-bar,
 .code-block-wrapper:hover .block-action-bar,
 .frontmatter-block:hover .block-action-bar,
 .image-block-wrapper:hover .block-action-bar,
@@ -459,8 +472,7 @@
 }
 .code-block-wrapper pre {
   margin: 0;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  border-top: none;
+  border-radius: var(--radius-md);
 }
 .code-block-content {
   display: block;
@@ -469,21 +481,28 @@
   padding: 0.75rem 1rem;
   overflow-x: auto;
   background: var(--code-block-bg);
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border: 1px solid var(--editor-border);
+  border-radius: var(--radius-md);
 }
 .code-block-header {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 4px 8px;
-  background: var(--code-block-header);
-  border: 1px solid var(--editor-border);
-  border-bottom: none;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  gap: 2px;
+  padding: 4px 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
   user-select: none;
+  z-index: 5;
+  border-radius: 0 var(--radius-md) 0 var(--radius-sm);
+  background: var(--code-block-bg);
 }
-.dark .code-block-header {
-  border-color: var(--code-block-header);
+.code-block-wrapper:hover .code-block-header {
+  opacity: 1;
+  pointer-events: auto;
 }
 .code-block-lang-btn {
   display: flex;
@@ -504,8 +523,8 @@
 }
 .code-block-lang-dropdown {
   position: absolute;
-  right: 8px;
-  top: 28px;
+  right: 0;
+  top: 100%;
   z-index: var(--z-dropdown);
   background: var(--surface-primary);
   border: 1px solid var(--editor-border);

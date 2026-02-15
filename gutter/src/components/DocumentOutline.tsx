@@ -86,7 +86,7 @@ export function DocumentOutline({ editor }: DocumentOutlineProps) {
           key={`${h.pos}-${i}`}
           className={`w-full text-left px-3 py-1.5 text-[13px] truncate transition-colors cursor-pointer hover:bg-[var(--surface-hover)] ${
             activePos === h.pos
-              ? "text-[var(--accent)] font-medium bg-[var(--surface-active)]"
+              ? "text-[var(--accent)] font-medium border-l-2 border-l-[var(--accent)]"
               : "text-[var(--text-secondary)]"
           }`}
           style={{ paddingLeft: `${(h.level - 1) * 12 + 12}px` }}

@@ -746,9 +746,11 @@ const FileTreeNode = memo(function FileTreeNode({
       className={`relative flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
         isDragSource
           ? "opacity-40"
-          : isMultiSelected || isActiveTab
+          : isMultiSelected
             ? "bg-[var(--selection-bg)]"
-            : "hover:bg-[var(--surface-hover)]"
+            : isActiveTab
+              ? "bg-[var(--selection-bg)] border-l-2 border-l-[var(--accent)]"
+              : "hover:bg-[var(--surface-hover)]"
       }`}
       style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
       onMouseDown={handleMouseDown}

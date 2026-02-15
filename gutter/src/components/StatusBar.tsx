@@ -35,7 +35,7 @@ export function StatusBar() {
         onClick={toggleFileTree}
         className={`p-1 rounded transition-colors ${
           showFileTree
-            ? "text-[var(--accent)] bg-[var(--surface-active)]"
+            ? "text-[var(--accent)] bg-[var(--accent-subtle)]"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
         }`}
         title={showFileTree ? `Hide file tree (${modLabel()}+\\)` : `Show file tree (${modLabel()}+\\)`}
@@ -47,7 +47,7 @@ export function StatusBar() {
         onClick={toggleOutline}
         className={`p-1 rounded transition-colors ${
           showOutline
-            ? "text-[var(--accent)] bg-[var(--surface-active)]"
+            ? "text-[var(--accent)] bg-[var(--accent-subtle)]"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
         }`}
         title={showOutline ? "Hide outline" : "Show outline"}
@@ -120,7 +120,7 @@ export function StatusBar() {
         onClick={toggleComments}
         className={`p-1 rounded transition-colors ${
           showComments
-            ? "text-[var(--accent)] bg-[var(--surface-active)]"
+            ? "text-[var(--accent)] bg-[var(--accent-subtle)]"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
         }`}
         title={showComments ? `Hide comments (${modLabel()}+Shift+C)` : `Show comments (${modLabel()}+Shift+C)`}

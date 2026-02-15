@@ -54,7 +54,7 @@ export function CommentsPanel() {
             Comments
           </span>
           {totalCount > 0 && (
-            <span className="text-[11px] bg-[var(--accent)] text-white px-1.5 py-0.5 rounded-full font-medium min-w-[18px] text-center">
+            <span className="text-[11px] bg-[var(--accent-subtle)] text-[var(--accent)] px-1.5 py-0.5 rounded-full font-medium min-w-[18px] text-center">
               {openCount}
             </span>
           )}

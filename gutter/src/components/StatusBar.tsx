@@ -33,7 +33,7 @@ export function StatusBar() {
       {/* Panel toggle buttons */}
       <button
         onClick={toggleFileTree}
-        className={`p-1 rounded transition-colors ${
+        className={`px-1.5 h-full flex items-center rounded transition-colors ${
           showFileTree
             ? "text-[var(--accent)] bg-[var(--accent-subtle)]"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
@@ -45,7 +45,7 @@ export function StatusBar() {
 
       <button
         onClick={toggleOutline}
-        className={`p-1 rounded transition-colors ${
+        className={`px-1.5 h-full flex items-center rounded transition-colors ${
           showOutline
             ? "text-[var(--accent)] bg-[var(--accent-subtle)]"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
@@ -118,7 +118,7 @@ export function StatusBar() {
       {/* Comments panel toggle */}
       <button
         onClick={toggleComments}
-        className={`p-1 rounded transition-colors ${
+        className={`px-1.5 h-full flex items-center rounded transition-colors ${
           showComments
             ? "text-[var(--accent)] bg-[var(--accent-subtle)]"
             : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"

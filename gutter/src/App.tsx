@@ -462,17 +462,22 @@ function App() {
   // Prevent closing window with dirty tabs
   useEffect(() => {
     const unlisten = getCurrentWindow().onCloseRequested(async (event) => {
-      const { openTabs: tabs } = useWorkspaceStore.getState();
-      const hasDirty = tabs.some((t) => t.isDirty);
-      if (hasDirty) {
-        event.preventDefault();
-        const shouldClose = await ask(
-          "You have unsaved changes. Close without saving?",
-          { title: "Unsaved Changes", kind: "warning" },
-        );
-        if (shouldClose) {
-          getCurrentWindow().destroy();
+      try {
+        const { openTabs: tabs } = useWorkspaceStore.getState();
+        const hasDirty = tabs.some((t) => t.isDirty);
+        if (hasDirty) {
+          event.preventDefault();
+          const shouldClose = await ask(
+            "You have unsaved changes. Close without saving?",
+            { title: "Unsaved Changes", kind: "warning" },
+          );
+          if (shouldClose) {
+            getCurrentWindow().destroy();
+          }
         }
+      } catch {
+        // If dialog fails, close anyway
+        getCurrentWindow().destroy();
       }
     });
     return () => {

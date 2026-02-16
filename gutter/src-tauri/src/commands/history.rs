@@ -80,7 +80,7 @@ fn now_secs() -> u64 {
         .as_secs()
 }
 
-const MAX_AGE_SECS: u64 = 24 * 60 * 60; // 24 hours
+const MAX_AGE_SECS: u64 = 7 * 24 * 60 * 60; // 7 days
 
 #[tauri::command]
 pub fn save_snapshot(file_path: String, content: String) -> Result<SnapshotMeta, String> {

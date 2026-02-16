@@ -367,6 +367,8 @@ function App() {
       await generateCompanion(md);
       setTabDirty(path, false);
       useToastStore.getState().addToast("File saved", "success", 2000);
+      // Fire-and-forget snapshot for version history
+      invoke("save_snapshot", { filePath: path, content: md }).catch(console.error);
     }
   }, [saveFile, saveComments, generateCompanion, setTabDirty, updateTabPath, addRecentFile, loadFileTree]);
 

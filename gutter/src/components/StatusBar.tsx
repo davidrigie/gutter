@@ -1,6 +1,6 @@
 import { useEditorStore } from "../stores/editorStore";
 import { modLabel } from "../utils/platform";
-import { Circle, MessageSquare, UndoIcon, RedoIcon, SidebarIcon, OutlineIcon, BookOpen } from "./Icons";
+import { Circle, MessageSquare, UndoIcon, RedoIcon, SidebarIcon, OutlineIcon, BookOpen, HistoryIcon } from "./Icons";
 
 function Divider() {
   return (
@@ -20,11 +20,13 @@ export function StatusBar() {
   const fileName = useEditorStore((s) => s.fileName);
   const showFileTree = useEditorStore((s) => s.showFileTree);
   const showComments = useEditorStore((s) => s.showComments);
+  const showHistory = useEditorStore((s) => s.showHistory);
   const showOutline = useEditorStore((s) => s.showOutline);
   const canUndo = useEditorStore((s) => s.canUndo);
   const canRedo = useEditorStore((s) => s.canRedo);
   const toggleFileTree = useEditorStore((s) => s.toggleFileTree);
   const toggleComments = useEditorStore((s) => s.toggleComments);
+  const toggleHistory = useEditorStore((s) => s.toggleHistory);
   const toggleOutline = useEditorStore((s) => s.toggleOutline);
   const toggleSourceMode = useEditorStore((s) => s.toggleSourceMode);
   const toggleReadingMode = useEditorStore((s) => s.toggleReadingMode);
@@ -123,6 +125,19 @@ export function StatusBar() {
       </span>
 
       <Divider />
+
+      {/* History panel toggle */}
+      <button
+        onClick={toggleHistory}
+        className={`px-1.5 h-full flex items-center rounded transition-colors ${
+          showHistory
+            ? "text-[var(--accent)] bg-[var(--accent-subtle)]"
+            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+        }`}
+        title={showHistory ? `Hide history (${modLabel()}+Shift+H)` : `Show history (${modLabel()}+Shift+H)`}
+      >
+        <HistoryIcon size={15} />
+      </button>
 
       {/* Comments panel toggle */}
       <button

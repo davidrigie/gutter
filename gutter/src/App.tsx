@@ -4,6 +4,7 @@ import { SourceEditor } from "./components/Editor/SourceEditor";
 import { ReadingMode } from "./components/ReadingMode";
 import { FileTree } from "./components/FileTree/FileTree";
 import { CommentsPanel } from "./components/Comments/CommentsPanel";
+import { HistoryPanel } from "./components/HistoryPanel";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
 import { UnifiedSearch } from "./components/UnifiedSearch";
@@ -40,6 +41,7 @@ function App() {
     isReadingMode,
     showFileTree,
     showComments,
+    showHistory,
     isDirty,
     fileName,
     activeCommentId,
@@ -47,6 +49,7 @@ function App() {
     toggleReadingMode,
     toggleFileTree,
     toggleComments,
+    toggleHistory,
     showOutline,
     toggleOutline,
     setContent,
@@ -362,6 +365,8 @@ function App() {
       await generateCompanion(md);
       setTabDirty(path, false);
       useToastStore.getState().addToast("File saved", "success", 2000);
+      // Fire-and-forget snapshot for version history
+      invoke("save_snapshot", { filePath: path, content: md }).catch(console.error);
     }
   }, [saveFile, saveComments, generateCompanion, setTabDirty, updateTabPath, addRecentFile, loadFileTree]);
 
@@ -493,6 +498,16 @@ function App() {
     [openTabs, removeTab, handleSave, setActiveTab, setFilePath, setContent, setDirty, loadCommentsFromFile, bumpContentVersion],
   );
 
+  // Handle history restore
+  const handleHistoryRestore = useCallback((content: string) => {
+    markdownRef.current = content;
+    setContent(content);
+    bumpContentVersion();
+    setDirty(true);
+    const activeTab = useWorkspaceStore.getState().activeTabPath;
+    if (activeTab) setTabDirty(activeTab, true);
+  }, [setContent, bumpContentVersion, setDirty, setTabDirty]);
+
   // Comment navigation
   const navigateComment = useCallback(
     (direction: "next" | "prev") => {
@@ -524,6 +539,7 @@ function App() {
     }},
     { name: "Toggle File Tree", shortcut: `${mod}+\\`, action: toggleFileTree },
     { name: "Toggle Comments Panel", shortcut: `${mod}+Shift+C`, action: toggleComments },
+    { name: "Version History", shortcut: `${mod}+Shift+H`, action: toggleHistory },
     { name: "Toggle Dark/Light Mode", shortcut: `${mod}+Shift+D`, action: () => cycleTheme() },
     { name: "Toggle Document Outline", action: () => toggleOutline() },
     { name: "Quick Open File", shortcut: `${mod}+P`, action: () => setUnifiedSearchMode("files") },
@@ -568,6 +584,7 @@ function App() {
       listen("menu:preferences", () => setShowPreferences(true)),
       listen("menu:toggle-tree", () => toggleFileTree()),
       listen("menu:toggle-comments", () => toggleComments()),
+      listen("menu:toggle-history", () => toggleHistory()),
       listen("menu:toggle-outline", () => toggleOutline()),
       listen("menu:toggle-source", () => {
         if (useEditorStore.getState().isSourceMode) {
@@ -617,6 +634,7 @@ function App() {
     handleSave,
     toggleFileTree,
     toggleComments,
+    toggleHistory,
     toggleOutline,
     toggleReadingMode,
     switchToSource,
@@ -650,6 +668,9 @@ function App() {
       } else if (modKey(e) && e.shiftKey && e.key === "C") {
         e.preventDefault();
         toggleComments();
+      } else if (modKey(e) && e.shiftKey && e.key === "H") {
+        e.preventDefault();
+        toggleHistory();
       } else if (modKey(e) && e.shiftKey && e.key === "D") {
         e.preventDefault();
         cycleTheme();
@@ -705,6 +726,7 @@ function App() {
     switchToWysiwyg,
     toggleFileTree,
     toggleComments,
+    toggleHistory,
     toggleReadingMode,
     cycleTheme,
     navigateComment,
@@ -1003,6 +1025,26 @@ function App() {
               <div className="border-t border-[var(--editor-border)]">
                 <BacklinksPanel onOpenFile={handleFileTreeOpen} />
               </div>
+            </aside>
+          </>
+        )}
+
+        {/* History Sidebar */}
+        {showHistory && !isReadingMode && (
+          <>
+            <ResizeHandle
+              side="right"
+              currentWidth={panelWidths.comments}
+              minWidth={220}
+              maxWidth={Math.floor(window.innerWidth * 0.5)}
+              onResize={(w) => setPanelWidth("comments", w)}
+              onDoubleClick={() => setPanelWidth("comments", 288)}
+            />
+            <aside
+              className="border-l border-[var(--editor-border)] shrink-0 overflow-auto sidebar-panel"
+              style={{ width: panelWidths.comments }}
+            >
+              <HistoryPanel onRestore={handleHistoryRestore} currentContent={markdownRef.current} />
             </aside>
           </>
         )}

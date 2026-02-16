@@ -27,6 +27,7 @@ notify = { version = "7", features = ["macos_kqueue"] }
 dirs = "5"
 url = "2"
 tauri-plugin-single-instance = "2"
+sha2 = "0.10"
 
 [profile.release]
 lto = "thin"

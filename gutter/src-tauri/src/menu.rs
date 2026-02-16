@@ -89,6 +89,13 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         true,
         Some("CmdOrCtrl+Shift+R"),
     )?;
+    let toggle_history = MenuItem::with_id(
+        app,
+        "toggle_history",
+        "Version History",
+        true,
+        Some("CmdOrCtrl+Shift+H"),
+    )?;
     let cycle_theme = MenuItem::with_id(
         app,
         "cycle_theme",
@@ -100,6 +107,7 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     let view_menu = SubmenuBuilder::new(app, "View")
         .item(&toggle_tree)
         .item(&toggle_comments)
+        .item(&toggle_history)
         .item(&toggle_outline)
         .separator()
         .item(&toggle_source)
@@ -216,6 +224,7 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
             "export" => "menu:export",
             "toggle_tree" => "menu:toggle-tree",
             "toggle_comments" => "menu:toggle-comments",
+            "toggle_history" => "menu:toggle-history",
             "toggle_outline" => "menu:toggle-outline",
             "toggle_source" => "menu:toggle-source",
             "toggle_reading" => "menu:toggle-reading",

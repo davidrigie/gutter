@@ -75,6 +75,14 @@ pub fn run() {
             commands::templates::read_template,
             commands::templates::save_template,
             commands::templates::delete_template,
+            commands::history::save_snapshot,
+            commands::history::list_snapshots,
+            commands::history::read_snapshot,
+            commands::history::pin_snapshot,
+            commands::history::rename_snapshot,
+            commands::history::delete_snapshot,
+            commands::history::list_git_history,
+            commands::history::read_git_version,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

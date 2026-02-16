@@ -228,6 +228,53 @@ export function BookOpen({ size = 16, ...props }: IconProps) {
   );
 }
 
+export function HistoryIcon({ size = 16, ...props }: IconProps) {
+  return (
+    <svg {...defaults(size)} {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+export function Pin({ size = 16, ...props }: IconProps) {
+  return (
+    <svg {...defaults(size)} {...props}>
+      <path d="M12 17v5" />
+      <path d="M9 10.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V16h14v-.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V7a1 1 0 011-1h.5a.5.5 0 00.5-.5v-1a.5.5 0 00-.5-.5h-9a.5.5 0 00-.5.5v1a.5.5 0 00.5.5H8a1 1 0 011 1z" />
+    </svg>
+  );
+}
+
+export function GitBranch({ size = 16, ...props }: IconProps) {
+  return (
+    <svg {...defaults(size)} {...props}>
+      <line x1="6" y1="3" x2="6" y2="15" />
+      <circle cx="18" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <path d="M18 9a9 9 0 01-9 9" />
+    </svg>
+  );
+}
+
+export function RotateCcw({ size = 16, ...props }: IconProps) {
+  return (
+    <svg {...defaults(size)} {...props}>
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+    </svg>
+  );
+}
+
+export function Eye({ size = 16, ...props }: IconProps) {
+  return (
+    <svg {...defaults(size)} {...props}>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 export function OutlineIcon({ size = 16, ...props }: IconProps) {
   return (
     <svg {...defaults(size)} {...props}>

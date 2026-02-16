@@ -14,6 +14,7 @@ interface Settings {
   defaultAuthor: string;
   editorWidth: "narrow" | "medium" | "wide" | "full";
   lineHeight: "compact" | "comfortable" | "spacious";
+  accentColor: string;
 }
 
 interface SettingsState extends Settings {
@@ -33,6 +34,7 @@ interface SettingsState extends Settings {
   setDefaultAuthor: (author: string) => void;
   setEditorWidth: (width: "narrow" | "medium" | "wide" | "full") => void;
   setLineHeight: (height: "compact" | "comfortable" | "spacious") => void;
+  setAccentColor: (color: string) => void;
 }
 
 const defaults: Settings = {
@@ -48,6 +50,7 @@ const defaults: Settings = {
   defaultAuthor: "Author",
   editorWidth: "medium",
   lineHeight: "comfortable",
+  accentColor: "indigo",
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -83,6 +86,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       defaultAuthor: state.defaultAuthor,
       editorWidth: state.editorWidth,
       lineHeight: state.lineHeight,
+      accentColor: state.accentColor,
     };
     try {
       await invoke("write_settings", { content: JSON.stringify(data, null, 2) });
@@ -161,6 +165,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setLineHeight: (lineHeight) => {
     set({ lineHeight });
+    get().saveSettings();
+  },
+
+  setAccentColor: (accentColor) => {
+    set({ accentColor });
     get().saveSettings();
   },
 }));

@@ -138,6 +138,8 @@ export function PreferencesDialog({ onClose, editorRef }: PreferencesDialogProps
     setAutoSaveInterval,
     defaultAuthor,
     setDefaultAuthor,
+    accentColor,
+    setAccentColor,
   } = useSettingsStore();
 
   const authorRef = useRef<HTMLInputElement>(null);
@@ -208,6 +210,48 @@ export function PreferencesDialog({ onClose, editorRef }: PreferencesDialogProps
             value={theme}
             onChange={setTheme}
           />
+        </Row>
+
+        <Row label="Accent color">
+          <div className="flex items-center gap-1.5">
+            {[
+              { name: "indigo",  color: "#6366f1" },
+              { name: "blue",    color: "#3b82f6" },
+              { name: "violet",  color: "#8b5cf6" },
+              { name: "rose",    color: "#f43f5e" },
+              { name: "orange",  color: "#f97316" },
+              { name: "green",   color: "#22c55e" },
+              { name: "teal",    color: "#14b8a6" },
+            ].map((preset) => (
+              <button
+                key={preset.name}
+                className="w-6 h-6 rounded-full transition-transform hover:scale-110"
+                style={{
+                  background: preset.color,
+                  outline: accentColor === preset.name ? `2px solid ${preset.color}` : "2px solid transparent",
+                  outlineOffset: "2px",
+                }}
+                onClick={() => setAccentColor(preset.name)}
+                title={preset.name.charAt(0).toUpperCase() + preset.name.slice(1)}
+              />
+            ))}
+            <label
+              className="w-6 h-6 rounded-full cursor-pointer transition-transform hover:scale-110 overflow-hidden relative"
+              style={{
+                background: accentColor.startsWith("#") ? accentColor : "conic-gradient(red, yellow, lime, aqua, blue, magenta, red)",
+                outline: accentColor.startsWith("#") ? `2px solid ${accentColor}` : "2px solid transparent",
+                outlineOffset: "2px",
+              }}
+              title="Custom color"
+            >
+              <input
+                type="color"
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                value={accentColor.startsWith("#") ? accentColor : "#6366f1"}
+                onChange={(e) => setAccentColor(e.target.value)}
+              />
+            </label>
+          </div>
         </Row>
 
         <Row label="Editor font size">

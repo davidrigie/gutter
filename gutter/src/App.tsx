@@ -53,7 +53,7 @@ function App() {
     setActiveCommentId,
   } = useEditorStore();
 
-  const { theme, cycleTheme, loadSettings, addRecentFile, panelWidths, setPanelWidth, fontSize, fontFamily, editorWidth, lineHeight } = useSettingsStore();
+  const { theme, cycleTheme, loadSettings, addRecentFile, panelWidths, setPanelWidth, fontSize, fontFamily, editorWidth, lineHeight, accentColor } = useSettingsStore();
 
   const { addTab, setActiveTab, removeTab, setTabDirty, workspacePath, loadFileTree, openTabs } = useWorkspaceStore();
   const { getThreadIds } = useCommentStore();
@@ -614,7 +614,34 @@ function App() {
       spacious: "2.0",
     };
     root.style.setProperty("--editor-line-height", lineHeightMap[lineHeight] || lineHeightMap.comfortable);
-  }, [fontSize, fontFamily, editorWidth, lineHeight]);
+
+    // Accent color presets — light and dark variants
+    const accentPresets: Record<string, { light: string; dark: string }> = {
+      indigo:  { light: "#6366f1", dark: "#818cf8" },
+      blue:    { light: "#3b82f6", dark: "#60a5fa" },
+      violet:  { light: "#8b5cf6", dark: "#a78bfa" },
+      rose:    { light: "#f43f5e", dark: "#fb7185" },
+      orange:  { light: "#f97316", dark: "#fb923c" },
+      green:   { light: "#22c55e", dark: "#4ade80" },
+      teal:    { light: "#14b8a6", dark: "#2dd4bf" },
+    };
+    const isDark = document.documentElement.classList.contains("dark");
+    const preset = accentPresets[accentColor];
+    // Support custom hex colors (e.g. "#e05d44") or preset names
+    const color = preset
+      ? (isDark ? preset.dark : preset.light)
+      : (accentColor.startsWith("#") ? accentColor : accentPresets.indigo[isDark ? "dark" : "light"]);
+    root.style.setProperty("--accent", color);
+    // Derive hover and alpha variants
+    const hoverColor = preset
+      ? (isDark ? preset.light : preset.dark)
+      : `color-mix(in srgb, ${color} 80%, ${isDark ? "white" : "black"})`;
+    root.style.setProperty("--accent-hover", hoverColor);
+    root.style.setProperty("--accent-subtle", `color-mix(in srgb, ${color} 8%, transparent)`);
+    root.style.setProperty("--accent-muted", `color-mix(in srgb, ${color} 50%, transparent)`);
+    root.style.setProperty("--focus-shadow", `0 0 0 2px color-mix(in srgb, ${color} 15%, transparent)`);
+    root.style.setProperty("--selection-bg", `color-mix(in srgb, ${color} 10%, transparent)`);
+  }, [fontSize, fontFamily, editorWidth, lineHeight, accentColor, theme]);
 
   // Prevent closing window with dirty tabs
   useEffect(() => {

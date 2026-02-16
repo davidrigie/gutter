@@ -1664,6 +1664,8 @@
   border-left: 3px solid var(--status-error) !important;
   padding-left: 0.5rem !important;
   margin-left: -0.5rem !important;
+  text-decoration: line-through;
+  opacity: 0.6;
 }
 
 .diff-block-active {

@@ -1,6 +1,6 @@
-import { useMemo, useCallback, useRef, useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import { useMemo, useCallback, useRef, useEffect, useState } from "react";
 import { useEditor, EditorContent, ReactNodeViewRenderer } from "@tiptap/react";
-import type { Editor, JSONContent } from "@tiptap/react";
+import type { JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
@@ -34,7 +34,6 @@ const lowlight = createLowlight(common);
 
 function nodeKey(node: JSONContent): string {
   const clone = JSON.parse(JSON.stringify(node));
-  // Strip non-visual attrs to avoid false diffs
   const strip = (n: JSONContent) => {
     if (n.attrs) {
       const a = n.attrs as Record<string, unknown>;
@@ -116,18 +115,77 @@ function simpleDiffBlocks(oldKeys: string[], newKeys: string[]): BlockDiff[] {
   return result;
 }
 
-// --- ProseMirror decoration plugin ---
-// Uses a mutable ref so active indices can update without recreating the editor
+// --- Merged doc builder ---
+// Interleaves equal/removed/added blocks into one document.
+// Removed blocks come from the snapshot, added blocks from working copy.
+// Equal blocks use the working copy version.
 
-interface DiffHighlightState {
-  changedIndices: Set<number>;
-  activeIndices: Set<number>;
-  cssClass: string;
+interface MergedBlock {
+  node: JSONContent;
+  diffType: "equal" | "removed" | "added";
+  /** Index within this merged doc */
+  mergedIdx: number;
+  /** Which change group this belongs to (-1 for equal) */
+  changeGroup: number;
+}
+
+function buildMergedDoc(
+  snapshotBlocks: JSONContent[],
+  editorBlocks: JSONContent[],
+  diff: BlockDiff[],
+): { doc: JSONContent; merged: MergedBlock[]; changeGroups: number[][] } {
+  const merged: MergedBlock[] = [];
+  const changeGroups: number[][] = []; // changeGroups[groupIdx] = [mergedIdx, ...]
+  let currentGroup = -1;
+  let inChange = false;
+
+  for (const d of diff) {
+    if (d.type === "equal") {
+      inChange = false;
+      merged.push({
+        node: editorBlocks[d.newIdx],
+        diffType: "equal",
+        mergedIdx: merged.length,
+        changeGroup: -1,
+      });
+    } else {
+      if (!inChange) {
+        currentGroup++;
+        changeGroups.push([]);
+        inChange = true;
+      }
+      const block = d.type === "remove"
+        ? snapshotBlocks[d.oldIdx]
+        : editorBlocks[d.newIdx];
+      const idx = merged.length;
+      changeGroups[currentGroup].push(idx);
+      merged.push({
+        node: block,
+        diffType: d.type === "remove" ? "removed" : "added",
+        mergedIdx: idx,
+        changeGroup: currentGroup,
+      });
+    }
+  }
+
+  const doc: JSONContent = {
+    type: "doc",
+    content: merged.map((m) => m.node),
+  };
+
+  return { doc, merged, changeGroups };
+}
+
+// --- ProseMirror decoration plugin ---
+
+interface DiffDecoState {
+  merged: MergedBlock[];
+  activeGroup: number;
 }
 
 const diffHighlightKey = new PluginKey("diffHighlight");
 
-function createDiffHighlightExtension(stateRef: { current: DiffHighlightState }) {
+function createDiffPlugin(stateRef: { current: DiffDecoState }) {
   return Extension.create({
     name: "diffHighlight",
     addProseMirrorPlugins() {
@@ -137,21 +195,34 @@ function createDiffHighlightExtension(stateRef: { current: DiffHighlightState })
           key: diffHighlightKey,
           props: {
             decorations(state) {
-              const { changedIndices, activeIndices, cssClass } = ref.current;
+              const { merged, activeGroup } = ref.current;
               const decorations: Decoration[] = [];
               let blockIdx = 0;
               state.doc.forEach((node, offset) => {
-                const isChanged = changedIndices.has(blockIdx);
-                const isActive = activeIndices.has(blockIdx);
-                if (isChanged || isActive) {
-                  let cls = isChanged ? cssClass : "";
-                  if (isActive) cls += " diff-block-active";
-                  decorations.push(
-                    Decoration.node(offset, offset + node.nodeSize, {
-                      class: cls.trim(),
-                      "data-block-index": String(blockIdx),
-                    })
-                  );
+                if (blockIdx < merged.length) {
+                  const m = merged[blockIdx];
+                  const isActive = m.changeGroup === activeGroup && activeGroup >= 0;
+                  if (m.diffType === "removed") {
+                    let cls = "diff-block-removed";
+                    if (isActive) cls += " diff-block-active";
+                    decorations.push(
+                      Decoration.node(offset, offset + node.nodeSize, {
+                        class: cls,
+                        "data-diff-type": "removed",
+                        "data-change-group": String(m.changeGroup),
+                      })
+                    );
+                  } else if (m.diffType === "added") {
+                    let cls = "diff-block-added";
+                    if (isActive) cls += " diff-block-active";
+                    decorations.push(
+                      Decoration.node(offset, offset + node.nodeSize, {
+                        class: cls,
+                        "data-diff-type": "added",
+                        "data-change-group": String(m.changeGroup),
+                      })
+                    );
+                  }
                 }
                 blockIdx++;
               });
@@ -181,19 +252,38 @@ function lineDiffStats(a: string, b: string): { added: number; removed: number }
   return { added, removed };
 }
 
-// --- Diff editor panel ---
+// --- Main component ---
 
-interface DiffEditorPanelHandle {
-  scrollToIndex: (index: number) => void;
-  getEditor: () => Editor | null;
+interface Props {
+  content: string;
+  currentContent: string;
+  label: string;
+  onRestore: () => void;
+  onDismiss: () => void;
 }
 
-const DiffEditorPanel = forwardRef<DiffEditorPanelHandle, {
-  doc: JSONContent;
-  highlightRef: { current: DiffHighlightState };
-  headerLabel: string;
-  headerClass: string;
-}>(({ doc, highlightRef, headerLabel, headerClass }, ref) => {
+export function VersionPreview({ content, currentContent, label, onRestore, onDismiss }: Props) {
+  const filePath = useEditorStore((s) => s.filePath);
+  const dir = parentDir(filePath || "");
+  const snapshotDoc = useMemo(() => parseMarkdown(content, dir), [content, dir]);
+  const editorDoc = useMemo(() => parseMarkdown(currentContent, dir), [currentContent, dir]);
+
+  const { mergedDoc, merged, changeGroups, stats } = useMemo(() => {
+    const snapshotBlocks = snapshotDoc.content || [];
+    const editorBlocks = editorDoc.content || [];
+    const diff = diffBlocks(snapshotBlocks, editorBlocks);
+    const { doc, merged, changeGroups } = buildMergedDoc(snapshotBlocks, editorBlocks, diff);
+    return { mergedDoc: doc, merged, changeGroups, stats: lineDiffStats(content, currentContent) };
+  }, [snapshotDoc, editorDoc, content, currentContent]);
+
+  const [activeGroup, setActiveGroup] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Mutable ref for decoration plugin
+  const decoRef = useRef<DiffDecoState>({ merged, activeGroup: 0 });
+  decoRef.current.merged = merged;
+  decoRef.current.activeGroup = changeGroups.length > 0 ? activeGroup : -1;
+
   const extensions = useMemo(() => [
     StarterKit.configure({ codeBlock: false }),
     Underline,
@@ -213,164 +303,48 @@ const DiffEditorPanel = forwardRef<DiffEditorPanelHandle, {
     WikiLink,
     TaskList,
     TaskItem.configure({ nested: true }),
-    createDiffHighlightExtension(highlightRef),
+    createDiffPlugin(decoRef),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], []); // Stable — highlight state is read from ref
+  ], []);
 
   const editor = useEditor({
     editable: false,
     extensions,
-    content: doc,
+    content: mergedDoc,
   });
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Update content when diff changes
+  useEffect(() => {
+    if (editor && mergedDoc) editor.commands.setContent(mergedDoc);
+  }, [editor, mergedDoc]);
 
-  useImperativeHandle(ref, () => ({
-    scrollToIndex: (index: number) => {
-      if (!scrollContainerRef.current) return;
-      const el = scrollContainerRef.current.querySelector(`[data-block-index="${index}"]`);
-      if (el) el.scrollIntoView({ behavior: "auto", block: "center" });
-    },
-    getEditor: () => editor,
-  }));
-
-  return (
-    <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-      <div className={`px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider border-b border-[var(--editor-border)] shrink-0 ${headerClass}`}>
-        {headerLabel}
-      </div>
-      <div className="flex-1 overflow-auto" ref={scrollContainerRef}>
-        <div className="version-preview-content p-6">
-          <EditorContent editor={editor} />
-        </div>
-      </div>
-    </div>
-  );
-});
-
-// --- Main component ---
-
-interface Props {
-  content: string;
-  currentContent: string;
-  label: string;
-  onRestore: () => void;
-  onDismiss: () => void;
-}
-
-export function VersionPreview({ content, currentContent, label, onRestore, onDismiss }: Props) {
-  const filePath = useEditorStore((s) => s.filePath);
-  const dir = parentDir(filePath || "");
-  const snapshotDoc = useMemo(() => parseMarkdown(content, dir), [content, dir]);
-  const editorDoc = useMemo(() => parseMarkdown(currentContent, dir), [currentContent, dir]);
-
-  const { snapshotChanged, editorChanged, stats, changes } = useMemo(() => {
-    const diff = diffBlocks(snapshotDoc.content || [], editorDoc.content || []);
-
-    const changes: { snapshotIndices: number[]; editorIndices: number[] }[] = [];
-    let cur: { snapshotIndices: number[]; editorIndices: number[] } | null = null;
-    const sc = new Set<number>();
-    const ec = new Set<number>();
-
-    for (const d of diff) {
-      if (d.type !== "equal") {
-        if (!cur) { cur = { snapshotIndices: [], editorIndices: [] }; changes.push(cur); }
-        if (d.type === "remove") { cur.snapshotIndices.push(d.oldIdx); sc.add(d.oldIdx); }
-        else { cur.editorIndices.push(d.newIdx); ec.add(d.newIdx); }
-      } else {
-        cur = null;
-      }
-    }
-    return { snapshotChanged: sc, editorChanged: ec, stats: lineDiffStats(content, currentContent), changes };
-  }, [snapshotDoc, editorDoc, content, currentContent]);
-
-  const [currentChangeIdx, setCurrentChangeIdx] = useState(0);
-  const snapshotPanelRef = useRef<DiffEditorPanelHandle>(null);
-  const editorPanelRef = useRef<DiffEditorPanelHandle>(null);
-  const isSyncingRef = useRef(false);
-  const scrollDriverRef = useRef<HTMLElement | null>(null);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Mutable refs for highlight state — plugin reads these directly
-  const snapshotHighlightRef = useRef<DiffHighlightState>({
-    changedIndices: snapshotChanged,
-    activeIndices: new Set(),
-    cssClass: "diff-block-removed",
-  });
-  const editorHighlightRef = useRef<DiffHighlightState>({
-    changedIndices: editorChanged,
-    activeIndices: new Set(),
-    cssClass: "diff-block-added",
-  });
-
-  // Keep changed indices up to date
-  snapshotHighlightRef.current.changedIndices = snapshotChanged;
-  editorHighlightRef.current.changedIndices = editorChanged;
-
-  // Update active indices and force decoration recalc
-  const updateActiveChange = useCallback((idx: number) => {
-    if (changes.length === 0) {
-      snapshotHighlightRef.current.activeIndices = new Set();
-      editorHighlightRef.current.activeIndices = new Set();
-    } else {
-      const change = changes[idx];
-      snapshotHighlightRef.current.activeIndices = new Set(change.snapshotIndices);
-      editorHighlightRef.current.activeIndices = new Set(change.editorIndices);
-    }
-    // Force ProseMirror to re-read decorations by dispatching an empty transaction
-    const se = snapshotPanelRef.current?.getEditor();
-    const ee = editorPanelRef.current?.getEditor();
-    if (se) se.view.dispatch(se.state.tr);
-    if (ee) ee.view.dispatch(ee.state.tr);
-  }, [changes]);
+  const scrollToGroup = useCallback((groupIdx: number) => {
+    if (!scrollContainerRef.current || changeGroups.length === 0) return;
+    const indices = changeGroups[groupIdx];
+    if (!indices || indices.length === 0) return;
+    const el = scrollContainerRef.current.querySelector(`[data-change-group="${groupIdx}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [changeGroups]);
 
   const jumpToChange = useCallback((idx: number) => {
-    if (changes.length === 0) return;
-    const actual = ((idx % changes.length) + changes.length) % changes.length;
-    setCurrentChangeIdx(actual);
-    updateActiveChange(actual);
-
-    isSyncingRef.current = true;
-    const change = changes[actual];
-    if (change.snapshotIndices.length > 0) snapshotPanelRef.current?.scrollToIndex(change.snapshotIndices[0]);
-    if (change.editorIndices.length > 0) editorPanelRef.current?.scrollToIndex(change.editorIndices[0]);
-
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => { isSyncingRef.current = false; }, 250);
-  }, [changes, updateActiveChange]);
+    if (changeGroups.length === 0) return;
+    const actual = ((idx % changeGroups.length) + changeGroups.length) % changeGroups.length;
+    setActiveGroup(actual);
+    decoRef.current.activeGroup = actual;
+    // Force decoration re-read
+    if (editor) editor.view.dispatch(editor.state.tr);
+    scrollToGroup(actual);
+  }, [changeGroups, editor, scrollToGroup]);
 
   // Jump to first change after mount
   useEffect(() => {
-    if (changes.length > 0) {
+    if (changeGroups.length > 0) {
       const t = setTimeout(() => jumpToChange(0), 300);
       return () => clearTimeout(t);
     }
-  }, [changes.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [changeGroups.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isIdentical = changes.length === 0 && stats.added === 0 && stats.removed === 0;
-
-  const handleScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
-    if (isSyncingRef.current) return;
-    const target = e.target as HTMLElement;
-    if (!target.classList.contains("overflow-auto")) return;
-    if (scrollDriverRef.current && scrollDriverRef.current !== target) return;
-    scrollDriverRef.current = target;
-
-    const container = e.currentTarget;
-    const panes = Array.from(container.querySelectorAll(":scope > div > .overflow-auto")) as HTMLElement[];
-    if (panes.length === 2) {
-      const other = panes[0] === target ? panes[1] : panes[0];
-      const tMax = target.scrollHeight - target.clientHeight;
-      const oMax = other.scrollHeight - other.clientHeight;
-      if (tMax > 0 && oMax > 0) {
-        const newTop = (target.scrollTop / tMax) * oMax;
-        if (Math.abs(other.scrollTop - newTop) > 1) other.scrollTop = newTop;
-      }
-    }
-
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => { scrollDriverRef.current = null; }, 150);
-  }, []);
+  const isIdentical = changeGroups.length === 0 && stats.added === 0 && stats.removed === 0;
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-[var(--editor-bg)]">
@@ -380,7 +354,7 @@ export function VersionPreview({ content, currentContent, label, onRestore, onDi
         style={{ background: "color-mix(in srgb, var(--accent), transparent 92%)" }}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-[12px] font-medium text-[var(--text-primary)] truncate max-w-[160px]">
+          <span className="text-[12px] font-medium text-[var(--text-primary)] truncate max-w-[200px]">
             {label}
           </span>
           {!isIdentical && (
@@ -393,20 +367,20 @@ export function VersionPreview({ content, currentContent, label, onRestore, onDi
 
         {/* Center: change navigation */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          {changes.length > 0 && (
+          {changeGroups.length > 0 && (
             <div className="flex items-center bg-[var(--surface-secondary)] rounded-md border border-[var(--editor-border)] overflow-hidden h-7 pointer-events-auto shadow-sm">
               <button
-                onClick={() => jumpToChange(currentChangeIdx - 1)}
+                onClick={() => jumpToChange(activeGroup - 1)}
                 className="px-2 h-full hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] transition-colors"
                 title="Previous change"
               >
                 <ChevronUp size={14} />
               </button>
               <div className="px-3 text-[10px] font-bold text-[var(--text-muted)] border-x border-[var(--editor-border)] min-w-[56px] text-center bg-[var(--editor-bg)] flex items-center justify-center">
-                {currentChangeIdx + 1} / {changes.length}
+                {activeGroup + 1} / {changeGroups.length}
               </div>
               <button
-                onClick={() => jumpToChange(currentChangeIdx + 1)}
+                onClick={() => jumpToChange(activeGroup + 1)}
                 className="px-2 h-full hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] transition-colors"
                 title="Next change"
               >
@@ -437,32 +411,20 @@ export function VersionPreview({ content, currentContent, label, onRestore, onDi
         </div>
       </div>
 
-      {/* Side-by-side diff */}
+      {/* Inline diff view */}
       <div
-        className="flex-1 flex overflow-hidden outline-none"
-        onScrollCapture={handleScroll}
+        className="flex-1 overflow-auto outline-none"
+        ref={scrollContainerRef}
         onKeyDown={(e) => {
-          if (e.key === "j" || e.key === "n") jumpToChange(currentChangeIdx + 1);
-          if (e.key === "k" || e.key === "p") jumpToChange(currentChangeIdx - 1);
+          if (e.key === "j" || e.key === "n") jumpToChange(activeGroup + 1);
+          if (e.key === "k" || e.key === "p") jumpToChange(activeGroup - 1);
           if (e.key === "Escape") onDismiss();
         }}
         tabIndex={0}
       >
-        <DiffEditorPanel
-          ref={snapshotPanelRef}
-          doc={snapshotDoc}
-          highlightRef={snapshotHighlightRef}
-          headerLabel="Snapshot"
-          headerClass="text-[var(--accent)] bg-[var(--accent-subtle)]"
-        />
-        <div className="w-px shrink-0 bg-[var(--editor-border)]" />
-        <DiffEditorPanel
-          ref={editorPanelRef}
-          doc={editorDoc}
-          highlightRef={editorHighlightRef}
-          headerLabel="Working Copy"
-          headerClass="text-[var(--text-secondary)] bg-[var(--surface-secondary)]"
-        />
+        <div className="version-preview-content p-6">
+          <EditorContent editor={editor} />
+        </div>
       </div>
     </div>
   );

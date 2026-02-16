@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { Editor } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { useEditorStore } from "../stores/editorStore";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { TextSelection } from "@tiptap/pm/state";
 
@@ -170,14 +171,14 @@ interface FindReplaceProps {
   editor: Editor | null;
   mode: "find" | "replace";
   onClose: () => void;
-  /** Source mode: textarea ref + content for plain-text search */
+  /** Source mode: textarea ref for plain-text search */
   sourceTextarea?: React.RefObject<HTMLTextAreaElement | null>;
-  sourceContent?: string;
   onSourceReplace?: (from: number, to: number, replacement: string) => void;
   onSourceMatchesChange?: (matches: { start: number; end: number }[], currentIndex: number) => void;
 }
 
-export function FindReplace({ editor, mode: initialMode, onClose, sourceTextarea, sourceContent, onSourceReplace, onSourceMatchesChange }: FindReplaceProps) {
+export function FindReplace({ editor, mode: initialMode, onClose, sourceTextarea, onSourceReplace, onSourceMatchesChange }: FindReplaceProps) {
+  const sourceContent = useEditorStore(s => sourceTextarea ? s.content : undefined);
   const isSourceMode = !!sourceTextarea;
   const [searchTerm, setSearchTerm] = useState("");
   const [replaceTerm, setReplaceTerm] = useState("");

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useMemo } from "react";
 import { common, createLowlight } from "lowlight";
 import { toHtml } from "hast-util-to-html";
+import { useEditorStore } from "../../stores/editorStore";
 
 const lowlight = createLowlight(common);
 
@@ -10,7 +11,6 @@ export interface SourceSearchMatch {
 }
 
 interface SourceEditorProps {
-  value: string;
   onChange: (value: string) => void;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   searchMatches?: SourceSearchMatch[];
@@ -21,7 +21,8 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-export function SourceEditor({ value, onChange, textareaRef, searchMatches, currentMatchIndex }: SourceEditorProps) {
+export function SourceEditor({ onChange, textareaRef, searchMatches, currentMatchIndex }: SourceEditorProps) {
+  const value = useEditorStore(s => s.content);
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const taRef = textareaRef || internalRef;
   const preRef = useRef<HTMLPreElement>(null);

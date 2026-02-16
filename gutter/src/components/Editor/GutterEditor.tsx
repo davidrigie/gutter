@@ -55,7 +55,6 @@ const FindReplaceExtension = Extension.create({
 const lowlight = createLowlight(common);
 
 interface GutterEditorProps {
-  initialContent?: string;
   onUpdate?: (markdown: string) => void;
 }
 
@@ -67,7 +66,7 @@ export interface GutterEditorHandle {
 }
 
 export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
-  function GutterEditor({ initialContent, onUpdate }, ref) {
+  function GutterEditor({ onUpdate }, ref) {
     const {
       activeCommentId,
       setWordCount,
@@ -229,9 +228,11 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         TaskList,
         TaskItem.configure({ nested: true }),
       ],
-      content: initialContent
-        ? parseMarkdown(initialContent, parentDir(useEditorStore.getState().filePath || ""))
-        : {
+      content: (() => {
+        const storeContent = useEditorStore.getState().content;
+        return storeContent
+          ? parseMarkdown(storeContent, parentDir(useEditorStore.getState().filePath || ""))
+          : {
             type: "doc",
             content: [
               {
@@ -264,7 +265,8 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
                 ],
               },
             ],
-          },
+          };
+      })(),
       onUpdate: ({ editor: e }) => {
         const json = e.getJSON();
         const md = serializeMarkdown(json);
@@ -822,20 +824,6 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       window.addEventListener("scroll-to-comment", handler);
       return () => window.removeEventListener("scroll-to-comment", handler);
     }, [editor]);
-
-    // Load content when initialContent changes
-    useEffect(() => {
-      if (initialContent !== undefined && editor) {
-        const doc = parseMarkdown(initialContent, parentDir(useEditorStore.getState().filePath || ""));
-        editor.commands.setContent(doc, { emitUpdate: false });
-        setDirty(false);
-
-        const text = editor.state.doc.textContent;
-        const words = text.split(/\s+/).filter(Boolean).length;
-        setWordCount(words);
-        extractCommentTexts(editor);
-      }
-    }, [initialContent, editor, setDirty, setWordCount, extractCommentTexts]);
 
     return (
       <div className="h-full overflow-auto" onContextMenu={handleContextMenu}>

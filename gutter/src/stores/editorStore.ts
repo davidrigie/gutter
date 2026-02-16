@@ -17,9 +17,11 @@ interface EditorState {
   canRedo: boolean;
   showOutline: boolean;
   commentTexts: Record<string, string>;
+  contentVersion: number;
 
   setFilePath: (path: string | null) => void;
   setContent: (content: string) => void;
+  bumpContentVersion: () => void;
   setDirty: (dirty: boolean) => void;
   toggleSourceMode: () => void;
   toggleReadingMode: () => void;
@@ -49,6 +51,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   canRedo: false,
   showOutline: false,
   commentTexts: {},
+  contentVersion: 0,
 
   setFilePath: (path) =>
     set({
@@ -67,4 +70,5 @@ export const useEditorStore = create<EditorState>((set) => ({
   setUndoRedo: (canUndo, canRedo) => set({ canUndo, canRedo }),
   toggleOutline: () => set((s) => ({ showOutline: !s.showOutline })),
   setCommentTexts: (commentTexts) => set({ commentTexts }),
+  bumpContentVersion: () => set((s) => ({ contentVersion: s.contentVersion + 1 })),
 }));

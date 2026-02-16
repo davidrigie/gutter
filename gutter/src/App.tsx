@@ -53,17 +53,17 @@ function App() {
     setDirty,
     setFilePath,
     setActiveCommentId,
+    contentVersion,
+    bumpContentVersion,
   } = useEditorStore();
 
   const { theme, cycleTheme, loadSettings, addRecentFile, panelWidths, setPanelWidth, fontSize, fontFamily, editorWidth, lineHeight, accentColor } = useSettingsStore();
 
-  const { addTab, setActiveTab, removeTab, setTabDirty, updateTabPath, workspacePath, loadFileTree, openTabs } = useWorkspaceStore();
+  const { addTab, setActiveTab, removeTab, setTabDirty, updateTabPath, workspacePath, loadFileTree, openTabs, activeTabPath } = useWorkspaceStore();
   const { getThreadIds } = useCommentStore();
   const { openFile, saveFile, scheduleAutoSave } = useFileOps();
   const { loadCommentsFromFile, saveComments, generateCompanion } = useComments();
 
-  const [editorContent, setEditorContent] = useState<string | undefined>(undefined);
-  const [sourceContent, setSourceContent] = useState("");
   const [unifiedSearchMode, setUnifiedSearchMode] = useState<"all" | "files" | "commands" | null>(null);
   const [findReplaceMode, setFindReplaceMode] = useState<"find" | "replace" | null>(null);
   const [showReloadPrompt, setShowReloadPrompt] = useState(false);
@@ -164,7 +164,6 @@ function App() {
   // Source mode content sync
   const handleSourceChange = useCallback(
     (value: string) => {
-      setSourceContent(value);
       markdownRef.current = value;
       setContent(value);
       const activeTab = useWorkspaceStore.getState().activeTabPath;
@@ -176,14 +175,11 @@ function App() {
 
   // Switch to source mode
   const switchToSource = useCallback(() => {
-    setSourceContent(markdownRef.current);
     toggleSourceMode();
   }, [toggleSourceMode]);
 
   // Switch back to WYSIWYG
   const switchToWysiwyg = useCallback(() => {
-    const content = markdownRef.current;
-    setEditorContent(content);
     toggleSourceMode();
   }, [toggleSourceMode]);
 
@@ -193,9 +189,9 @@ function App() {
     const content = await openFile();
     if (content !== null) {
       setImagePreview(null);
-      setEditorContent(content);
       markdownRef.current = content;
-      setSourceContent(content);
+      setContent(content);
+      bumpContentVersion();
       const path = useEditorStore.getState().filePath;
       if (path) {
         const name = pathFileName(path) || "Untitled";
@@ -204,7 +200,7 @@ function App() {
         await loadCommentsFromFile(path);
       }
     }
-  }, [openFile, addTab, addRecentFile, loadCommentsFromFile]);
+  }, [openFile, addTab, addRecentFile, loadCommentsFromFile, setContent, bumpContentVersion]);
 
   // Open specific file (from file tree)
   const handleFileTreeOpen = useCallback(
@@ -221,10 +217,9 @@ function App() {
         setShowReloadPrompt(false);
         const content = await invoke<string>("read_file", { path });
         setFilePath(path);
-        setEditorContent(content);
         markdownRef.current = content;
-        setSourceContent(content);
         setContent(content);
+        bumpContentVersion();
         setDirty(false);
         const name = pathFileName(path) || "Untitled";
         addTab(path, name);
@@ -234,7 +229,7 @@ function App() {
         console.error("Failed to open file:", e);
       }
     },
-    [setFilePath, setContent, setDirty, addTab, setActiveTab, addRecentFile, loadCommentsFromFile],
+    [setFilePath, setContent, setDirty, addTab, setActiveTab, addRecentFile, loadCommentsFromFile, bumpContentVersion],
   );
 
   // New file handler — creates an in-memory untitled buffer, named on save
@@ -252,14 +247,13 @@ function App() {
     setImagePreview(null);
     setShowReloadPrompt(false);
     setFilePath(null);
-    setEditorContent("");
     markdownRef.current = "";
-    setSourceContent("");
     setContent("");
+    bumpContentVersion();
     setDirty(false);
     untitledContentRef.current.set(id, "");
     addTab(id, label);
-  }, [setFilePath, setContent, setDirty, addTab]);
+  }, [setFilePath, setContent, setDirty, addTab, bumpContentVersion]);
 
   // Handle file-open from OS (startup or running)
   useEffect(() => {
@@ -374,9 +368,9 @@ function App() {
   // Tab handlers
   const handleSwitchTab = useCallback(
     async (path: string) => {
-      // Stash content of current untitled tab before switching away
+      // Stash content of current tab before switching away
       const prevTab = useWorkspaceStore.getState().activeTabPath;
-      if (prevTab?.startsWith("untitled:")) {
+      if (prevTab) {
         untitledContentRef.current.set(prevTab, markdownRef.current);
       }
 
@@ -390,25 +384,32 @@ function App() {
 
       setImagePreview(null);
 
-      // Untitled tab — restore from in-memory map
-      if (path.startsWith("untitled:")) {
+      // Restore from in-memory map if we have unsaved changes there
+      if (untitledContentRef.current.has(path)) {
         const content = untitledContentRef.current.get(path) || "";
-        setFilePath(null);
-        setEditorContent(content);
+        const isUntitled = path.startsWith("untitled:");
+        setFilePath(isUntitled ? null : path);
         markdownRef.current = content;
-        setSourceContent(content);
         setContent(content);
-        setDirty(content.length > 0);
+        bumpContentVersion();
+        // For regular files, we should check if it's actually dirty compared to disk,
+        // but for now we trust the stashed content.
+        const activeTab = useWorkspaceStore.getState().openTabs.find(t => t.path === path);
+        setDirty(!!activeTab?.isDirty);
+
+        // If it's a regular file, we still want to load its comments
+        if (!isUntitled) {
+          await loadCommentsFromFile(path);
+        }
         return;
       }
 
       try {
         const content = await invoke<string>("read_file", { path });
         setFilePath(path);
-        setEditorContent(content);
         markdownRef.current = content;
-        setSourceContent(content);
         setContent(content);
+        bumpContentVersion();
         setDirty(false);
         await loadCommentsFromFile(path);
       } catch (e) {
@@ -416,7 +417,7 @@ function App() {
         console.error("Failed to switch tab:", e);
       }
     },
-    [setActiveTab, setFilePath, setContent, setDirty, loadCommentsFromFile],
+    [setActiveTab, setFilePath, setContent, setDirty, loadCommentsFromFile, bumpContentVersion],
   );
 
   const handleCloseTab = useCallback(
@@ -460,10 +461,9 @@ function App() {
             setImagePreview(null);
             const content = untitledContentRef.current.get(newActive) || "";
             setFilePath(null);
-            setEditorContent(content);
             markdownRef.current = content;
-            setSourceContent(content);
             setContent(content);
+            bumpContentVersion();
             setDirty(content.length > 0);
           } else {
             setImagePreview(null);
@@ -471,10 +471,9 @@ function App() {
             try {
               const content = await invoke<string>("read_file", { path: newActive });
               setFilePath(newActive);
-              setEditorContent(content);
               markdownRef.current = content;
-              setSourceContent(content);
               setContent(content);
+              bumpContentVersion();
               setDirty(false);
               await loadCommentsFromFile(newActive);
             } catch {
@@ -483,16 +482,15 @@ function App() {
           }
         } else {
           setImagePreview(null);
-          setEditorContent(undefined);
           markdownRef.current = "";
-          setSourceContent("");
           setFilePath(null);
           setContent("");
+          bumpContentVersion();
           setDirty(false);
         }
       }
     },
-    [openTabs, removeTab, handleSave, setActiveTab, setFilePath, setContent, setDirty, loadCommentsFromFile],
+    [openTabs, removeTab, handleSave, setActiveTab, setFilePath, setContent, setDirty, loadCommentsFromFile, bumpContentVersion],
   );
 
   // Comment navigation
@@ -900,10 +898,9 @@ function App() {
                     const path = useEditorStore.getState().filePath;
                     if (path) {
                       const content = await invoke<string>("read_file", { path });
-                      setEditorContent(content);
                       markdownRef.current = content;
-                      setSourceContent(content);
                       setContent(content);
+                      bumpContentVersion();
                       setDirty(false);
                     }
                     setShowReloadPrompt(false);
@@ -931,9 +928,9 @@ function App() {
                 setSourceCurrentMatch(-1);
               }}
               sourceTextarea={isSourceMode ? sourceTextareaRef : undefined}
-              sourceContent={isSourceMode ? sourceContent : undefined}
               onSourceReplace={isSourceMode ? (from, to, replacement) => {
-                const updated = sourceContent.substring(0, from) + replacement + sourceContent.substring(to);
+                const current = useEditorStore.getState().content;
+                const updated = current.substring(0, from) + replacement + current.substring(to);
                 handleSourceChange(updated);
               } : undefined}
               onSourceMatchesChange={isSourceMode ? (matches, idx) => {
@@ -962,7 +959,7 @@ function App() {
                   }}
                 />
               </div>
-            ) : openTabs.length === 0 && editorContent === undefined ? (
+            ) : openTabs.length === 0 && activeTabPath === null ? (
               <WelcomeScreen
                 onNewFile={handleNewFile}
                 onOpenFile={handleOpenFile}
@@ -972,7 +969,6 @@ function App() {
               <ReadingMode content={markdownRef.current} />
             ) : isSourceMode ? (
               <SourceEditor
-                value={sourceContent}
                 onChange={handleSourceChange}
                 textareaRef={sourceTextareaRef}
                 searchMatches={sourceSearchMatches}
@@ -980,7 +976,7 @@ function App() {
               />
             ) : (
               <GutterEditor
-                initialContent={editorContent}
+                key={`${activeTabPath}-${contentVersion}`}
                 onUpdate={handleEditorUpdate}
                 ref={editorInstanceRef}
               />

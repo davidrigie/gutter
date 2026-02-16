@@ -23,6 +23,7 @@ pub struct GitCommit {
     pub message: String,
     pub author: String,
     pub timestamp: u64,
+    pub path: String,
 }
 
 fn history_dir(file_path: &str) -> PathBuf {
@@ -195,7 +196,7 @@ pub fn list_git_history(file_path: String) -> Result<Vec<GitCommit>, String> {
     let path = PathBuf::from(&file_path);
     let dir = path.parent().unwrap_or(&path);
 
-    // Get the repo root and the file's path relative to it
+    // Get the repo root
     let repo_root_output = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
         .current_dir(dir)
@@ -206,29 +207,17 @@ pub fn list_git_history(file_path: String) -> Result<Vec<GitCommit>, String> {
         _ => return Ok(Vec::new()), // Not a git repo
     };
 
-    let rel_path_output = Command::new("git")
-        .args(["ls-files", "--full-name", "--", &file_path])
-        .current_dir(dir)
-        .output();
-
-    let rel_path = match rel_path_output {
-        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
-        _ => return Ok(Vec::new()), // File not tracked
-    };
-
-    if rel_path.is_empty() {
-        return Ok(Vec::new());
-    }
-
+    // Use --name-only to get the path of the file in each commit (handles --follow renames)
     let output = Command::new("git")
         .args([
             "log",
             "--follow",
-            "--no-merges", // Only show commits that actually changed the file
+            "--no-merges",
+            "--name-only",
             "--format=%H%n%h%n%s%n%an%n%ct",
             "-50",
             "--",
-            &rel_path,
+            &file_path,
         ])
         .current_dir(&repo_root)
         .output();
@@ -242,16 +231,37 @@ pub fn list_git_history(file_path: String) -> Result<Vec<GitCommit>, String> {
     let lines: Vec<&str> = stdout.trim().lines().collect();
     let mut commits = Vec::new();
 
-    // Each commit is 5 lines: hash, short_hash, message, author, timestamp
-    for chunk in lines.chunks(5) {
-        if chunk.len() == 5 {
+    let mut i = 0;
+    while i + 4 < lines.len() {
+        let hash = lines[i].to_string();
+        let short_hash = lines[i+1].to_string();
+        let message = lines[i+2].to_string();
+        let author = lines[i+3].to_string();
+        let timestamp = lines[i+4].parse().unwrap_or(0);
+        
+        // Find the path (next non-empty line after the metadata block)
+        let mut path = String::new();
+        let mut j = i + 5;
+        while j < lines.len() {
+            if !lines[j].trim().is_empty() {
+                path = lines[j].trim().to_string();
+                i = j + 1;
+                break;
+            }
+            j += 1;
+        }
+        
+        if !path.is_empty() {
             commits.push(GitCommit {
-                hash: chunk[0].to_string(),
-                short_hash: chunk[1].to_string(),
-                message: chunk[2].to_string(),
-                author: chunk[3].to_string(),
-                timestamp: chunk[4].parse().unwrap_or(0),
+                hash,
+                short_hash,
+                message,
+                author,
+                timestamp,
+                path,
             });
+        } else {
+            i += 5;
         }
     }
 
@@ -259,7 +269,11 @@ pub fn list_git_history(file_path: String) -> Result<Vec<GitCommit>, String> {
 }
 
 #[tauri::command]
-pub fn read_git_version(file_path: String, commit_hash: String) -> Result<String, String> {
+pub fn read_git_version(
+    file_path: String,
+    commit_hash: String,
+    commit_path: Option<String>,
+) -> Result<String, String> {
     let path = PathBuf::from(&file_path);
     let dir = path.parent().unwrap_or(&path);
 
@@ -275,17 +289,22 @@ pub fn read_git_version(file_path: String, commit_hash: String) -> Result<String
     }
     let repo_root = PathBuf::from(String::from_utf8_lossy(&repo_root_output.stdout).trim());
 
-    // Get the repo-relative path
-    let rel_output = Command::new("git")
-        .args(["ls-files", "--full-name", "--", &file_path])
-        .current_dir(dir)
-        .output()
-        .map_err(|e| format!("Failed to resolve path in git: {}", e))?;
+    // Use provided commit_path (renames) or fallback to current ls-files path
+    let rel_path = if let Some(p) = commit_path {
+        p
+    } else {
+        let rel_output = Command::new("git")
+            .args(["ls-files", "--full-name", "--", &file_path])
+            .current_dir(dir)
+            .output()
+            .map_err(|e| format!("Failed to run git: {}", e))?;
 
-    let rel_path = String::from_utf8_lossy(&rel_output.stdout).trim().to_string();
-    if rel_path.is_empty() {
-        return Err("File not tracked by git".to_string());
-    }
+        let p = String::from_utf8_lossy(&rel_output.stdout).trim().to_string();
+        if p.is_empty() {
+            return Err("File not tracked by git".to_string());
+        }
+        p
+    };
 
     let output = Command::new("git")
         .args(["show", &format!("{}:{}", commit_hash, rel_path)])

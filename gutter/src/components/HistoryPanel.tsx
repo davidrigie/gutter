@@ -20,6 +20,7 @@ interface GitCommit {
   message: string;
   author: string;
   timestamp: number;
+  path: string;
 }
 
 function relativeTime(ts: number): string {
@@ -93,7 +94,11 @@ export function HistoryPanel({ onPreview }: Props) {
   const handlePreviewGit = useCallback(async (commit: GitCommit) => {
     if (!filePath) return;
     try {
-      const content = await invoke<string>("read_git_version", { filePath, commitHash: commit.hash });
+      const content = await invoke<string>("read_git_version", { 
+        filePath, 
+        commitHash: commit.hash,
+        commitPath: commit.path
+      });
       onPreview(content, `${commit.short_hash} — ${commit.message}`);
     } catch {
       useToastStore.getState().addToast("Failed to load git version", "error");

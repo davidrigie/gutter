@@ -32,7 +32,6 @@ import { useEditorStore } from "../../stores/editorStore";
 import { useCommentStore } from "../../stores/commentStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
-import { FocusMode } from "./extensions/FocusMode";
 import { Frontmatter } from "./extensions/Frontmatter";
 import { WikiLink } from "./extensions/WikiLink";
 import { SpellCheck } from "./extensions/SpellCheck";
@@ -221,7 +220,6 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           },
         }),
         FindReplaceExtension,
-        FocusMode,
         Frontmatter,
         WikiLink,
         SpellCheck,
@@ -829,7 +827,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
     useEffect(() => {
       if (initialContent !== undefined && editor) {
         const doc = parseMarkdown(initialContent, parentDir(useEditorStore.getState().filePath || ""));
-        editor.commands.setContent(doc);
+        editor.commands.setContent(doc, { emitUpdate: false });
         setDirty(false);
 
         const text = editor.state.doc.textContent;

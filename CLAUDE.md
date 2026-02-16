@@ -12,8 +12,9 @@ Gutter is a local-first WYSIWYG markdown editor with first-class commenting, bui
 
 ## Planning
 
-- **Active plan**: `POLISH_PLAN.md` — polish plan. Phases 1–10 complete. Next up: Phase 11 (Release Prep).
-- **Completed plans**: Archived in `docs/completed-plans/`. Sprint 1 (19 phases) is fully shipped — see the "Already Completed" section in POLISH_PLAN.md for the full feature list.
+- **Active plan**: `POLISH_PLAN.md` — concise status overview. Phases 1–11 complete. Next up: Phase 12 (Tag System).
+- **Phase details**: Upcoming phases in `docs/plans/` (one file per phase). Completed phase details in `docs/completed-plans/polish-phases-1-11.md`.
+- **Completed plans**: Sprint 1 build plan archived in `docs/completed-plans/`.
 
 ## Commands
 
@@ -53,7 +54,7 @@ Stores in `src/stores/`:
 - **editorStore** — UI state: file path, dirty flag, theme, panel visibility, source mode, active comment, `commentTexts` (maps commentId → quoted text), `canUndo`/`canRedo`, `showOutline`
 - **commentStore** — comment thread data, CRUD ops, ID generation (`c1`, `c2`...), JSON export/import
 - **workspaceStore** — file tree structure, open tabs, active tab, tab dirty state
-- **settingsStore** — user preferences (font size, font family, auto-save, spell check, panel widths, recent files, focus mode, typewriter mode, default author)
+- **settingsStore** — user preferences (font size, font family, auto-save, spell check, panel widths, recent files, default author)
 - **toastStore** — toast notification system with type, duration, auto-dismiss
 - **backlinkStore** — scans workspace for backlinks to current file
 
@@ -88,7 +89,6 @@ Custom TipTap extensions in `src/components/Editor/extensions/`:
 - **WikiLinkAutocomplete.ts** — fuzzy file picker triggered on `[[`
 - **LinkReveal.ts** — Typora-style line reveal for headings, bold, italic, strike, code, links, wiki links
 - **MarkdownLinkInput.ts** — auto-converts typed `[text](url)` to links
-- **FocusMode.ts** — dims non-active paragraphs, typewriter mode
 - **Frontmatter.tsx** — YAML frontmatter support with edit mode
 - **SpellCheck.ts** — toggleable spell check
 
@@ -119,7 +119,7 @@ In `src/components/Editor/markdown/`:
 
 Defined in `App.tsx` `handleKeyDown`. Uses `modKey(e)` helper from `src/utils/platform.ts` for cross-platform support (Cmd on macOS, Ctrl on Windows/Linux):
 
-Mod+K (unified search), Mod+O (open), Mod+S (save), Mod+P (quick open files), Mod+F (find), Mod+H (find & replace), Mod+/ (toggle source), Mod+\ (file tree), Mod+. (commands), Mod+Shift+C (comments), Mod+Shift+F (zen mode), Mod+Shift+D (theme), Mod+Shift+P (commands alt), Mod+Shift+M (new comment), Mod+Shift+N (next comment), Mod+Shift+E (export), Mod+Shift+T (focus mode).
+Mod+K (unified search), Mod+O (open), Mod+S (save), Mod+P (quick open files), Mod+F (find), Mod+H (find & replace), Mod+/ (toggle source), Mod+\ (file tree), Mod+. (commands), Mod+Shift+C (comments), Mod+Shift+R (reading mode), Mod+Shift+D (theme), Mod+Shift+P (commands alt), Mod+Shift+M (new comment), Mod+Shift+N (next comment), Mod+Shift+E (export).
 
 ### Utilities
 

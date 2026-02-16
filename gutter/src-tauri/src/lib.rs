@@ -70,6 +70,11 @@ pub fn run() {
             commands::watcher::stop_watcher,
             commands::export::export_html,
             commands::search::search_workspace,
+            commands::templates::init_default_templates,
+            commands::templates::list_templates,
+            commands::templates::read_template,
+            commands::templates::save_template,
+            commands::templates::delete_template,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

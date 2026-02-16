@@ -1,14 +1,15 @@
 import { useState, useRef } from "react";
 import { useWorkspaceStore } from "../stores/workspaceStore";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
-import { X, Circle } from "./Icons";
+import { X, Circle, Plus } from "./Icons";
 
 interface TabBarProps {
+  onNewFile: () => void;
   onSwitchTab: (path: string) => void;
   onCloseTab: (path: string) => void | Promise<void>;
 }
 
-export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
+export function TabBar({ onNewFile, onSwitchTab, onCloseTab }: TabBarProps) {
   const { openTabs, activeTabPath, reorderTabs, pinTab, unpinTab } =
     useWorkspaceStore();
   const [contextMenu, setContextMenu] = useState<{
@@ -142,6 +143,13 @@ export function TabBar({ onSwitchTab, onCloseTab }: TabBarProps) {
             </div>
           );
         })}
+        <button
+          onClick={onNewFile}
+          className="shrink-0 px-2 h-full flex items-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+          title="New File"
+        >
+          <Plus size={14} />
+        </button>
       </div>
 
       {contextMenu && (

@@ -219,6 +219,15 @@ export function Copy({ size = 16, ...props }: IconProps) {
   );
 }
 
+export function BookOpen({ size = 16, ...props }: IconProps) {
+  return (
+    <svg {...defaults(size)} {...props}>
+      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+    </svg>
+  );
+}
+
 export function OutlineIcon({ size = 16, ...props }: IconProps) {
   return (
     <svg {...defaults(size)} {...props}>

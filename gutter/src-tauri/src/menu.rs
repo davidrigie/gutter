@@ -14,14 +14,33 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     // --- File menu ---
+    let new_file = MenuItem::with_id(app, "new_file", "New File", true, Some("CmdOrCtrl+N"))?;
     let open = MenuItem::with_id(app, "open", "Open File", true, Some("CmdOrCtrl+O"))?;
     let save = MenuItem::with_id(app, "save", "Save", true, Some("CmdOrCtrl+S"))?;
+    let new_from_template = MenuItem::with_id(
+        app,
+        "new_from_template",
+        "New from Template...",
+        true,
+        None::<&str>,
+    )?;
+    let save_as_template = MenuItem::with_id(
+        app,
+        "save_as_template",
+        "Save as Template...",
+        true,
+        None::<&str>,
+    )?;
     let export =
         MenuItem::with_id(app, "export", "Export", true, Some("CmdOrCtrl+Shift+E"))?;
 
     let file_menu = SubmenuBuilder::new(app, "File")
+        .item(&new_file)
         .item(&open)
         .item(&save)
+        .separator()
+        .item(&new_from_template)
+        .item(&save_as_template)
         .separator()
         .item(&export)
         .separator()
@@ -56,26 +75,19 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let toggle_outline =
         MenuItem::with_id(app, "toggle_outline", "Toggle Outline", true, None::<&str>)?;
-    let toggle_zen = MenuItem::with_id(
-        app,
-        "toggle_zen",
-        "Zen Mode",
-        true,
-        Some("CmdOrCtrl+Shift+F"),
-    )?;
-    let toggle_focus = MenuItem::with_id(
-        app,
-        "toggle_focus",
-        "Focus Mode",
-        true,
-        Some("CmdOrCtrl+Shift+T"),
-    )?;
     let toggle_source = MenuItem::with_id(
         app,
         "toggle_source",
         "Toggle Source Mode",
         true,
         Some("CmdOrCtrl+/"),
+    )?;
+    let toggle_reading = MenuItem::with_id(
+        app,
+        "toggle_reading",
+        "Reading Mode",
+        true,
+        Some("CmdOrCtrl+Shift+R"),
     )?;
     let cycle_theme = MenuItem::with_id(
         app,
@@ -90,9 +102,8 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         .item(&toggle_comments)
         .item(&toggle_outline)
         .separator()
-        .item(&toggle_zen)
-        .item(&toggle_focus)
         .item(&toggle_source)
+        .item(&toggle_reading)
         .separator()
         .item(&cycle_theme)
         .build()?;
@@ -197,15 +208,17 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     app.on_menu_event(move |app_handle, event| {
         let event_name = match event.id().as_ref() {
             "preferences" => "menu:preferences",
+            "new_file" => "menu:new-file",
             "open" => "menu:open",
             "save" => "menu:save",
+            "new_from_template" => "menu:new-from-template",
+            "save_as_template" => "menu:save-as-template",
             "export" => "menu:export",
             "toggle_tree" => "menu:toggle-tree",
             "toggle_comments" => "menu:toggle-comments",
             "toggle_outline" => "menu:toggle-outline",
-            "toggle_zen" => "menu:toggle-zen",
-            "toggle_focus" => "menu:toggle-focus",
             "toggle_source" => "menu:toggle-source",
+            "toggle_reading" => "menu:toggle-reading",
             "cycle_theme" => "menu:cycle-theme",
             "search" => "menu:search",
             "quick_open" => "menu:quick-open",

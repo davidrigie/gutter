@@ -20,6 +20,10 @@
   --comment-highlight-active: rgba(245, 176, 65, 0.5);
   --comment-highlight-resolved: rgba(156, 163, 175, 0.2);
 
+  /* ─── Annotations (reading mode) ─── */
+  --annotation-border: rgba(0, 0, 0, 0.08);
+  --annotation-bg: rgba(255, 255, 255, 0.7);
+
   /* ─── Semantic text ─── */
   --text-primary: #1a1a1a;
   --text-secondary: #44403c;
@@ -173,6 +177,9 @@ button, a, input, textarea, select {
   --comment-highlight: rgba(245, 176, 65, 0.2);
   --comment-highlight-active: rgba(245, 176, 65, 0.4);
   --comment-highlight-resolved: rgba(156, 163, 175, 0.15);
+
+  --annotation-border: rgba(255, 255, 255, 0.08);
+  --annotation-bg: rgba(28, 28, 32, 0.7);
 
   --text-primary: #e7e5e4;
   --text-secondary: #a8a29e;

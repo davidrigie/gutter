@@ -383,6 +383,15 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
           label: "New Folder",
           action: () => handleCreateFolder(workspacePath),
         },
+        { label: "", action: () => {}, separator: true },
+        {
+          label: "New from Template",
+          action: () => {
+            window.dispatchEvent(
+              new CustomEvent("template-new-from", { detail: { folder: workspacePath } }),
+            );
+          },
+        },
       ]
     : [];
 
@@ -657,6 +666,14 @@ const FileTreeNode = memo(function FileTreeNode({
           action: () => {
             setExpanded(true);
             setCreating("folder");
+          },
+        },
+        {
+          label: "New from Template",
+          action: () => {
+            window.dispatchEvent(
+              new CustomEvent("template-new-from", { detail: { folder: entry.path } }),
+            );
           },
         },
         { label: "", action: () => {}, separator: true },

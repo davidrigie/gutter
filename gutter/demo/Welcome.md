@@ -45,9 +45,8 @@ Open the file tree on the left to explore the demo workspace. Each file showcase
 | `Cmd+\` | Toggle file tree |
 | `Cmd+Shift+C` | Toggle comments |
 | `Cmd+Shift+M` | New comment |
-| `Cmd+Shift+F` | Zen mode |
+| `Cmd+Shift+R` | Reading mode |
 | `Cmd+Shift+D` | Cycle theme |
-| `Cmd+Shift+T` | Focus mode |
 | `Cmd+.` | Command palette |
 
 ## Try It
@@ -58,5 +57,3 @@ Open the file tree on the left to explore the demo workspace. Each file showcase
 4. Click the outline icon in the status bar to see the document outline
 
 dirty
-
-

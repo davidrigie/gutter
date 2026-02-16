@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GutterEditor } from "./components/Editor/GutterEditor";
 import { SourceEditor } from "./components/Editor/SourceEditor";
+import { ReadingMode } from "./components/ReadingMode";
 import { FileTree } from "./components/FileTree/FileTree";
 import { CommentsPanel } from "./components/Comments/CommentsPanel";
 import { StatusBar } from "./components/StatusBar";
@@ -14,6 +15,7 @@ import { DocumentOutline } from "./components/DocumentOutline";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { BacklinksPanel } from "./components/BacklinksPanel";
 import { ExportDialog } from "./components/ExportDialog";
+import { TemplatePicker } from "./components/TemplatePicker";
 import { PreferencesDialog } from "./components/PreferencesDialog";
 import { useEditorStore } from "./stores/editorStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
@@ -23,7 +25,7 @@ import { useFileOps } from "./hooks/useFileOps";
 import { useComments } from "./hooks/useComments";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { ask } from "@tauri-apps/plugin-dialog";
+import { ask, open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { modKey, modLabel } from "./utils/platform";
 import { fileName as pathFileName, parentDir, joinPath, isImageFile, resolveWikiLink } from "./utils/path";
@@ -35,16 +37,16 @@ const normalizeMarkdown = (s: string) => s.replace(/\r\n/g, "\n").trim();
 function App() {
   const {
     isSourceMode,
+    isReadingMode,
     showFileTree,
     showComments,
-    isZenMode,
     isDirty,
     fileName,
     activeCommentId,
     toggleSourceMode,
+    toggleReadingMode,
     toggleFileTree,
     toggleComments,
-    toggleZenMode,
     showOutline,
     toggleOutline,
     setContent,
@@ -55,7 +57,7 @@ function App() {
 
   const { theme, cycleTheme, loadSettings, addRecentFile, panelWidths, setPanelWidth, fontSize, fontFamily, editorWidth, lineHeight, accentColor } = useSettingsStore();
 
-  const { addTab, setActiveTab, removeTab, setTabDirty, workspacePath, loadFileTree, openTabs } = useWorkspaceStore();
+  const { addTab, setActiveTab, removeTab, setTabDirty, updateTabPath, workspacePath, loadFileTree, openTabs } = useWorkspaceStore();
   const { getThreadIds } = useCommentStore();
   const { openFile, saveFile, scheduleAutoSave } = useFileOps();
   const { loadCommentsFromFile, saveComments, generateCompanion } = useComments();
@@ -67,11 +69,14 @@ function App() {
   const [showReloadPrompt, setShowReloadPrompt] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [templatePicker, setTemplatePicker] = useState<{ mode: "new" | "save"; targetFolder: string } | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [sourceSearchMatches, setSourceSearchMatches] = useState<{ start: number; end: number }[]>([]);
   const [sourceCurrentMatch, setSourceCurrentMatch] = useState(-1);
   const markdownRef = useRef("");
   const lastSaveTimeRef = useRef<number>(0);
+  const untitledCounterRef = useRef(0);
+  const untitledContentRef = useRef<Map<string, string>>(new Map());
 
   const sourceTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -149,9 +154,11 @@ function App() {
     (markdown: string) => {
       markdownRef.current = markdown;
       setContent(markdown);
+      const activeTab = useWorkspaceStore.getState().activeTabPath;
+      if (activeTab) setTabDirty(activeTab, true);
       scheduleAutoSave(markdown);
     },
-    [setContent, scheduleAutoSave],
+    [setContent, setTabDirty, scheduleAutoSave],
   );
 
   // Source mode content sync
@@ -160,9 +167,11 @@ function App() {
       setSourceContent(value);
       markdownRef.current = value;
       setContent(value);
+      const activeTab = useWorkspaceStore.getState().activeTabPath;
+      if (activeTab) setTabDirty(activeTab, true);
       scheduleAutoSave(value);
     },
-    [setContent, scheduleAutoSave],
+    [setContent, setTabDirty, scheduleAutoSave],
   );
 
   // Switch to source mode
@@ -173,10 +182,10 @@ function App() {
 
   // Switch back to WYSIWYG
   const switchToWysiwyg = useCallback(() => {
-    setEditorContent(sourceContent);
-    markdownRef.current = sourceContent;
+    const content = markdownRef.current;
+    setEditorContent(content);
     toggleSourceMode();
-  }, [sourceContent, toggleSourceMode]);
+  }, [toggleSourceMode]);
 
   // Open file handler
   const handleOpenFile = useCallback(async () => {
@@ -227,6 +236,30 @@ function App() {
     },
     [setFilePath, setContent, setDirty, addTab, setActiveTab, addRecentFile, loadCommentsFromFile],
   );
+
+  // New file handler — creates an in-memory untitled buffer, named on save
+  const handleNewFile = useCallback(() => {
+    // Stash current untitled content before switching
+    const prevTab = useWorkspaceStore.getState().activeTabPath;
+    if (prevTab?.startsWith("untitled:")) {
+      untitledContentRef.current.set(prevTab, markdownRef.current);
+    }
+
+    untitledCounterRef.current += 1;
+    const id = `untitled:${untitledCounterRef.current}`;
+    const label = untitledCounterRef.current === 1 ? "Untitled" : `Untitled ${untitledCounterRef.current}`;
+
+    setImagePreview(null);
+    setShowReloadPrompt(false);
+    setFilePath(null);
+    setEditorContent("");
+    markdownRef.current = "";
+    setSourceContent("");
+    setContent("");
+    setDirty(false);
+    untitledContentRef.current.set(id, "");
+    addTab(id, label);
+  }, [setFilePath, setContent, setDirty, addTab]);
 
   // Handle file-open from OS (startup or running)
   useEffect(() => {
@@ -299,25 +332,54 @@ function App() {
     };
   }, [workspacePath, handleFileTreeOpen, loadFileTree]);
 
+  // Template picker from file tree context menu
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const folder = (e as CustomEvent).detail?.folder;
+      if (!folder) return;
+      setTemplatePicker({ mode: "new", targetFolder: folder });
+    };
+    window.addEventListener("template-new-from", handler);
+    return () => window.removeEventListener("template-new-from", handler);
+  }, []);
+
   // Save handler — also saves comments and generates companion
   const handleSave = useCallback(async () => {
     const md = markdownRef.current;
+    const activeTab = useWorkspaceStore.getState().activeTabPath;
+    const wasUntitled = activeTab?.startsWith("untitled:");
     lastSaveTimeRef.current = Date.now();
-    // Suppress file-changed notifications for 2s after our own save
 
     await saveFile(md);
-    await saveComments();
-    await generateCompanion(md);
     const path = useEditorStore.getState().filePath;
+
+    // If this was an untitled tab that now has a real path, update the tab
+    if (wasUntitled && path && activeTab) {
+      const name = pathFileName(path) || "Untitled";
+      updateTabPath(activeTab, path, name);
+      untitledContentRef.current.delete(activeTab);
+      addRecentFile(path);
+      const ws = useWorkspaceStore.getState().workspacePath;
+      if (ws) await loadFileTree(ws);
+    }
+
     if (path) {
+      await saveComments();
+      await generateCompanion(md);
       setTabDirty(path, false);
       useToastStore.getState().addToast("File saved", "success", 2000);
     }
-  }, [saveFile, saveComments, generateCompanion, setTabDirty]);
+  }, [saveFile, saveComments, generateCompanion, setTabDirty, updateTabPath, addRecentFile, loadFileTree]);
 
   // Tab handlers
   const handleSwitchTab = useCallback(
     async (path: string) => {
+      // Stash content of current untitled tab before switching away
+      const prevTab = useWorkspaceStore.getState().activeTabPath;
+      if (prevTab?.startsWith("untitled:")) {
+        untitledContentRef.current.set(prevTab, markdownRef.current);
+      }
+
       setShowReloadPrompt(false);
       setActiveTab(path);
 
@@ -327,6 +389,19 @@ function App() {
       }
 
       setImagePreview(null);
+
+      // Untitled tab — restore from in-memory map
+      if (path.startsWith("untitled:")) {
+        const content = untitledContentRef.current.get(path) || "";
+        setFilePath(null);
+        setEditorContent(content);
+        markdownRef.current = content;
+        setSourceContent(content);
+        setContent(content);
+        setDirty(content.length > 0);
+        return;
+      }
+
       try {
         const content = await invoke<string>("read_file", { path });
         setFilePath(path);
@@ -346,16 +421,30 @@ function App() {
 
   const handleCloseTab = useCallback(
     async (path: string) => {
+      const isUntitled = path.startsWith("untitled:");
       const tab = openTabs.find((t) => t.path === path);
       if (tab?.isDirty) {
         const shouldSave = await ask(
           `"${tab.name}" has unsaved changes. Save before closing?`,
           { title: "Unsaved Changes", kind: "warning" },
         );
-        if (shouldSave && path === useEditorStore.getState().filePath) {
+        if (shouldSave) {
+          // For untitled tabs, we need to ensure it's the active tab so saveFile can prompt
+          const isActive = useWorkspaceStore.getState().activeTabPath === path;
+          if (isUntitled && !isActive) {
+            // Switch to it so the save dialog works
+            setActiveTab(path);
+            const content = untitledContentRef.current.get(path) || "";
+            setFilePath(null);
+            markdownRef.current = content;
+          }
           lastSaveTimeRef.current = Date.now();
           await handleSave();
         }
+      }
+      // Clean up untitled content
+      if (isUntitled) {
+        untitledContentRef.current.delete(path);
       }
       // If closing the currently previewed image tab, clear preview
       const wasActive = useWorkspaceStore.getState().activeTabPath === path;
@@ -367,6 +456,15 @@ function App() {
         if (newActive) {
           if (isImageFile(newActive)) {
             setImagePreview(convertFileSrc(newActive));
+          } else if (newActive.startsWith("untitled:")) {
+            setImagePreview(null);
+            const content = untitledContentRef.current.get(newActive) || "";
+            setFilePath(null);
+            setEditorContent(content);
+            markdownRef.current = content;
+            setSourceContent(content);
+            setContent(content);
+            setDirty(content.length > 0);
           } else {
             setImagePreview(null);
             // Load the new active tab's content
@@ -394,7 +492,7 @@ function App() {
         }
       }
     },
-    [openTabs, removeTab, handleSave, setFilePath, setContent, setDirty, loadCommentsFromFile],
+    [openTabs, removeTab, handleSave, setActiveTab, setFilePath, setContent, setDirty, loadCommentsFromFile],
   );
 
   // Comment navigation
@@ -417,18 +515,18 @@ function App() {
   // Commands for command palette
   const mod = modLabel();
   const commands = [
+    { name: "New File", shortcut: `${mod}+N`, action: handleNewFile },
     { name: "Search", shortcut: `${mod}+K`, action: () => setUnifiedSearchMode("all") },
     { name: "Open File", shortcut: `${mod}+O`, action: handleOpenFile },
     { name: "Save File", shortcut: `${mod}+S`, action: handleSave },
     { name: "Toggle Source Mode", shortcut: `${mod}+/`, action: isSourceMode ? switchToWysiwyg : switchToSource },
+    { name: "Toggle Reading Mode", shortcut: `${mod}+Shift+R`, action: () => {
+      if (isSourceMode && !isReadingMode) switchToWysiwyg();
+      toggleReadingMode();
+    }},
     { name: "Toggle File Tree", shortcut: `${mod}+\\`, action: toggleFileTree },
     { name: "Toggle Comments Panel", shortcut: `${mod}+Shift+C`, action: toggleComments },
-    { name: "Toggle Zen Mode", shortcut: `${mod}+Shift+F`, action: toggleZenMode },
     { name: "Toggle Dark/Light Mode", shortcut: `${mod}+Shift+D`, action: () => cycleTheme() },
-    { name: "Toggle Focus Mode", shortcut: `${mod}+Shift+T`, action: () => {
-      const e = editorInstanceRef.current?.getEditor();
-      if (e) e.commands.toggleFocusMode();
-    }},
     { name: "Toggle Document Outline", action: () => toggleOutline() },
     { name: "Quick Open File", shortcut: `${mod}+P`, action: () => setUnifiedSearchMode("files") },
     { name: "Find", shortcut: `${mod}+F`, action: () => setFindReplaceMode("find") },
@@ -442,11 +540,30 @@ function App() {
     { name: "New Comment", shortcut: `${mod}+Shift+M`, action: () => editorInstanceRef.current?.createComment() },
     { name: "Next Comment", shortcut: `${mod}+Shift+N`, action: () => navigateComment("next") },
     { name: "Previous Comment", shortcut: `${mod}+Shift+P`, action: () => navigateComment("prev") },
+    { name: "New from Template", action: async () => {
+      const currentPath = useEditorStore.getState().filePath;
+      const ws = useWorkspaceStore.getState().workspacePath;
+      let folder = currentPath ? parentDir(currentPath) : ws;
+      if (!folder) {
+        const picked = await open({ directory: true });
+        if (!picked) return;
+        folder = typeof picked === "string" ? picked : (picked as { path: string }).path;
+      }
+      setTemplatePicker({ mode: "new", targetFolder: folder });
+    }},
+    { name: "Save as Template", action: () => {
+      if (!markdownRef.current) { useToastStore.getState().addToast("No content to save as template", "error"); return; }
+      const currentPath = useEditorStore.getState().filePath;
+      const ws = useWorkspaceStore.getState().workspacePath;
+      const folder = currentPath ? parentDir(currentPath) : (ws || "");
+      setTemplatePicker({ mode: "save", targetFolder: folder });
+    }},
   ];
 
   // Native menu bar event listeners
   useEffect(() => {
     const unlisteners = [
+      listen("menu:new-file", () => handleNewFile()),
       listen("menu:open", () => handleOpenFile()),
       listen("menu:save", () => handleSave()),
       listen("menu:export", () => setShowExport(true)),
@@ -454,17 +571,17 @@ function App() {
       listen("menu:toggle-tree", () => toggleFileTree()),
       listen("menu:toggle-comments", () => toggleComments()),
       listen("menu:toggle-outline", () => toggleOutline()),
-      listen("menu:toggle-zen", () => toggleZenMode()),
-      listen("menu:toggle-focus", () => {
-        const ed = editorInstanceRef.current?.getEditor();
-        if (ed) ed.commands.toggleFocusMode();
-      }),
       listen("menu:toggle-source", () => {
         if (useEditorStore.getState().isSourceMode) {
           switchToWysiwyg();
         } else {
           switchToSource();
         }
+      }),
+      listen("menu:toggle-reading", () => {
+        const state = useEditorStore.getState();
+        if (state.isSourceMode && !state.isReadingMode) switchToWysiwyg();
+        toggleReadingMode();
       }),
       listen("menu:cycle-theme", () => cycleTheme()),
       listen("menu:search", () => setUnifiedSearchMode("all")),
@@ -474,17 +591,36 @@ function App() {
       listen("menu:new-comment", () => editorInstanceRef.current?.createComment()),
       listen("menu:next-comment", () => navigateComment("next")),
       listen("menu:prev-comment", () => navigateComment("prev")),
+      listen("menu:new-from-template", async () => {
+        const currentPath = useEditorStore.getState().filePath;
+        const ws = useWorkspaceStore.getState().workspacePath;
+        let folder = currentPath ? parentDir(currentPath) : ws;
+        if (!folder) {
+          const picked = await open({ directory: true });
+          if (!picked) return;
+          folder = typeof picked === "string" ? picked : (picked as { path: string }).path;
+        }
+        setTemplatePicker({ mode: "new", targetFolder: folder });
+      }),
+      listen("menu:save-as-template", () => {
+        if (!markdownRef.current) return;
+        const currentPath = useEditorStore.getState().filePath;
+        const ws = useWorkspaceStore.getState().workspacePath;
+        const folder = currentPath ? parentDir(currentPath) : (ws || "");
+        setTemplatePicker({ mode: "save", targetFolder: folder });
+      }),
     ];
     return () => {
       unlisteners.forEach((p) => p.then((fn) => fn()));
     };
   }, [
+    handleNewFile,
     handleOpenFile,
     handleSave,
     toggleFileTree,
     toggleComments,
     toggleOutline,
-    toggleZenMode,
+    toggleReadingMode,
     switchToSource,
     switchToWysiwyg,
     cycleTheme,
@@ -494,7 +630,10 @@ function App() {
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (modKey(e) && e.key === "o") {
+      if (modKey(e) && !e.shiftKey && e.key === "n") {
+        e.preventDefault();
+        handleNewFile();
+      } else if (modKey(e) && e.key === "o") {
         e.preventDefault();
         handleOpenFile();
       } else if (modKey(e) && e.key === "s") {
@@ -513,9 +652,6 @@ function App() {
       } else if (modKey(e) && e.shiftKey && e.key === "C") {
         e.preventDefault();
         toggleComments();
-      } else if (modKey(e) && e.shiftKey && e.key === "F") {
-        e.preventDefault();
-        toggleZenMode();
       } else if (modKey(e) && e.shiftKey && e.key === "D") {
         e.preventDefault();
         cycleTheme();
@@ -540,13 +676,17 @@ function App() {
       } else if (modKey(e) && e.shiftKey && e.key === "E") {
         e.preventDefault();
         setShowExport(true);
-      } else if (modKey(e) && e.shiftKey && e.key === "T") {
-        e.preventDefault();
-        const ed = editorInstanceRef.current?.getEditor();
-        if (ed) ed.commands.toggleFocusMode();
       } else if (modKey(e) && e.key === ",") {
         e.preventDefault();
         setShowPreferences(true);
+      } else if (modKey(e) && e.shiftKey && e.key === "R") {
+        e.preventDefault();
+        const state = useEditorStore.getState();
+        if (state.isSourceMode && !state.isReadingMode) switchToWysiwyg();
+        toggleReadingMode();
+      } else if (e.key === "Escape" && useEditorStore.getState().isReadingMode) {
+        e.preventDefault();
+        toggleReadingMode();
       } else if (modKey(e) && e.key === "f" && !e.shiftKey) {
         e.preventDefault();
         setFindReplaceMode("find");
@@ -559,6 +699,7 @@ function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    handleNewFile,
     handleOpenFile,
     handleSave,
     isSourceMode,
@@ -566,7 +707,7 @@ function App() {
     switchToWysiwyg,
     toggleFileTree,
     toggleComments,
-    toggleZenMode,
+    toggleReadingMode,
     cycleTheme,
     navigateComment,
   ]);
@@ -715,7 +856,7 @@ function App() {
     <div className="h-screen w-screen flex flex-col bg-[var(--editor-bg)] text-[var(--editor-text)] transition-colors">
       <div className="flex-1 flex overflow-hidden">
         {/* File Tree Sidebar */}
-        {showFileTree && !isZenMode && (
+        {showFileTree && !isReadingMode && (
           <>
             <aside
               className="border-r border-[var(--editor-border)] shrink-0 overflow-hidden sidebar-panel"
@@ -735,7 +876,7 @@ function App() {
         )}
 
         {/* Document Outline */}
-        {showOutline && !isZenMode && (
+        {showOutline && !isReadingMode && (
           <>
             <aside
               className="w-56 border-r border-[var(--editor-border)] shrink-0 overflow-hidden sidebar-panel"
@@ -747,9 +888,9 @@ function App() {
 
         {/* Main Editor Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <TabBar onSwitchTab={handleSwitchTab} onCloseTab={handleCloseTab} />
+          {!isReadingMode && <TabBar onNewFile={handleNewFile} onSwitchTab={handleSwitchTab} onCloseTab={handleCloseTab} />}
 
-          {showReloadPrompt && (
+          {showReloadPrompt && !isReadingMode && (
             <div className="h-8 flex items-center justify-between px-3 text-[12px] bg-[color-mix(in_srgb,var(--status-info),transparent_90%)] text-[var(--status-info)] border-b border-[var(--editor-border)]">
               <span>This file has been modified externally.</span>
               <div className="flex gap-2">
@@ -780,7 +921,7 @@ function App() {
             </div>
           )}
 
-          {findReplaceMode && (
+          {findReplaceMode && !isReadingMode && (
             <FindReplace
               editor={isSourceMode ? null : (editorInstanceRef.current?.getEditor() ?? null)}
               mode={findReplaceMode}
@@ -803,15 +944,13 @@ function App() {
           )}
 
           {/* Mode indicator */}
-          {isSourceMode && (
+          {isSourceMode && !isReadingMode && (
             <div className="h-7 flex items-center px-3 text-[12px] bg-[color-mix(in_srgb,var(--status-warning),transparent_90%)] text-[var(--status-warning)] border-b border-[var(--editor-border)]">
               Source Mode — Editing raw markdown ({modLabel()}+/ to switch back)
             </div>
           )}
 
-          <main
-            className={`flex-1 flex flex-col overflow-auto ${isZenMode ? "max-w-3xl mx-auto w-full" : ""}`}
-          >
+          <main className="flex-1 flex flex-col overflow-auto">
             {imagePreview ? (
               <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
                 <img
@@ -825,9 +964,12 @@ function App() {
               </div>
             ) : openTabs.length === 0 && editorContent === undefined ? (
               <WelcomeScreen
+                onNewFile={handleNewFile}
                 onOpenFile={handleOpenFile}
                 onOpenRecent={handleFileTreeOpen}
               />
+            ) : isReadingMode ? (
+              <ReadingMode content={markdownRef.current} />
             ) : isSourceMode ? (
               <SourceEditor
                 value={sourceContent}
@@ -847,7 +989,7 @@ function App() {
         </div>
 
         {/* Comments Sidebar */}
-        {showComments && !isZenMode && (
+        {showComments && !isReadingMode && (
           <>
             <ResizeHandle
               side="right"
@@ -870,7 +1012,7 @@ function App() {
         )}
       </div>
 
-      <StatusBar />
+      {!isReadingMode && <StatusBar />}
 
       {showExport && (
         <ExportDialog
@@ -883,6 +1025,16 @@ function App() {
         <PreferencesDialog
           onClose={() => setShowPreferences(false)}
           editorRef={editorInstanceRef}
+        />
+      )}
+
+      {templatePicker && (
+        <TemplatePicker
+          mode={templatePicker.mode}
+          targetFolder={templatePicker.targetFolder}
+          currentContent={markdownRef.current || undefined}
+          onOpenFile={handleFileTreeOpen}
+          onClose={() => setTemplatePicker(null)}
         />
       )}
 

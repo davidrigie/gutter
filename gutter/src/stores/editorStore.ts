@@ -7,11 +7,11 @@ interface EditorState {
   content: string;
   isDirty: boolean;
   isSourceMode: boolean;
+  isReadingMode: boolean;
   wordCount: number;
   cursorPosition: { line: number; col: number };
   showFileTree: boolean;
   showComments: boolean;
-  isZenMode: boolean;
   activeCommentId: string | null;
   canUndo: boolean;
   canRedo: boolean;
@@ -22,11 +22,11 @@ interface EditorState {
   setContent: (content: string) => void;
   setDirty: (dirty: boolean) => void;
   toggleSourceMode: () => void;
+  toggleReadingMode: () => void;
   setWordCount: (count: number) => void;
   setCursorPosition: (line: number, col: number) => void;
   toggleFileTree: () => void;
   toggleComments: () => void;
-  toggleZenMode: () => void;
   setActiveCommentId: (id: string | null) => void;
   setUndoRedo: (canUndo: boolean, canRedo: boolean) => void;
   toggleOutline: () => void;
@@ -39,11 +39,11 @@ export const useEditorStore = create<EditorState>((set) => ({
   content: "",
   isDirty: false,
   isSourceMode: false,
+  isReadingMode: false,
   wordCount: 0,
   cursorPosition: { line: 1, col: 1 },
   showFileTree: true,
   showComments: true,
-  isZenMode: false,
   activeCommentId: null,
   canUndo: false,
   canRedo: false,
@@ -58,16 +58,11 @@ export const useEditorStore = create<EditorState>((set) => ({
   setContent: (content) => set({ content, isDirty: true }),
   setDirty: (isDirty) => set({ isDirty }),
   toggleSourceMode: () => set((s) => ({ isSourceMode: !s.isSourceMode })),
+  toggleReadingMode: () => set((s) => ({ isReadingMode: !s.isReadingMode })),
   setWordCount: (wordCount) => set({ wordCount }),
   setCursorPosition: (line, col) => set({ cursorPosition: { line, col } }),
   toggleFileTree: () => set((s) => ({ showFileTree: !s.showFileTree })),
   toggleComments: () => set((s) => ({ showComments: !s.showComments })),
-  toggleZenMode: () =>
-    set((s) => ({
-      isZenMode: !s.isZenMode,
-      showFileTree: s.isZenMode ? true : false,
-      showComments: s.isZenMode ? true : false,
-    })),
   setActiveCommentId: (id) => set({ activeCommentId: id }),
   setUndoRedo: (canUndo, canRedo) => set({ canUndo, canRedo }),
   toggleOutline: () => set((s) => ({ showOutline: !s.showOutline })),

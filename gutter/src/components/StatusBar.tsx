@@ -1,6 +1,6 @@
 import { useEditorStore } from "../stores/editorStore";
 import { modLabel } from "../utils/platform";
-import { Circle, MessageSquare, UndoIcon, RedoIcon, SidebarIcon, OutlineIcon } from "./Icons";
+import { Circle, MessageSquare, UndoIcon, RedoIcon, SidebarIcon, OutlineIcon, BookOpen } from "./Icons";
 
 function Divider() {
   return (
@@ -27,6 +27,7 @@ export function StatusBar() {
   const toggleComments = useEditorStore((s) => s.toggleComments);
   const toggleOutline = useEditorStore((s) => s.toggleOutline);
   const toggleSourceMode = useEditorStore((s) => s.toggleSourceMode);
+  const toggleReadingMode = useEditorStore((s) => s.toggleReadingMode);
 
   return (
     <div className="h-8 flex items-center px-2 border-t border-[var(--editor-border)] bg-[var(--surface-secondary)] text-[var(--text-tertiary)] select-none shrink-0 gap-2 text-[13px] relative z-10">
@@ -79,6 +80,14 @@ export function StatusBar() {
         title={`Toggle source mode (${modLabel()}+/)`}
       >
         {isSourceMode ? "Source" : "WYSIWYG"}
+      </button>
+
+      <button
+        onClick={toggleReadingMode}
+        className="px-1.5 h-full flex items-center rounded transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+        title={`Reading mode (${modLabel()}+Shift+R)`}
+      >
+        <BookOpen size={15} />
       </button>
 
       {/* Undo/Redo */}

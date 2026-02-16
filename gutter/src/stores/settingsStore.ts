@@ -9,8 +9,6 @@ interface Settings {
   panelWidths: { fileTree: number; comments: number };
   recentFiles: string[];
   spellCheckEnabled: boolean;
-  focusModeEnabled: boolean;
-  typewriterEnabled: boolean;
   defaultAuthor: string;
   editorWidth: "narrow" | "medium" | "wide" | "full";
   lineHeight: "compact" | "comfortable" | "spacious";
@@ -29,8 +27,6 @@ interface SettingsState extends Settings {
   setPanelWidth: (panel: "fileTree" | "comments", width: number) => void;
   addRecentFile: (path: string) => void;
   setSpellCheckEnabled: (enabled: boolean) => void;
-  setFocusModeEnabled: (enabled: boolean) => void;
-  setTypewriterEnabled: (enabled: boolean) => void;
   setDefaultAuthor: (author: string) => void;
   setEditorWidth: (width: "narrow" | "medium" | "wide" | "full") => void;
   setLineHeight: (height: "compact" | "comfortable" | "spacious") => void;
@@ -45,8 +41,6 @@ const defaults: Settings = {
   panelWidths: { fileTree: 224, comments: 288 },
   recentFiles: [],
   spellCheckEnabled: false,
-  focusModeEnabled: false,
-  typewriterEnabled: false,
   defaultAuthor: "Author",
   editorWidth: "medium",
   lineHeight: "comfortable",
@@ -81,8 +75,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       panelWidths: state.panelWidths,
       recentFiles: state.recentFiles,
       spellCheckEnabled: state.spellCheckEnabled,
-      focusModeEnabled: state.focusModeEnabled,
-      typewriterEnabled: state.typewriterEnabled,
       defaultAuthor: state.defaultAuthor,
       editorWidth: state.editorWidth,
       lineHeight: state.lineHeight,
@@ -140,16 +132,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setSpellCheckEnabled: (spellCheckEnabled) => {
     set({ spellCheckEnabled });
-    get().saveSettings();
-  },
-
-  setFocusModeEnabled: (focusModeEnabled) => {
-    set({ focusModeEnabled });
-    get().saveSettings();
-  },
-
-  setTypewriterEnabled: (typewriterEnabled) => {
-    set({ typewriterEnabled });
     get().saveSettings();
   },
 

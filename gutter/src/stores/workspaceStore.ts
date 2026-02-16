@@ -30,6 +30,7 @@ interface WorkspaceState {
   reorderTabs: (fromIndex: number, toIndex: number) => void;
   pinTab: (path: string) => void;
   unpinTab: (path: string) => void;
+  updateTabPath: (oldPath: string, newPath: string, newName: string) => void;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
@@ -102,6 +103,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       openTabs: openTabs.map((t) =>
         t.path === path ? { ...t, isPinned: false } : t,
       ),
+    });
+  },
+
+  updateTabPath: (oldPath, newPath, newName) => {
+    const { openTabs, activeTabPath } = get();
+    set({
+      openTabs: openTabs.map((t) =>
+        t.path === oldPath ? { ...t, path: newPath, name: newName } : t,
+      ),
+      activeTabPath: activeTabPath === oldPath ? newPath : activeTabPath,
     });
   },
 }));

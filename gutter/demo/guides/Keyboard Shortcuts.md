@@ -47,9 +47,8 @@ Complete reference for Gutter keyboard shortcuts.
 | Shortcut | Action |
 | --- | --- |
 | `Cmd+/` | Toggle source mode |
+| `Cmd+Shift+R` | Reading mode |
 | `Cmd+Shift+D` | Cycle theme (light/dark/system) |
-| `Cmd+Shift+F` | Zen mode |
-| `Cmd+Shift+T` | Focus mode |
 | `Cmd+Shift+E` | Export |
 | `Cmd+.` | Command palette |
 

@@ -1411,15 +1411,6 @@
   cursor: pointer;
 }
 
-/* ═══════════════════════════════════════════════════════
-   FOCUS MODE
-   ═══════════════════════════════════════════════════════ */
-
-.focus-mode-dimmed {
-  opacity: 0.25;
-  transition: opacity 0.3s ease;
-}
-
 .resize-handle {
   width: 4px;
   cursor: col-resize;
@@ -1468,4 +1459,174 @@
   color: var(--text-muted);
   min-width: 22px;
   text-align: right;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   READING MODE
+   ═══════════════════════════════════════════════════════ */
+
+.reading-mode {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--editor-bg);
+}
+
+.reading-mode-grid {
+  display: grid;
+  grid-template-columns: 1fr min(var(--editor-max-width), calc(100% - 320px)) 280px;
+  min-height: 100%;
+}
+
+.reading-mode-spacer {
+  min-width: 0;
+}
+
+.reading-mode-content {
+  padding: 3rem 2rem;
+  min-width: 0;
+}
+
+/* Enhanced typography in reading mode */
+.reading-mode-content .ProseMirror {
+  padding: 0;
+  max-width: 100%;
+  line-height: 1.8;
+  cursor: default;
+  caret-color: transparent;
+}
+
+/* Comment marks in reading mode: subtle underline instead of background */
+.reading-mode-content .ProseMirror mark[data-comment-id] {
+  background: none;
+  border-bottom: 2px solid var(--accent-muted);
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+.reading-mode-content .ProseMirror mark[data-comment-id]:hover,
+.reading-mode-content .ProseMirror mark[data-comment-id].active {
+  border-bottom-color: var(--accent);
+}
+
+/* Right margin column for annotations */
+.reading-mode-margin {
+  position: relative;
+  padding: 3rem 1rem 3rem 0.75rem;
+  border-left: 1px solid var(--editor-border);
+  min-width: 0;
+}
+
+/* Individual annotation card */
+.margin-annotation {
+  position: absolute;
+  left: 0.75rem;
+  right: 1rem;
+  padding: 8px 10px;
+  background: var(--annotation-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--annotation-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  animation: fadeIn 200ms ease-out;
+}
+.margin-annotation:hover {
+  border-color: var(--accent-muted);
+}
+.margin-annotation.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-muted);
+}
+
+.margin-annotation-quote {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  border-left: 2px solid var(--accent-muted);
+  padding-left: 6px;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.margin-annotation-body {
+  color: var(--text-secondary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.margin-annotation-author {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.margin-annotation-replies {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Connecting line from margin border to annotation */
+.margin-annotation::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 14px;
+  width: 0.75rem;
+  height: 1px;
+  background: var(--editor-border);
+}
+.margin-annotation.active::before {
+  background: var(--accent);
+}
+
+/* Exit button */
+.reading-mode-exit {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-normal), background var(--transition-fast);
+}
+.reading-mode:hover .reading-mode-exit,
+.reading-mode-exit:focus-visible {
+  opacity: 1;
+}
+.reading-mode-exit:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* Hide cursor in reading mode ProseMirror */
+.reading-mode-content .ProseMirror .ProseMirror-cursor,
+.reading-mode-content .ProseMirror .ProseMirror-gapcursor {
+  display: none;
+}
+
+/* Suppress selection styling in reading mode */
+.reading-mode-content .ProseMirror ::selection {
+  background: transparent;
 }

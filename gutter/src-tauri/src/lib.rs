@@ -89,10 +89,8 @@ pub fn run() {
                     // Default behavior is fine
                 }
                 RunEvent::Exit => {
-                    // Try to stop the watcher if it's still running
+                    // Stop the watcher so its background thread shuts down cleanly
                     let _ = commands::watcher::stop_watcher(app_handle.clone());
-                    // Force a clean exit to avoid macOS crash report
-                    std::process::exit(0);
                 }
                 _ => {}
             }

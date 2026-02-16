@@ -493,7 +493,7 @@ CodeMirror is a code editor. WYSIWYG markdown requires a rich-text document mode
 
 ### Why the three-file model for comments?
 
-**Inline markers (in **`******************************************************************************************.md******************************************************************************************`**)** solve anchor drift — the anchor *is* the content, so it moves with edits naturally. External editors preserve HTML tags.
+**Inline markers (in **`**************************************************************************************************.md**************************************************************************************************`**)** solve anchor drift — the anchor *is* the content, so it moves with edits naturally. External editors preserve HTML tags.
 
 **JSON sidecar** stores thread data (replies, timestamps, resolution state) that would clutter the markdown if inlined.
 

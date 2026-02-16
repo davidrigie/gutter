@@ -192,25 +192,50 @@ pub fn delete_snapshot(file_path: String, snapshot_id: String) -> Result<(), Str
 
 #[tauri::command]
 pub fn list_git_history(file_path: String) -> Result<Vec<GitCommit>, String> {
-    // Find the git repo root by walking up from the file
     let path = PathBuf::from(&file_path);
     let dir = path.parent().unwrap_or(&path);
+
+    // Get the repo root and the file's path relative to it
+    let repo_root_output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .current_dir(dir)
+        .output();
+
+    let repo_root = match repo_root_output {
+        Ok(o) if o.status.success() => PathBuf::from(String::from_utf8_lossy(&o.stdout).trim()),
+        _ => return Ok(Vec::new()), // Not a git repo
+    };
+
+    let rel_path_output = Command::new("git")
+        .args(["ls-files", "--full-name", "--", &file_path])
+        .current_dir(dir)
+        .output();
+
+    let rel_path = match rel_path_output {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+        _ => return Ok(Vec::new()), // File not tracked
+    };
+
+    if rel_path.is_empty() {
+        return Ok(Vec::new());
+    }
 
     let output = Command::new("git")
         .args([
             "log",
             "--follow",
+            "--no-merges", // Only show commits that actually changed the file
             "--format=%H%n%h%n%s%n%an%n%ct",
             "-50",
             "--",
-            &file_path,
+            &rel_path,
         ])
-        .current_dir(dir)
+        .current_dir(&repo_root)
         .output();
 
     let output = match output {
         Ok(o) if o.status.success() => o,
-        _ => return Ok(Vec::new()), // No git or not a repo — return empty
+        _ => return Ok(Vec::new()),
     };
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -238,12 +263,24 @@ pub fn read_git_version(file_path: String, commit_hash: String) -> Result<String
     let path = PathBuf::from(&file_path);
     let dir = path.parent().unwrap_or(&path);
 
-    // Get the repo-relative path for git show
+    // Get the repo root
+    let repo_root_output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .current_dir(dir)
+        .output()
+        .map_err(|e| format!("Failed to find repo root: {}", e))?;
+
+    if !repo_root_output.status.success() {
+        return Err("Not a git repository".to_string());
+    }
+    let repo_root = PathBuf::from(String::from_utf8_lossy(&repo_root_output.stdout).trim());
+
+    // Get the repo-relative path
     let rel_output = Command::new("git")
         .args(["ls-files", "--full-name", "--", &file_path])
         .current_dir(dir)
         .output()
-        .map_err(|e| format!("Failed to run git: {}", e))?;
+        .map_err(|e| format!("Failed to resolve path in git: {}", e))?;
 
     let rel_path = String::from_utf8_lossy(&rel_output.stdout).trim().to_string();
     if rel_path.is_empty() {
@@ -252,7 +289,7 @@ pub fn read_git_version(file_path: String, commit_hash: String) -> Result<String
 
     let output = Command::new("git")
         .args(["show", &format!("{}:{}", commit_hash, rel_path)])
-        .current_dir(dir)
+        .current_dir(&repo_root)
         .output()
         .map_err(|e| format!("Failed to run git show: {}", e))?;
 

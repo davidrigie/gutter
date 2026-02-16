@@ -1,6 +1,6 @@
 import { useEditorStore } from "../stores/editorStore";
 import { modLabel } from "../utils/platform";
-import { Circle, MessageSquare, UndoIcon, RedoIcon, SidebarIcon, OutlineIcon, BookOpen, HistoryIcon } from "./Icons";
+import { Circle, MessageSquare, UndoIcon, RedoIcon, SidebarIcon, OutlineIcon, BookOpen, HistoryIcon, TagIcon } from "./Icons";
 
 function Divider() {
   return (
@@ -21,12 +21,14 @@ export function StatusBar() {
   const showFileTree = useEditorStore((s) => s.showFileTree);
   const showComments = useEditorStore((s) => s.showComments);
   const showHistory = useEditorStore((s) => s.showHistory);
+  const showTags = useEditorStore((s) => s.showTags);
   const showOutline = useEditorStore((s) => s.showOutline);
   const canUndo = useEditorStore((s) => s.canUndo);
   const canRedo = useEditorStore((s) => s.canRedo);
   const toggleFileTree = useEditorStore((s) => s.toggleFileTree);
   const toggleComments = useEditorStore((s) => s.toggleComments);
   const toggleHistory = useEditorStore((s) => s.toggleHistory);
+  const toggleTags = useEditorStore((s) => s.toggleTags);
   const toggleOutline = useEditorStore((s) => s.toggleOutline);
   const toggleSourceMode = useEditorStore((s) => s.toggleSourceMode);
   const toggleReadingMode = useEditorStore((s) => s.toggleReadingMode);
@@ -125,6 +127,19 @@ export function StatusBar() {
       </span>
 
       <Divider />
+
+      {/* Tags panel toggle */}
+      <button
+        onClick={toggleTags}
+        className={`px-1.5 h-full flex items-center rounded transition-colors ${
+          showTags
+            ? "text-[var(--accent)] bg-[var(--accent-subtle)]"
+            : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+        }`}
+        title={showTags ? `Hide tags (${modLabel()}+Shift+T)` : `Show tags (${modLabel()}+Shift+T)`}
+      >
+        <TagIcon size={15} />
+      </button>
 
       {/* History panel toggle */}
       <button

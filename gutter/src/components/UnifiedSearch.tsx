@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useWorkspaceStore, type FileEntry } from "../stores/workspaceStore";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useTagStore, getAllTags } from "../stores/tagStore";
+import { useEditorStore } from "../stores/editorStore";
 import { fileName as pathFileName } from "../utils/path";
 import { Search } from "./Icons";
 
@@ -80,7 +82,8 @@ type ResultRow =
   | { kind: "file"; name: string; path: string }
   | { kind: "heading"; result: HeadingResult }
   | { kind: "content"; result: ContentResult }
-  | { kind: "command"; command: Command };
+  | { kind: "command"; command: Command }
+  | { kind: "tag"; tag: string; count: number };
 
 export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: UnifiedSearchProps) {
   const [query, setQuery] = useState("");
@@ -119,6 +122,17 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
     const q = query.toLowerCase();
     return commands.filter((c) => c.name.toLowerCase().includes(q));
   }, [query, commands, filterMode]);
+
+  // Tag results from tagStore
+  const tagToFiles = useTagStore((s) => s.tagToFiles);
+  const tagResults = useMemo(() => {
+    if (filterMode === "commands" || filterMode === "files") return [];
+    const allTags = getAllTags(tagToFiles);
+    if (!query) return [];
+    const q = query.startsWith("#") ? query.slice(1).toLowerCase() : query.toLowerCase();
+    if (!q) return allTags.slice(0, 10);
+    return allTags.filter((t) => t.tag.toLowerCase().includes(q)).slice(0, 10);
+  }, [query, filterMode, tagToFiles]);
 
   // Split server results into headings and content
   const headingResults = useMemo(
@@ -165,11 +179,14 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
     for (const c of contentResults) {
       rows.push({ kind: "content", result: c });
     }
+    for (const t of tagResults) {
+      rows.push({ kind: "tag", tag: t.tag, count: t.count });
+    }
     for (const cmd of commandResults) {
       rows.push({ kind: "command", command: cmd });
     }
     return rows;
-  }, [fileResults, headingResults, contentResults, commandResults]);
+  }, [fileResults, headingResults, contentResults, tagResults, commandResults]);
 
   // Reset selection on query change
   useEffect(() => {
@@ -207,6 +224,12 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
         onOpenFile(row.result.path);
       } else if (row.kind === "content") {
         onOpenFile(row.result.path);
+      } else if (row.kind === "tag") {
+        useTagStore.getState().toggleTag(row.tag);
+        // Ensure file tree and tags panel are visible
+        const editorState = useEditorStore.getState();
+        if (!editorState.showFileTree) editorState.toggleFileTree();
+        if (!editorState.showTags) editorState.toggleTags();
       } else if (row.kind === "command") {
         row.command.action();
       }
@@ -315,6 +338,28 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
       );
     }
 
+    if (row.kind === "tag") {
+      return (
+        <div
+          key={`tag-${row.tag}`}
+          data-idx={idx}
+          className={baseClass}
+          onClick={() => executeRow(row)}
+          onMouseEnter={() => setSelectedIndex(idx)}
+        >
+          <span className="text-[var(--accent)] shrink-0 text-[12px] font-medium">#</span>
+          <div className="min-w-0 flex-1">
+            <span className={`truncate ${isSelected ? "text-[var(--text-primary)] font-medium" : ""}`}>
+              {row.tag}
+            </span>
+          </div>
+          <span className="text-[11px] text-[var(--text-muted)] bg-[var(--surface-active)] px-1.5 py-0.5 rounded-full">
+            {row.count} file{row.count !== 1 ? "s" : ""}
+          </span>
+        </div>
+      );
+    }
+
     // command
     const cmd = row.command;
     return (
@@ -353,7 +398,8 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
   const fileStart = 0;
   const headingStart = fileResults.length;
   const contentStart = headingStart + headingResults.length;
-  const commandStart = contentStart + contentResults.length;
+  const tagStart = contentStart + contentResults.length;
+  const commandStart = tagStart + tagResults.length;
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-24 z-[200] animate-[fadeIn_120ms_ease-out]"
@@ -391,6 +437,11 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
             "Content",
             allRows.filter((r) => r.kind === "content"),
             contentStart,
+          )}
+          {renderSection(
+            "Tags",
+            allRows.filter((r) => r.kind === "tag"),
+            tagStart,
           )}
           {renderSection(
             "Commands",

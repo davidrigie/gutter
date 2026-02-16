@@ -14,7 +14,7 @@
 - [x] Phase 10: Native Menu Bar
 - [x] Phase 11: Release Prep
 - [ ] Phase 12: Templates
-- [ ] Phase 13: Tag System
+- [x] Phase 13: Tag System
 - [x] Phase 14: Version History
 - [ ] Phase 15: Reading Mode with Marginalia
 

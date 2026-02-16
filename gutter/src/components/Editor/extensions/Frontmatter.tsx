@@ -1,8 +1,9 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { modKey, modLabel } from "../../../utils/platform";
+import { useTagStore, getAllTags } from "../../../stores/tagStore";
 import { BlockActionBar } from "../BlockActionBar";
 
 declare module "@tiptap/core" {
@@ -142,13 +143,22 @@ export function FrontmatterView({ node, updateAttributes, deleteNode, editor, ge
             <div key={key} className="frontmatter-field">
               <span className="frontmatter-key">{key}</span>
               <span className="frontmatter-value">
-                {Array.isArray(value)
-                  ? value.map((v, i) => (
-                      <span key={i} className="frontmatter-tag">
-                        {String(v)}
-                      </span>
-                    ))
-                  : String(value)}
+                {key === "tags" && Array.isArray(value)
+                  ? <TagAdder
+                      tags={value.map(String)}
+                      onChange={(newTags) => {
+                        const parsed = parseYaml(node.attrs.content as string) || {};
+                        const updated = { ...parsed as Record<string, unknown>, tags: newTags };
+                        updateAttributes({ content: stringifyYaml(updated).trim() });
+                      }}
+                    />
+                  : Array.isArray(value)
+                    ? value.map((v, i) => (
+                        <span key={i} className="frontmatter-tag">
+                          {String(v)}
+                        </span>
+                      ))
+                    : String(value)}
               </span>
             </div>
           ))}
@@ -160,6 +170,117 @@ export function FrontmatterView({ node, updateAttributes, deleteNode, editor, ge
         </div>
       </div>
     </NodeViewWrapper>
+  );
+}
+
+function TagAdder({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+  const [inputValue, setInputValue] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const tagToFiles = useTagStore((s) => s.tagToFiles);
+  const allWorkspaceTags = useMemo(() => getAllTags(tagToFiles), [tagToFiles]);
+
+  const suggestions = inputValue
+    ? allWorkspaceTags
+        .filter((t) => t.tag.toLowerCase().includes(inputValue.toLowerCase()) && !tags.includes(t.tag))
+        .slice(0, 8)
+    : [];
+
+  useEffect(() => {
+    setSelectedIdx(0);
+  }, [inputValue]);
+
+  const addTag = useCallback((tag: string) => {
+    const trimmed = tag.trim();
+    if (trimmed && !tags.includes(trimmed)) {
+      onChange([...tags, trimmed]);
+    }
+    setInputValue("");
+    setShowDropdown(false);
+    inputRef.current?.focus();
+  }, [tags, onChange]);
+
+  const removeTag = useCallback((tag: string) => {
+    onChange(tags.filter((t) => t !== tag));
+  }, [tags, onChange]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (suggestions.length > 0 && showDropdown) {
+        addTag(suggestions[selectedIdx].tag);
+      } else if (inputValue.trim()) {
+        addTag(inputValue);
+      }
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+    } else if (e.key === "ArrowDown" && showDropdown) {
+      e.preventDefault();
+      setSelectedIdx((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp" && showDropdown) {
+      e.preventDefault();
+      setSelectedIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Backspace" && !inputValue && tags.length > 0) {
+      removeTag(tags[tags.length - 1]);
+    }
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as globalThis.Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="frontmatter-tag-adder" onClick={(e) => e.stopPropagation()}>
+      {tags.map((tag) => (
+        <span key={tag} className="frontmatter-tag">
+          {tag}
+          <button
+            className="frontmatter-tag-remove"
+            onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
+          >
+            &times;
+          </button>
+        </span>
+      ))}
+      <input
+        ref={inputRef}
+        className="frontmatter-tag-input"
+        value={inputValue}
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          setShowDropdown(true);
+        }}
+        onFocus={() => { if (inputValue) setShowDropdown(true); }}
+        onKeyDown={handleKeyDown}
+        placeholder="Add tag..."
+      />
+      {showDropdown && suggestions.length > 0 && (
+        <div className="frontmatter-tag-dropdown">
+          {suggestions.map((s, i) => (
+            <button
+              key={s.tag}
+              className={`frontmatter-tag-dropdown-item ${i === selectedIdx ? "selected" : ""}`}
+              onMouseDown={(e) => { e.preventDefault(); addTag(s.tag); }}
+              onMouseEnter={() => setSelectedIdx(i)}
+            >
+              <span>#{s.tag}</span>
+              <span className="frontmatter-tag-dropdown-count">{s.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

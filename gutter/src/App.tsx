@@ -5,6 +5,8 @@ import { ReadingMode } from "./components/ReadingMode";
 import { FileTree } from "./components/FileTree/FileTree";
 import { CommentsPanel } from "./components/Comments/CommentsPanel";
 import { HistoryPanel } from "./components/HistoryPanel";
+import { TagBrowser } from "./components/TagBrowser";
+import { TagBar } from "./components/TagBar";
 import { VersionPreview } from "./components/VersionPreview";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
@@ -20,6 +22,7 @@ import { ExportDialog } from "./components/ExportDialog";
 import { TemplatePicker } from "./components/TemplatePicker";
 import { PreferencesDialog } from "./components/PreferencesDialog";
 import { useEditorStore } from "./stores/editorStore";
+import { useTagStore } from "./stores/tagStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useCommentStore } from "./stores/commentStore";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -43,6 +46,7 @@ function App() {
     showFileTree,
     showComments,
     showHistory,
+    showTags,
     isDirty,
     fileName,
     activeCommentId,
@@ -51,6 +55,7 @@ function App() {
     toggleFileTree,
     toggleComments,
     toggleHistory,
+    toggleTags,
     showOutline,
     toggleOutline,
     setContent,
@@ -96,6 +101,13 @@ function App() {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // Scan tags when workspace loads
+  useEffect(() => {
+    if (workspacePath) {
+      useTagStore.getState().scanWorkspace(workspacePath);
+    }
+  }, [workspacePath]);
 
   // File watcher: start when workspace changes, listen for events
   useEffect(() => {
@@ -369,6 +381,8 @@ function App() {
       useToastStore.getState().addToast("File saved", "success", 2000);
       // Fire-and-forget snapshot for version history
       invoke("save_snapshot", { filePath: path, content: md }).catch(console.error);
+      // Incrementally update tag index
+      useTagStore.getState().updateFileTags(path, md);
     }
   }, [saveFile, saveComments, generateCompanion, setTabDirty, updateTabPath, addRecentFile, loadFileTree]);
 
@@ -548,6 +562,7 @@ function App() {
     { name: "Toggle File Tree", shortcut: `${mod}+\\`, action: toggleFileTree },
     { name: "Toggle Comments Panel", shortcut: `${mod}+Shift+C`, action: toggleComments },
     { name: "Version History", shortcut: `${mod}+Shift+H`, action: toggleHistory },
+    { name: "Tag Browser", shortcut: `${mod}+Shift+T`, action: toggleTags },
     { name: "Toggle Dark/Light Mode", shortcut: `${mod}+Shift+D`, action: () => cycleTheme() },
     { name: "Toggle Document Outline", action: () => toggleOutline() },
     { name: "Quick Open File", shortcut: `${mod}+P`, action: () => setUnifiedSearchMode("files") },
@@ -593,6 +608,7 @@ function App() {
       listen("menu:toggle-tree", () => toggleFileTree()),
       listen("menu:toggle-comments", () => toggleComments()),
       listen("menu:toggle-history", () => toggleHistory()),
+      listen("menu:toggle-tags", () => toggleTags()),
       listen("menu:toggle-outline", () => toggleOutline()),
       listen("menu:toggle-source", () => {
         if (useEditorStore.getState().isSourceMode) {
@@ -643,6 +659,7 @@ function App() {
     toggleFileTree,
     toggleComments,
     toggleHistory,
+    toggleTags,
     toggleOutline,
     toggleReadingMode,
     switchToSource,
@@ -679,6 +696,9 @@ function App() {
       } else if (modKey(e) && e.shiftKey && e.key === "H") {
         e.preventDefault();
         toggleHistory();
+      } else if (modKey(e) && e.shiftKey && e.key === "T") {
+        e.preventDefault();
+        toggleTags();
       } else if (modKey(e) && e.shiftKey && e.key === "D") {
         e.preventDefault();
         cycleTheme();
@@ -735,6 +755,7 @@ function App() {
     toggleFileTree,
     toggleComments,
     toggleHistory,
+    toggleTags,
     toggleReadingMode,
     cycleTheme,
     navigateComment,
@@ -922,6 +943,20 @@ function App() {
         {/* Main Editor Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {!isReadingMode && <TabBar onNewFile={handleNewFile} onSwitchTab={handleSwitchTab} onCloseTab={handleCloseTab} />}
+          {!isReadingMode && !imagePreview && activeTabPath && (
+            <TagBar
+              getEditor={() => editorInstanceRef.current?.getEditor() ?? null}
+              getMarkdown={() => markdownRef.current}
+              onContentChange={(md) => {
+                markdownRef.current = md;
+                setContent(md);
+                bumpContentVersion();
+                setDirty(true);
+                const tab = useWorkspaceStore.getState().activeTabPath;
+                if (tab) setTabDirty(tab, true);
+              }}
+            />
+          )}
 
           {showReloadPrompt && !isReadingMode && (
             <div className="h-8 flex items-center justify-between px-3 text-[12px] bg-[color-mix(in_srgb,var(--status-info),transparent_90%)] text-[var(--status-info)] border-b border-[var(--editor-border)]">
@@ -1066,6 +1101,26 @@ function App() {
               style={{ width: panelWidths.comments }}
             >
               <HistoryPanel onPreview={handleHistoryPreview} />
+            </aside>
+          </>
+        )}
+
+        {/* Tags Sidebar */}
+        {showTags && !isReadingMode && (
+          <>
+            <ResizeHandle
+              side="right"
+              currentWidth={panelWidths.comments}
+              minWidth={220}
+              maxWidth={Math.floor(window.innerWidth * 0.5)}
+              onResize={(w) => setPanelWidth("comments", w)}
+              onDoubleClick={() => setPanelWidth("comments", 288)}
+            />
+            <aside
+              className="border-l border-[var(--editor-border)] shrink-0 overflow-auto sidebar-panel"
+              style={{ width: panelWidths.comments }}
+            >
+              <TagBrowser />
             </aside>
           </>
         )}

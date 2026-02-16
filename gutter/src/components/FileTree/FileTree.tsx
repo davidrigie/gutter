@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef, useEffect, memo } from "react";
+import { useState, useCallback, useRef, useEffect, memo, useMemo } from "react";
 import { useWorkspaceStore, type FileEntry } from "../../stores/workspaceStore";
+import { useTagStore, getFilesForTags } from "../../stores/tagStore";
 import { useToastStore } from "../../stores/toastStore";
 import { open, ask } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
@@ -15,6 +16,8 @@ import {
   FileIcon,
   FilePlus,
   FolderPlus,
+  TagIcon,
+  X,
 } from "../Icons";
 
 /** Flatten visible (expanded) file entries in display order — files only */
@@ -38,6 +41,12 @@ function flattenVisibleFiles(
   return result;
 }
 
+/** Check if a directory entry has any descendant file matching the filter set */
+function hasMatchingDescendant(entry: FileEntry, matchingFiles: Set<string>): boolean {
+  if (!entry.is_dir) return matchingFiles.has(entry.path);
+  return entry.children?.some((child) => hasMatchingDescendant(child, matchingFiles)) ?? false;
+}
+
 interface DragState {
   sourcePath: string;
   sourceName: string;
@@ -51,6 +60,15 @@ interface FileTreeProps {
 
 export function FileTree({ onFileOpen }: FileTreeProps) {
   const { fileTree, workspacePath, loadFileTree } = useWorkspaceStore();
+  const selectedTags = useTagStore((s) => s.selectedTags);
+  const filterMode = useTagStore((s) => s.filterMode);
+  const tagToFiles = useTagStore((s) => s.tagToFiles);
+  const clearTagSelection = useTagStore((s) => s.clearSelection);
+  const isTagFiltering = selectedTags.size > 0;
+  const tagFilterFiles = useMemo(
+    () => isTagFiltering ? getFilesForTags(selectedTags, filterMode, tagToFiles) : null,
+    [selectedTags, filterMode, tagToFiles, isTagFiltering],
+  );
   const [drag, setDrag] = useState<DragState | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -469,13 +487,28 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
           </button>
         </div>
       </div>
+      {isTagFiltering && (
+        <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--editor-border)] bg-[var(--accent-subtle)] text-[11px]">
+          <span className="flex items-center gap-1.5 text-[var(--accent)]">
+            <TagIcon size={11} />
+            Filtered by {selectedTags.size} tag{selectedTags.size > 1 ? "s" : ""}
+          </span>
+          <button
+            onClick={clearTagSelection}
+            className="p-0.5 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+            title="Clear tag filter"
+          >
+            <X size={11} />
+          </button>
+        </div>
+      )}
       <div className="flex-1 overflow-auto py-1">
         {!workspacePath && (
           <div className="px-3 py-8 text-center text-[var(--text-muted)] text-[13px]">
             No folder open
           </div>
         )}
-        {fileTree.map((entry) => (
+        {fileTree.filter((entry) => !tagFilterFiles || hasMatchingDescendant(entry, tagFilterFiles)).map((entry) => (
           <FileTreeNode
             key={entry.path}
             entry={entry}
@@ -498,6 +531,7 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
             onDragStart={startDrag}
             dragSourcePath={drag?.started ? drag.sourcePath : null}
             dropTarget={dropTarget}
+            tagFilterFiles={isTagFiltering ? tagFilterFiles : null}
           />
         ))}
 
@@ -568,6 +602,7 @@ const FileTreeNode = memo(function FileTreeNode({
   onDragStart,
   dragSourcePath,
   dropTarget,
+  tagFilterFiles,
 }: {
   entry: FileEntry;
   depth: number;
@@ -587,6 +622,7 @@ const FileTreeNode = memo(function FileTreeNode({
   onDragStart: (path: string, name: string, mouseY: number) => void;
   dragSourcePath: string | null;
   dropTarget: string | null;
+  tagFilterFiles: Set<string> | null;
 }) {
   const [expanded, setExpanded] = useState(depth < 1);
   const [renaming, setRenaming] = useState(false);
@@ -763,7 +799,7 @@ const FileTreeNode = memo(function FileTreeNode({
         </div>
         {expanded && (
           <>
-            {entry.children?.map((child) => (
+            {entry.children?.filter((child) => !tagFilterFiles || hasMatchingDescendant(child, tagFilterFiles)).map((child) => (
               <FileTreeNode
                 key={child.path}
                 entry={child}
@@ -782,6 +818,7 @@ const FileTreeNode = memo(function FileTreeNode({
                 onDragStart={onDragStart}
                 dragSourcePath={dragSourcePath}
                 dropTarget={dropTarget}
+                tagFilterFiles={tagFilterFiles}
               />
             ))}
             {creating && (

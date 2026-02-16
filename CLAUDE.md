@@ -12,7 +12,7 @@ Gutter is a local-first WYSIWYG markdown editor with first-class commenting, bui
 
 ## Planning
 
-- **Active plan**: `POLISH_PLAN.md` — concise status overview. Phases 1–11 and 14 complete. Next up: Phase 12 (Templates).
+- **Active plan**: `POLISH_PLAN.md` — concise status overview. Phases 1–11, 13, and 14 complete. Next up: Phase 12 (Templates), 15 (Reading Mode).
 - **Phase details**: Upcoming phases in `docs/plans/` (one file per phase). Completed phase details in `docs/completed-plans/polish-phases-1-11.md`.
 - **Completed plans**: Sprint 1 build plan archived in `docs/completed-plans/`.
 
@@ -52,12 +52,13 @@ Additionally, `src-tauri/src/menu.rs` (not a command module) builds the native m
 
 Stores in `src/stores/`:
 
-- **editorStore** — UI state: file path, dirty flag, theme, panel visibility, source mode, active comment, `commentTexts` (maps commentId → quoted text), `canUndo`/`canRedo`, `showOutline`, `showHistory`
+- **editorStore** — UI state: file path, dirty flag, theme, panel visibility, source mode, active comment, `commentTexts` (maps commentId → quoted text), `canUndo`/`canRedo`, `showOutline`, `showHistory`, `showTags`
 - **commentStore** — comment thread data, CRUD ops, ID generation (`c1`, `c2`...), JSON export/import
 - **workspaceStore** — file tree structure, open tabs, active tab, tab dirty state
 - **settingsStore** — user preferences (font size, font family, auto-save, spell check, panel widths, recent files, default author)
 - **toastStore** — toast notification system with type, duration, auto-dismiss
 - **backlinkStore** — scans workspace for backlinks to current file
+- **tagStore** — workspace-wide tag index (`tagToFiles`/`fileToTags` maps), tag selection for file tree filtering, list/cloud view mode
 
 ### Comment System (Three-File Model)
 
@@ -120,7 +121,7 @@ In `src/components/Editor/markdown/`:
 
 Defined in `App.tsx` `handleKeyDown`. Uses `modKey(e)` helper from `src/utils/platform.ts` for cross-platform support (Cmd on macOS, Ctrl on Windows/Linux):
 
-Mod+K (unified search), Mod+O (open), Mod+S (save), Mod+P (quick open files), Mod+F (find), Mod+H (find & replace), Mod+/ (toggle source), Mod+\ (file tree), Mod+. (commands), Mod+Shift+C (comments), Mod+Shift+H (version history), Mod+Shift+R (reading mode), Mod+Shift+D (theme), Mod+Shift+P (commands alt), Mod+Shift+M (new comment), Mod+Shift+N (next comment), Mod+Shift+E (export).
+Mod+K (unified search), Mod+O (open), Mod+S (save), Mod+P (quick open files), Mod+F (find), Mod+H (find & replace), Mod+/ (toggle source), Mod+\ (file tree), Mod+. (commands), Mod+Shift+C (comments), Mod+Shift+H (version history), Mod+Shift+T (tag browser), Mod+Shift+R (reading mode), Mod+Shift+D (theme), Mod+Shift+P (commands alt), Mod+Shift+M (new comment), Mod+Shift+N (next comment), Mod+Shift+E (export).
 
 ### Utilities
 

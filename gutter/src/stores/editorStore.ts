@@ -19,6 +19,7 @@ interface EditorState {
   commentTexts: Record<string, string>;
   contentVersion: number;
   showHistory: boolean;
+  showTags: boolean;
 
   setFilePath: (path: string | null) => void;
   setContent: (content: string) => void;
@@ -31,6 +32,7 @@ interface EditorState {
   toggleFileTree: () => void;
   toggleComments: () => void;
   toggleHistory: () => void;
+  toggleTags: () => void;
   setActiveCommentId: (id: string | null) => void;
   setUndoRedo: (canUndo: boolean, canRedo: boolean) => void;
   toggleOutline: () => void;
@@ -55,6 +57,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   commentTexts: {},
   contentVersion: 0,
   showHistory: false,
+  showTags: false,
 
   setFilePath: (path) =>
     set({
@@ -68,8 +71,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   setWordCount: (wordCount) => set({ wordCount }),
   setCursorPosition: (line, col) => set({ cursorPosition: { line, col } }),
   toggleFileTree: () => set((s) => ({ showFileTree: !s.showFileTree })),
-  toggleComments: () => set((s) => ({ showComments: !s.showComments, showHistory: !s.showComments ? false : s.showHistory })),
-  toggleHistory: () => set((s) => ({ showHistory: !s.showHistory, showComments: !s.showHistory ? false : s.showComments })),
+  toggleComments: () => set((s) => ({ showComments: !s.showComments, showHistory: !s.showComments ? false : s.showHistory, showTags: !s.showComments ? false : s.showTags })),
+  toggleHistory: () => set((s) => ({ showHistory: !s.showHistory, showComments: !s.showHistory ? false : s.showComments, showTags: !s.showHistory ? false : s.showTags })),
+  toggleTags: () => set((s) => ({ showTags: !s.showTags, showComments: !s.showTags ? false : s.showComments, showHistory: !s.showTags ? false : s.showHistory })),
   setActiveCommentId: (id) => set({ activeCommentId: id }),
   setUndoRedo: (canUndo, canRedo) => set({ canUndo, canRedo }),
   toggleOutline: () => set((s) => ({ showOutline: !s.showOutline })),

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, memo } from "react";
 import { useWorkspaceStore, type FileEntry } from "../../stores/workspaceStore";
 import { useToastStore } from "../../stores/toastStore";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, ask } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
 import { fileName as pathFileName, joinPath, isImageFile } from "../../utils/path";
@@ -217,7 +217,8 @@ export function FileTree({ onFileOpen }: FileTreeProps) {
     async (paths: Set<string>) => {
       const count = paths.size;
       if (count === 0) return;
-      if (!window.confirm(`Delete ${count} item${count > 1 ? "s" : ""}?`)) return;
+      const confirmed = await ask(`Delete ${count} item${count > 1 ? "s" : ""}?`, { title: "Confirm Delete", kind: "warning" });
+      if (!confirmed) return;
       for (const p of paths) {
         try {
           await invoke("delete_path", { path: p });
@@ -668,10 +669,9 @@ const FileTreeNode = memo(function FileTreeNode({
       },
       {
         label: "Delete",
-        action: () => {
-          if (window.confirm(`Delete "${entry.name}"?`)) {
-            onDelete(entry.path);
-          }
+        action: async () => {
+          const confirmed = await ask(`Delete "${entry.name}"?`, { title: "Confirm Delete", kind: "warning" });
+          if (confirmed) onDelete(entry.path);
         },
       },
     );
@@ -772,21 +772,13 @@ const FileTreeNode = memo(function FileTreeNode({
                 type={creating}
                 depth={depth + 1}
                 onSubmit={async (name) => {
-                  if (creating === "folder") {
-                    onCreateFolder(entry.path);
-                  } else {
-                    onCreateFile(entry.path);
-                  }
-                  // Actually create via invoke
                   const fullPath = joinPath(entry.path, name);
                   try {
-                    const { invoke } = await import("@tauri-apps/api/core");
                     if (creating === "folder") {
                       await invoke("create_directory", { path: fullPath });
                     } else {
                       await invoke("create_file", { path: fullPath });
                     }
-                    // Reload tree
                     const ws = useWorkspaceStore.getState();
                     if (ws.workspacePath) {
                       await ws.loadFileTree(ws.workspacePath);

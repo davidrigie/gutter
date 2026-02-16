@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { useEditorStore } from "../stores/editorStore";
+import { useSettingsStore } from "../stores/settingsStore";
 
 export function useFileOps() {
   const {
@@ -11,6 +12,7 @@ export function useFileOps() {
     setDirty,
   } = useEditorStore();
 
+  const autoSaveInterval = useSettingsStore((s) => s.autoSaveInterval);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openFile = useCallback(async () => {
@@ -48,12 +50,12 @@ export function useFileOps() {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
-      if (!filePath) return;
+      if (!filePath || autoSaveInterval === 0) return;
       autoSaveTimerRef.current = setTimeout(() => {
         saveFile(markdown);
-      }, 2000);
+      }, autoSaveInterval);
     },
-    [filePath, saveFile],
+    [filePath, saveFile, autoSaveInterval],
   );
 
   useEffect(() => {

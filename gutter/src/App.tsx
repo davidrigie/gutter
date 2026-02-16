@@ -14,6 +14,7 @@ import { DocumentOutline } from "./components/DocumentOutline";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { BacklinksPanel } from "./components/BacklinksPanel";
 import { ExportDialog } from "./components/ExportDialog";
+import { PreferencesDialog } from "./components/PreferencesDialog";
 import { useEditorStore } from "./stores/editorStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useCommentStore } from "./stores/commentStore";
@@ -52,7 +53,7 @@ function App() {
     setActiveCommentId,
   } = useEditorStore();
 
-  const { theme, cycleTheme, loadSettings, addRecentFile, panelWidths, setPanelWidth } = useSettingsStore();
+  const { theme, cycleTheme, loadSettings, addRecentFile, panelWidths, setPanelWidth, fontSize, fontFamily, editorWidth, lineHeight } = useSettingsStore();
 
   const { addTab, setActiveTab, removeTab, setTabDirty, workspacePath, loadFileTree, openTabs } = useWorkspaceStore();
   const { getThreadIds } = useCommentStore();
@@ -65,6 +66,7 @@ function App() {
   const [findReplaceMode, setFindReplaceMode] = useState<"find" | "replace" | null>(null);
   const [showReloadPrompt, setShowReloadPrompt] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const markdownRef = useRef("");
   const lastSaveTimeRef = useRef<number>(0);
@@ -442,6 +444,7 @@ function App() {
     { name: "Find", shortcut: `${mod}+F`, action: () => setFindReplaceMode("find") },
     { name: "Find and Replace", shortcut: `${mod}+H`, action: () => setFindReplaceMode("replace") },
     { name: "Export", shortcut: `${mod}+Shift+E`, action: () => setShowExport(true) },
+    { name: "Preferences", shortcut: `${mod}+,`, action: () => setShowPreferences(true) },
     { name: "Toggle Spell Check", action: () => {
       const e = editorInstanceRef.current?.getEditor();
       if (e) e.commands.toggleSpellCheck();
@@ -457,6 +460,7 @@ function App() {
       listen("menu:open", () => handleOpenFile()),
       listen("menu:save", () => handleSave()),
       listen("menu:export", () => setShowExport(true)),
+      listen("menu:preferences", () => setShowPreferences(true)),
       listen("menu:toggle-tree", () => toggleFileTree()),
       listen("menu:toggle-comments", () => toggleComments()),
       listen("menu:toggle-outline", () => toggleOutline()),
@@ -550,6 +554,9 @@ function App() {
         e.preventDefault();
         const ed = editorInstanceRef.current?.getEditor();
         if (ed) ed.commands.toggleFocusMode();
+      } else if (modKey(e) && e.key === ",") {
+        e.preventDefault();
+        setShowPreferences(true);
       } else if (modKey(e) && e.key === "f" && !e.shiftKey) {
         e.preventDefault();
         setFindReplaceMode("find");
@@ -590,6 +597,34 @@ function App() {
       }
     }
   }, [theme]);
+
+  // Sync editor CSS variables from settings
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--editor-font-size", `${fontSize}px`);
+
+    const fontMap: Record<string, string> = {
+      serif: "var(--font-serif)",
+      sans: "var(--font-sans)",
+      mono: '"SF Mono", "Fira Code", "Fira Mono", Menlo, monospace',
+    };
+    root.style.setProperty("--editor-font-family", fontMap[fontFamily] || fontMap.serif);
+
+    const widthMap: Record<string, string> = {
+      narrow: "36rem",
+      medium: "48rem",
+      wide: "64rem",
+      full: "100%",
+    };
+    root.style.setProperty("--editor-max-width", widthMap[editorWidth] || widthMap.medium);
+
+    const lineHeightMap: Record<string, string> = {
+      compact: "1.4",
+      comfortable: "1.7",
+      spacious: "2.0",
+    };
+    root.style.setProperty("--editor-line-height", lineHeightMap[lineHeight] || lineHeightMap.comfortable);
+  }, [fontSize, fontFamily, editorWidth, lineHeight]);
 
   // Prevent closing window with dirty tabs
   useEffect(() => {
@@ -807,6 +842,13 @@ function App() {
         <ExportDialog
           markdown={markdownRef.current}
           onClose={() => setShowExport(false)}
+        />
+      )}
+
+      {showPreferences && (
+        <PreferencesDialog
+          onClose={() => setShowPreferences(false)}
+          editorRef={editorInstanceRef}
         />
       )}
 

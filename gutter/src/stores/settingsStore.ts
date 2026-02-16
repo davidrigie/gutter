@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 interface Settings {
   theme: "light" | "dark" | "system";
   fontSize: number;
-  fontFamily: string;
+  fontFamily: "serif" | "sans" | "mono";
   autoSaveInterval: number;
   panelWidths: { fileTree: number; comments: number };
   recentFiles: string[];
@@ -12,6 +12,8 @@ interface Settings {
   focusModeEnabled: boolean;
   typewriterEnabled: boolean;
   defaultAuthor: string;
+  editorWidth: "narrow" | "medium" | "wide" | "full";
+  lineHeight: "compact" | "comfortable" | "spacious";
 }
 
 interface SettingsState extends Settings {
@@ -21,7 +23,7 @@ interface SettingsState extends Settings {
   setTheme: (theme: "light" | "dark" | "system") => void;
   cycleTheme: () => void;
   setFontSize: (size: number) => void;
-  setFontFamily: (family: string) => void;
+  setFontFamily: (family: "serif" | "sans" | "mono") => void;
   setAutoSaveInterval: (ms: number) => void;
   setPanelWidth: (panel: "fileTree" | "comments", width: number) => void;
   addRecentFile: (path: string) => void;
@@ -29,12 +31,14 @@ interface SettingsState extends Settings {
   setFocusModeEnabled: (enabled: boolean) => void;
   setTypewriterEnabled: (enabled: boolean) => void;
   setDefaultAuthor: (author: string) => void;
+  setEditorWidth: (width: "narrow" | "medium" | "wide" | "full") => void;
+  setLineHeight: (height: "compact" | "comfortable" | "spacious") => void;
 }
 
 const defaults: Settings = {
   theme: "light",
   fontSize: 16,
-  fontFamily: "default",
+  fontFamily: "serif",
   autoSaveInterval: 2000,
   panelWidths: { fileTree: 224, comments: 288 },
   recentFiles: [],
@@ -42,6 +46,8 @@ const defaults: Settings = {
   focusModeEnabled: false,
   typewriterEnabled: false,
   defaultAuthor: "Author",
+  editorWidth: "medium",
+  lineHeight: "comfortable",
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -52,6 +58,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       const json = await invoke<string>("read_settings");
       const parsed = JSON.parse(json) as Partial<Settings>;
+      // Map legacy fontFamily values
+      if (parsed.fontFamily && !["serif", "sans", "mono"].includes(parsed.fontFamily)) {
+        parsed.fontFamily = "serif";
+      }
       set({ ...defaults, ...parsed, loaded: true });
     } catch {
       set({ ...defaults, loaded: true });
@@ -71,6 +81,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       focusModeEnabled: state.focusModeEnabled,
       typewriterEnabled: state.typewriterEnabled,
       defaultAuthor: state.defaultAuthor,
+      editorWidth: state.editorWidth,
+      lineHeight: state.lineHeight,
     };
     try {
       await invoke("write_settings", { content: JSON.stringify(data, null, 2) });
@@ -139,6 +151,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setDefaultAuthor: (defaultAuthor) => {
     set({ defaultAuthor });
+    get().saveSettings();
+  },
+
+  setEditorWidth: (editorWidth) => {
+    set({ editorWidth });
+    get().saveSettings();
+  },
+
+  setLineHeight: (lineHeight) => {
+    set({ lineHeight });
     get().saveSettings();
   },
 }));

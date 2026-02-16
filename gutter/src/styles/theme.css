@@ -92,6 +92,12 @@
   --z-overlay: 100;
   --z-modal: 200;
 
+  /* ─── Editor dynamic settings ─── */
+  --editor-font-size: 16px;
+  --editor-line-height: 1.7;
+  --editor-max-width: 48rem;
+  --editor-font-family: var(--font-serif);
+
   /* ─── Typography rendering ─── */
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern";

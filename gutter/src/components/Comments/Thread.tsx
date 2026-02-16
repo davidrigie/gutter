@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CommentThread } from "../../types/comments";
 import { useCommentStore } from "../../stores/commentStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { ReplyInput } from "./ReplyInput";
 import { Check, Trash, ChevronDown, ChevronRight } from "../Icons";
 
@@ -49,7 +50,8 @@ export function Thread({ commentId, thread, isActive, quotedText, onClick }: Thr
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                resolveThread(commentId, "User");
+                const author = useSettingsStore.getState().defaultAuthor || "Author";
+                resolveThread(commentId, author);
               }}
               className="p-1 rounded text-[var(--status-success)] hover:bg-[var(--surface-hover)] transition-colors"
               title="Resolve"

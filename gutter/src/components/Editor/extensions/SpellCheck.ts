@@ -1,4 +1,5 @@
 import { Extension } from "@tiptap/core";
+import { useSettingsStore } from "../../../stores/settingsStore";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -9,8 +10,6 @@ declare module "@tiptap/core" {
   }
 }
 
-let spellCheckEnabled = false;
-
 export const SpellCheck = Extension.create({
   name: "spellCheck",
 
@@ -19,14 +18,15 @@ export const SpellCheck = Extension.create({
       toggleSpellCheck:
         () =>
         ({ view }) => {
-          spellCheckEnabled = !spellCheckEnabled;
-          view.dom.setAttribute("spellcheck", spellCheckEnabled.toString());
+          const current = view.dom.getAttribute("spellcheck") === "true";
+          const next = !current;
+          view.dom.setAttribute("spellcheck", next.toString());
+          useSettingsStore.getState().setSpellCheckEnabled(next);
           return true;
         },
       setSpellCheck:
         (enabled: boolean) =>
         ({ view }) => {
-          spellCheckEnabled = enabled;
           view.dom.setAttribute("spellcheck", enabled.toString());
           return true;
         },
@@ -34,6 +34,7 @@ export const SpellCheck = Extension.create({
   },
 
   onCreate() {
-    this.editor.view.dom.setAttribute("spellcheck", spellCheckEnabled.toString());
+    const enabled = useSettingsStore.getState().spellCheckEnabled;
+    this.editor.view.dom.setAttribute("spellcheck", enabled.toString());
   },
 });

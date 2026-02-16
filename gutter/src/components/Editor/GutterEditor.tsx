@@ -30,6 +30,7 @@ import { serializeMarkdown } from "./markdown/serializer";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { useEditorStore } from "../../stores/editorStore";
 import { useCommentStore } from "../../stores/commentStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
 import { FocusMode } from "./extensions/FocusMode";
 import { Frontmatter } from "./extensions/Frontmatter";
@@ -638,7 +639,8 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       (body: string) => {
         if (!commentCreation) return;
         if (body.trim()) {
-          addThread(commentCreation.commentId, "User", body.trim());
+          const author = useSettingsStore.getState().defaultAuthor || "Author";
+          addThread(commentCreation.commentId, author, body.trim());
           setActiveCommentId(commentCreation.commentId);
         } else {
           // Cancel — remove the mark or node attribute

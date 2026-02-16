@@ -4,6 +4,15 @@ use tauri::{
 };
 
 pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
+    // --- Preferences ---
+    let preferences = MenuItem::with_id(
+        app,
+        "preferences",
+        "Preferences",
+        true,
+        Some("CmdOrCtrl+,"),
+    )?;
+
     // --- File menu ---
     let open = MenuItem::with_id(app, "open", "Open File", true, Some("CmdOrCtrl+O"))?;
     let save = MenuItem::with_id(app, "save", "Save", true, Some("CmdOrCtrl+S"))?;
@@ -156,6 +165,8 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     let app_menu = SubmenuBuilder::new(app, "Gutter")
         .about(None)
         .separator()
+        .item(&preferences)
+        .separator()
         .services()
         .separator()
         .hide()
@@ -185,6 +196,7 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     // Predefined items (copy, paste, undo, etc.) are handled natively by the OS.
     app.on_menu_event(move |app_handle, event| {
         let event_name = match event.id().as_ref() {
+            "preferences" => "menu:preferences",
             "open" => "menu:open",
             "save" => "menu:save",
             "export" => "menu:export",

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useCommentStore } from "../../stores/commentStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 
 interface ReplyInputProps {
   commentId: string;
@@ -21,7 +22,8 @@ export function ReplyInput({ commentId, onSubmit, autoFocus }: ReplyInputProps) 
   const handleSubmit = () => {
     const text = value.trim();
     if (!text) return;
-    addReply(commentId, "User", text);
+    const author = useSettingsStore.getState().defaultAuthor || "Author";
+    addReply(commentId, author, text);
     setValue("");
     onSubmit();
   };

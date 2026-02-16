@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import type { Editor } from "@tiptap/react";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { TextSelection } from "@tiptap/pm/state";
 
 const findReplacePluginKey = new PluginKey("findReplace");
 
@@ -117,13 +118,67 @@ function findMatches(
   return results;
 }
 
+/** Scroll a ProseMirror match into view reliably */
+function scrollToMatch(editor: Editor, pos: number) {
+  // Set selection and scroll in one transaction
+  const tr = editor.state.tr.setSelection(
+    TextSelection.create(editor.state.doc, pos)
+  ).scrollIntoView();
+  editor.view.dispatch(tr);
+
+  // DOM fallback: ensure the match highlight is visible in the scroll container
+  requestAnimationFrame(() => {
+    const el = editor.view.dom.querySelector(".find-match-current");
+    if (el) {
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  });
+}
+
+// ── Source mode helpers ──
+
+function findTextMatches(
+  text: string,
+  searchTerm: string,
+  matchCase: boolean,
+  useRegex: boolean,
+): { start: number; end: number }[] {
+  if (!searchTerm) return [];
+  const results: { start: number; end: number }[] = [];
+  try {
+    let regex: RegExp;
+    if (useRegex) {
+      regex = new RegExp(searchTerm, matchCase ? "g" : "gi");
+    } else {
+      const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      regex = new RegExp(escaped, matchCase ? "g" : "gi");
+    }
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      if (match[0].length === 0) { regex.lastIndex++; continue; }
+      results.push({ start: match.index, end: match.index + match[0].length });
+    }
+  } catch {
+    // Invalid regex
+  }
+  return results;
+}
+
+// ── Component ──
+
 interface FindReplaceProps {
   editor: Editor | null;
   mode: "find" | "replace";
   onClose: () => void;
+  /** Source mode: textarea ref + content for plain-text search */
+  sourceTextarea?: React.RefObject<HTMLTextAreaElement | null>;
+  sourceContent?: string;
+  onSourceReplace?: (from: number, to: number, replacement: string) => void;
+  onSourceMatchesChange?: (matches: { start: number; end: number }[], currentIndex: number) => void;
 }
 
-export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceProps) {
+export function FindReplace({ editor, mode: initialMode, onClose, sourceTextarea, sourceContent, onSourceReplace, onSourceMatchesChange }: FindReplaceProps) {
+  const isSourceMode = !!sourceTextarea;
   const [searchTerm, setSearchTerm] = useState("");
   const [replaceTerm, setReplaceTerm] = useState("");
   const [matchCase, setMatchCase] = useState(false);
@@ -132,6 +187,7 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
   const [matchCount, setMatchCount] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const sourceMatchesRef = useRef<{ start: number; end: number }[]>([]);
 
   useEffect(() => {
     setShowReplace(initialMode === "replace");
@@ -142,6 +198,55 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
     searchInputRef.current?.select();
   }, []);
 
+  // ── Source mode search ──
+  const updateSourceSearch = useCallback(
+    (term: string, caseSensitive: boolean, regex: boolean) => {
+      const ta = sourceTextarea?.current;
+      if (!ta || sourceContent === undefined) {
+        onSourceMatchesChange?.([], -1);
+        return;
+      }
+      const matches = findTextMatches(sourceContent, term, caseSensitive, regex);
+      sourceMatchesRef.current = matches;
+      const index = matches.length > 0 ? 0 : -1;
+      setMatchCount(matches.length);
+      setCurrentIndex(index);
+      onSourceMatchesChange?.(matches, index);
+
+      // Scroll to first match but don't steal focus from search input
+      if (matches.length > 0 && index >= 0) {
+        const linesBefore = sourceContent.substring(0, matches[index].start).split("\n").length;
+        const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+        ta.scrollTop = Math.max(0, (linesBefore - 3) * lineHeight);
+      }
+    },
+    [sourceTextarea, sourceContent, onSourceMatchesChange],
+  );
+
+  const navigateSourceMatch = useCallback(
+    (direction: "next" | "prev") => {
+      const ta = sourceTextarea?.current;
+      const matches = sourceMatchesRef.current;
+      if (!ta || matches.length === 0) return;
+      let newIndex: number;
+      if (direction === "next") {
+        newIndex = currentIndex < matches.length - 1 ? currentIndex + 1 : 0;
+      } else {
+        newIndex = currentIndex > 0 ? currentIndex - 1 : matches.length - 1;
+      }
+      setCurrentIndex(newIndex);
+      onSourceMatchesChange?.(matches, newIndex);
+
+      // Scroll to the match without stealing focus from the search input
+      const content = sourceContent || "";
+      const linesBefore = content.substring(0, matches[newIndex].start).split("\n").length;
+      const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+      ta.scrollTop = Math.max(0, (linesBefore - 3) * lineHeight);
+    },
+    [sourceTextarea, sourceContent, currentIndex, onSourceMatchesChange],
+  );
+
+  // ── WYSIWYG mode search ──
   const updateSearch = useCallback(
     (term: string, caseSensitive: boolean, regex: boolean) => {
       if (!editor) return;
@@ -161,8 +266,7 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
       editor.view.dispatch(tr);
 
       if (matches.length > 0 && index >= 0) {
-        editor.commands.setTextSelection(matches[index].from);
-        editor.commands.scrollIntoView();
+        scrollToMatch(editor, matches[index].from);
       }
     },
     [editor],
@@ -171,13 +275,21 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
   const handleSearchChange = useCallback(
     (term: string) => {
       setSearchTerm(term);
-      updateSearch(term, matchCase, useRegex);
+      if (isSourceMode) {
+        updateSourceSearch(term, matchCase, useRegex);
+      } else {
+        updateSearch(term, matchCase, useRegex);
+      }
     },
-    [matchCase, useRegex, updateSearch],
+    [isSourceMode, matchCase, useRegex, updateSearch, updateSourceSearch],
   );
 
   const navigateMatch = useCallback(
     (direction: "next" | "prev") => {
+      if (isSourceMode) {
+        navigateSourceMatch(direction);
+        return;
+      }
       if (!editor || matchCount === 0) return;
       const pluginState = findReplacePluginKey.getState(editor.state) as FindReplaceState;
       const matches = pluginState.matches;
@@ -194,13 +306,23 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
       });
       editor.view.dispatch(tr);
 
-      editor.commands.setTextSelection(matches[newIndex].from);
-      editor.commands.scrollIntoView();
+      scrollToMatch(editor, matches[newIndex].from);
     },
-    [editor, matchCount, currentIndex],
+    [isSourceMode, editor, matchCount, currentIndex, navigateSourceMatch],
   );
 
   const handleReplace = useCallback(() => {
+    if (isSourceMode) {
+      const matches = sourceMatchesRef.current;
+      if (currentIndex < 0 || !matches[currentIndex] || !onSourceReplace) return;
+      const m = matches[currentIndex];
+      onSourceReplace(m.start, m.end, replaceTerm);
+      // Re-search after a tick (content will have changed)
+      setTimeout(() => {
+        updateSourceSearch(searchTerm, matchCase, useRegex);
+      }, 0);
+      return;
+    }
     if (!editor || currentIndex < 0) return;
     const pluginState = findReplacePluginKey.getState(editor.state) as FindReplaceState;
     const match = pluginState.matches[currentIndex];
@@ -215,9 +337,20 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
 
     // Re-search after replace
     updateSearch(searchTerm, matchCase, useRegex);
-  }, [editor, currentIndex, replaceTerm, searchTerm, matchCase, useRegex, updateSearch]);
+  }, [isSourceMode, editor, currentIndex, replaceTerm, searchTerm, matchCase, useRegex, updateSearch, updateSourceSearch, onSourceReplace]);
 
   const handleReplaceAll = useCallback(() => {
+    if (isSourceMode) {
+      const matches = [...sourceMatchesRef.current].reverse();
+      if (matches.length === 0 || !onSourceReplace) return;
+      for (const m of matches) {
+        onSourceReplace(m.start, m.end, replaceTerm);
+      }
+      setTimeout(() => {
+        updateSourceSearch(searchTerm, matchCase, useRegex);
+      }, 0);
+      return;
+    }
     if (!editor || matchCount === 0) return;
     const pluginState = findReplacePluginKey.getState(editor.state) as FindReplaceState;
     const matches = [...pluginState.matches].reverse();
@@ -234,7 +367,7 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
     }).run();
 
     updateSearch(searchTerm, matchCase, useRegex);
-  }, [editor, matchCount, replaceTerm, searchTerm, matchCase, useRegex, updateSearch]);
+  }, [isSourceMode, editor, matchCount, replaceTerm, searchTerm, matchCase, useRegex, updateSearch, updateSourceSearch, onSourceReplace]);
 
   const handleClose = useCallback(() => {
     if (editor) {
@@ -245,8 +378,9 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
       });
       editor.view.dispatch(tr);
     }
+    onSourceMatchesChange?.([], -1);
     onClose();
-  }, [editor, onClose]);
+  }, [editor, onClose, onSourceMatchesChange]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -279,7 +413,11 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
           onClick={() => {
             const next = !matchCase;
             setMatchCase(next);
-            updateSearch(searchTerm, next, useRegex);
+            if (isSourceMode) {
+              updateSourceSearch(searchTerm, next, useRegex);
+            } else {
+              updateSearch(searchTerm, next, useRegex);
+            }
           }}
           title="Match Case"
         >
@@ -290,7 +428,11 @@ export function FindReplace({ editor, mode: initialMode, onClose }: FindReplaceP
           onClick={() => {
             const next = !useRegex;
             setUseRegex(next);
-            updateSearch(searchTerm, matchCase, next);
+            if (isSourceMode) {
+              updateSourceSearch(searchTerm, matchCase, next);
+            } else {
+              updateSearch(searchTerm, matchCase, next);
+            }
           }}
           title="Use Regex"
         >

@@ -68,8 +68,12 @@ function App() {
   const [showExport, setShowExport] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [sourceSearchMatches, setSourceSearchMatches] = useState<{ start: number; end: number }[]>([]);
+  const [sourceCurrentMatch, setSourceCurrentMatch] = useState(-1);
   const markdownRef = useRef("");
   const lastSaveTimeRef = useRef<number>(0);
+
+  const sourceTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const editorInstanceRef = useRef<{
     createComment: () => void;
@@ -749,11 +753,25 @@ function App() {
             </div>
           )}
 
-          {findReplaceMode && !isSourceMode && (
+          {findReplaceMode && (
             <FindReplace
-              editor={editorInstanceRef.current?.getEditor() ?? null}
+              editor={isSourceMode ? null : (editorInstanceRef.current?.getEditor() ?? null)}
               mode={findReplaceMode}
-              onClose={() => setFindReplaceMode(null)}
+              onClose={() => {
+                setFindReplaceMode(null);
+                setSourceSearchMatches([]);
+                setSourceCurrentMatch(-1);
+              }}
+              sourceTextarea={isSourceMode ? sourceTextareaRef : undefined}
+              sourceContent={isSourceMode ? sourceContent : undefined}
+              onSourceReplace={isSourceMode ? (from, to, replacement) => {
+                const updated = sourceContent.substring(0, from) + replacement + sourceContent.substring(to);
+                handleSourceChange(updated);
+              } : undefined}
+              onSourceMatchesChange={isSourceMode ? (matches, idx) => {
+                setSourceSearchMatches(matches);
+                setSourceCurrentMatch(idx);
+              } : undefined}
             />
           )}
 
@@ -787,6 +805,9 @@ function App() {
               <SourceEditor
                 value={sourceContent}
                 onChange={handleSourceChange}
+                textareaRef={sourceTextareaRef}
+                searchMatches={sourceSearchMatches}
+                currentMatchIndex={sourceCurrentMatch}
               />
             ) : (
               <GutterEditor

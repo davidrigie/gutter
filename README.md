@@ -12,6 +12,11 @@ A local-first WYSIWYG markdown editor with first-class inline commenting. Built 
 - **Inline Commenting** — highlight text and leave comments, stored as portable HTML markers in standard markdown
 - **Wiki Links** — connect notes with `[[wiki links]]`, autocomplete, and backlinks
 - **Math & Diagrams** — LaTeX equations (KaTeX) and Mermaid diagrams rendered inline
+- **Unified Search** — Cmd+K to search files, headings, tags, and commands in one place
+- **Version History** — automatic snapshots on every save with inline diffs, plus git history if tracked
+- **Tags** — frontmatter tags with a tag browser panel (list and cloud views), file tree filtering, and search integration
+- **Templates** — built-in templates (meeting notes, journal, project brief) and save-as-template for custom ones
+- **Reading Mode** — book-typeset view with comments as margin annotations, no chrome
 - **Local-First** — your files stay on your machine, plain markdown, no accounts or cloud
 - **Fast & Native** — Rust backend, starts in under a second, minimal memory usage
 

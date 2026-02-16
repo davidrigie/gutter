@@ -12,7 +12,7 @@ Gutter is a local-first WYSIWYG markdown editor with first-class commenting, bui
 
 ## Planning
 
-- **Active plan**: `POLISH_PLAN.md` — concise status overview. Phases 1–11, 13, and 14 complete. Next up: Phase 12 (Templates), 15 (Reading Mode).
+- **Active plan**: `POLISH_PLAN.md` — concise status overview. All 15 phases complete.
 - **Phase details**: Upcoming phases in `docs/plans/` (one file per phase). Completed phase details in `docs/completed-plans/polish-phases-1-11.md`.
 - **Completed plans**: Sprint 1 build plan archived in `docs/completed-plans/`.
 

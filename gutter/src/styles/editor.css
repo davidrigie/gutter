@@ -1630,3 +1630,23 @@
 .reading-mode-content .ProseMirror ::selection {
   background: transparent;
 }
+
+/* ═══════════════════════════════════════════════════════
+   VERSION PREVIEW
+   ═══════════════════════════════════════════════════════ */
+
+.version-preview-content .ProseMirror {
+  padding: 0;
+  max-width: 100%;
+  line-height: 1.8;
+  outline: none;
+}
+
+.version-preview-content .ProseMirror .ProseMirror-cursor,
+.version-preview-content .ProseMirror .ProseMirror-gapcursor {
+  display: none;
+}
+
+.version-preview-content .ProseMirror ::selection {
+  background: transparent;
+}

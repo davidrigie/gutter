@@ -5,6 +5,7 @@ import { ReadingMode } from "./components/ReadingMode";
 import { FileTree } from "./components/FileTree/FileTree";
 import { CommentsPanel } from "./components/Comments/CommentsPanel";
 import { HistoryPanel } from "./components/HistoryPanel";
+import { VersionPreview } from "./components/VersionPreview";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
 import { UnifiedSearch } from "./components/UnifiedSearch";
@@ -74,6 +75,7 @@ function App() {
   const [showPreferences, setShowPreferences] = useState(false);
   const [templatePicker, setTemplatePicker] = useState<{ mode: "new" | "save"; targetFolder: string } | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [versionPreview, setVersionPreview] = useState<{ content: string; label: string } | null>(null);
   const [sourceSearchMatches, setSourceSearchMatches] = useState<{ start: number; end: number }[]>([]);
   const [sourceCurrentMatch, setSourceCurrentMatch] = useState(-1);
   const markdownRef = useRef("");
@@ -504,9 +506,15 @@ function App() {
     setContent(content);
     bumpContentVersion();
     setDirty(true);
+    setVersionPreview(null);
     const activeTab = useWorkspaceStore.getState().activeTabPath;
     if (activeTab) setTabDirty(activeTab, true);
   }, [setContent, bumpContentVersion, setDirty, setTabDirty]);
+
+  // Handle history preview — show rendered version in main panel
+  const handleHistoryPreview = useCallback((content: string, label: string) => {
+    setVersionPreview({ content, label });
+  }, []);
 
   // Comment navigation
   const navigateComment = useCallback(
@@ -867,6 +875,11 @@ function App() {
     };
   }, [handleFileTreeOpen]);
 
+  // Clear version preview when history panel is closed
+  useEffect(() => {
+    if (!showHistory) setVersionPreview(null);
+  }, [showHistory]);
+
   // Update document title
   useEffect(() => {
     document.title = `${isDirty ? "● " : ""}${fileName} — Gutter`;
@@ -970,7 +983,15 @@ function App() {
           )}
 
           <main className="flex-1 flex flex-col overflow-auto">
-            {imagePreview ? (
+            {versionPreview ? (
+              <VersionPreview
+                content={versionPreview.content}
+                currentContent={markdownRef.current}
+                label={versionPreview.label}
+                onRestore={() => handleHistoryRestore(versionPreview.content)}
+                onDismiss={() => setVersionPreview(null)}
+              />
+            ) : imagePreview ? (
               <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
                 <img
                   src={imagePreview}
@@ -1044,7 +1065,7 @@ function App() {
               className="border-l border-[var(--editor-border)] shrink-0 overflow-auto sidebar-panel"
               style={{ width: panelWidths.comments }}
             >
-              <HistoryPanel onRestore={handleHistoryRestore} currentContent={markdownRef.current} />
+              <HistoryPanel onPreview={handleHistoryPreview} />
             </aside>
           </>
         )}

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useEditorStore } from "../stores/editorStore";
 import { useToastStore } from "../stores/toastStore";
-import { HistoryIcon, Pin, GitBranch, Trash, RotateCcw, Eye, Pencil, X } from "./Icons";
+import { HistoryIcon, Pin, GitBranch, Trash, Pencil } from "./Icons";
 
 interface SnapshotMeta {
   id: string;
@@ -20,141 +20,6 @@ interface GitCommit {
   timestamp: number;
 }
 
-// --- Lightweight line diff ---
-
-type DiffLine =
-  | { type: "equal"; text: string }
-  | { type: "add"; text: string }
-  | { type: "remove"; text: string };
-
-function computeDiff(oldText: string, newText: string): DiffLine[] {
-  const oldLines = oldText.split("\n");
-  const newLines = newText.split("\n");
-
-  // Myers-style LCS via simple DP for lines (fine for files up to a few thousand lines)
-  const m = oldLines.length;
-  const n = newLines.length;
-
-  // Optimize: if identical, short-circuit
-  if (oldText === newText) {
-    return oldLines.map((l) => ({ type: "equal" as const, text: l }));
-  }
-
-  // Build LCS table (space-optimized would be better but this is simple and correct)
-  // For very large files, cap and fall back to simple before/after
-  if (m * n > 2_000_000) {
-    // Too large for DP — show simplified view
-    return simpleDiff(oldLines, newLines);
-  }
-
-  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (oldLines[i - 1] === newLines[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1;
-      } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-      }
-    }
-  }
-
-  // Backtrack to build diff
-  const result: DiffLine[] = [];
-  let i = m, j = n;
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
-      result.push({ type: "equal", text: oldLines[i - 1] });
-      i--; j--;
-    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      result.push({ type: "add", text: newLines[j - 1] });
-      j--;
-    } else {
-      result.push({ type: "remove", text: oldLines[i - 1] });
-      i--;
-    }
-  }
-  result.reverse();
-  return result;
-}
-
-/** Fallback for very large files — just show removed/added blocks */
-function simpleDiff(oldLines: string[], newLines: string[]): DiffLine[] {
-  const result: DiffLine[] = [];
-  // Find common prefix
-  let prefix = 0;
-  while (prefix < oldLines.length && prefix < newLines.length && oldLines[prefix] === newLines[prefix]) {
-    result.push({ type: "equal", text: oldLines[prefix] });
-    prefix++;
-  }
-  // Find common suffix
-  let oldEnd = oldLines.length - 1;
-  let newEnd = newLines.length - 1;
-  const suffix: DiffLine[] = [];
-  while (oldEnd > prefix && newEnd > prefix && oldLines[oldEnd] === newLines[newEnd]) {
-    suffix.push({ type: "equal", text: oldLines[oldEnd] });
-    oldEnd--; newEnd--;
-  }
-  // Middle is all changes
-  for (let i = prefix; i <= oldEnd; i++) {
-    result.push({ type: "remove", text: oldLines[i] });
-  }
-  for (let i = prefix; i <= newEnd; i++) {
-    result.push({ type: "add", text: newLines[i] });
-  }
-  suffix.reverse();
-  result.push(...suffix);
-  return result;
-}
-
-/** Collapse long runs of equal lines into context hunks */
-function collapseContext(lines: DiffLine[], contextSize = 3): (DiffLine | { type: "collapse"; count: number })[] {
-  const result: (DiffLine | { type: "collapse"; count: number })[] = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    if (lines[i].type !== "equal") {
-      result.push(lines[i]);
-      i++;
-      continue;
-    }
-
-    // Count consecutive equal lines
-    let eqStart = i;
-    while (i < lines.length && lines[i].type === "equal") i++;
-    const eqCount = i - eqStart;
-
-    if (eqCount <= contextSize * 2 + 1) {
-      // Short run — show all
-      for (let k = eqStart; k < i; k++) result.push(lines[k]);
-    } else {
-      // Show leading context
-      const isStart = eqStart === 0;
-      const isEnd = i === lines.length;
-
-      if (isStart) {
-        // At file start: only show trailing context
-        const collapsed = eqCount - contextSize;
-        result.push({ type: "collapse", count: collapsed });
-        for (let k = i - contextSize; k < i; k++) result.push(lines[k]);
-      } else if (isEnd) {
-        // At file end: only show leading context
-        for (let k = eqStart; k < eqStart + contextSize; k++) result.push(lines[k]);
-        const collapsed = eqCount - contextSize;
-        result.push({ type: "collapse", count: collapsed });
-      } else {
-        for (let k = eqStart; k < eqStart + contextSize; k++) result.push(lines[k]);
-        const collapsed = eqCount - contextSize * 2;
-        result.push({ type: "collapse", count: collapsed });
-        for (let k = i - contextSize; k < i; k++) result.push(lines[k]);
-      }
-    }
-  }
-
-  return result;
-}
-
-// --- Helpers ---
-
 function relativeTime(ts: number): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - ts;
@@ -169,19 +34,14 @@ function fullDate(ts: number): string {
   return new Date(ts * 1000).toLocaleString();
 }
 
-// --- Component ---
-
 interface Props {
-  onRestore: (content: string) => void;
-  currentContent: string;
+  onPreview: (content: string, label: string) => void;
 }
 
-export function HistoryPanel({ onRestore, currentContent }: Props) {
+export function HistoryPanel({ onPreview }: Props) {
   const filePath = useEditorStore((s) => s.filePath);
   const [snapshots, setSnapshots] = useState<SnapshotMeta[]>([]);
   const [gitCommits, setGitCommits] = useState<GitCommit[]>([]);
-  const [previewContent, setPreviewContent] = useState<string | null>(null);
-  const [previewLabel, setPreviewLabel] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [activeSection, setActiveSection] = useState<"local" | "git">("local");
@@ -215,30 +75,21 @@ export function HistoryPanel({ onRestore, currentContent }: Props) {
     if (!filePath) return;
     try {
       const content = await invoke<string>("read_snapshot", { filePath, snapshotId: snap.id });
-      setPreviewContent(content);
-      setPreviewLabel(snap.name || relativeTime(snap.timestamp));
+      onPreview(content, snap.name || relativeTime(snap.timestamp));
     } catch {
       useToastStore.getState().addToast("Failed to load snapshot", "error");
     }
-  }, [filePath]);
+  }, [filePath, onPreview]);
 
   const handlePreviewGit = useCallback(async (commit: GitCommit) => {
     if (!filePath) return;
     try {
       const content = await invoke<string>("read_git_version", { filePath, commitHash: commit.hash });
-      setPreviewContent(content);
-      setPreviewLabel(`${commit.short_hash} — ${commit.message}`);
+      onPreview(content, `${commit.short_hash} — ${commit.message}`);
     } catch {
       useToastStore.getState().addToast("Failed to load git version", "error");
     }
-  }, [filePath]);
-
-  const handleRestore = useCallback(() => {
-    if (previewContent === null) return;
-    onRestore(previewContent);
-    setPreviewContent(null);
-    useToastStore.getState().addToast("Version restored", "success", 2000);
-  }, [previewContent, onRestore]);
+  }, [filePath, onPreview]);
 
   const handlePin = useCallback(async (snap: SnapshotMeta) => {
     if (!filePath) return;
@@ -272,117 +123,6 @@ export function HistoryPanel({ onRestore, currentContent }: Props) {
       useToastStore.getState().addToast("Failed to delete snapshot", "error");
     }
   }, [filePath, loadSnapshots]);
-
-  // Compute diff between snapshot and current content
-  const diffLines = useMemo(() => {
-    if (previewContent === null) return null;
-    const raw = computeDiff(previewContent, currentContent);
-    return collapseContext(raw);
-  }, [previewContent, currentContent]);
-
-  const diffStats = useMemo(() => {
-    if (!diffLines) return null;
-    let added = 0, removed = 0;
-    for (const l of diffLines) {
-      if (l.type === "add") added++;
-      else if (l.type === "remove") removed++;
-    }
-    return { added, removed };
-  }, [diffLines]);
-
-  // Preview with diff view
-  if (previewContent !== null && diffLines) {
-    return (
-      <div className="h-full flex flex-col bg-[var(--surface-secondary)]">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--editor-border)]">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[11px] font-medium text-[var(--text-secondary)] truncate">
-              {previewLabel}
-            </span>
-            {diffStats && (diffStats.added > 0 || diffStats.removed > 0) && (
-              <span className="flex items-center gap-1.5 text-[10px] shrink-0">
-                {diffStats.added > 0 && <span className="text-[var(--status-success)]">+{diffStats.added}</span>}
-                {diffStats.removed > 0 && <span className="text-[var(--status-error)]">-{diffStats.removed}</span>}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => setPreviewContent(null)}
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0"
-          >
-            <X size={14} />
-          </button>
-        </div>
-
-        {diffStats && diffStats.added === 0 && diffStats.removed === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-muted)] px-4">
-            <span className="text-[12px] font-medium">No changes</span>
-            <span className="text-[11px] mt-1 opacity-60">This version is identical to the current content</span>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-auto">
-            <div className="text-[12px] font-mono leading-[1.6]">
-              {diffLines.map((line, i) => {
-                if (line.type === "collapse") {
-                  return (
-                    <div
-                      key={i}
-                      className="px-3 py-0.5 text-[11px] text-[var(--text-muted)] bg-[var(--surface-active)] border-y border-[var(--editor-border)] select-none"
-                    >
-                      {line.count} unchanged {line.count === 1 ? "line" : "lines"}
-                    </div>
-                  );
-                }
-                const bg =
-                  line.type === "add"
-                    ? "bg-[color-mix(in_srgb,var(--status-success),transparent_88%)]"
-                    : line.type === "remove"
-                      ? "bg-[color-mix(in_srgb,var(--status-error),transparent_88%)]"
-                      : "";
-                const prefix =
-                  line.type === "add" ? "+" : line.type === "remove" ? "-" : " ";
-                const textColor =
-                  line.type === "add"
-                    ? "text-[var(--status-success)]"
-                    : line.type === "remove"
-                      ? "text-[var(--status-error)]"
-                      : "text-[var(--text-secondary)]";
-
-                return (
-                  <div key={i} className={`${bg} flex`}>
-                    <span className={`w-5 shrink-0 text-right pr-1 select-none ${
-                      line.type !== "equal" ? textColor : "text-[var(--text-muted)]"
-                    } opacity-60`}>
-                      {prefix}
-                    </span>
-                    <span className={`${textColor} whitespace-pre-wrap break-all px-1`}>
-                      {line.text || "\u00A0"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="px-3 py-2 border-t border-[var(--editor-border)] flex gap-2">
-          <button
-            onClick={handleRestore}
-            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[12px] font-medium bg-[var(--accent)] text-white hover:opacity-90 transition-opacity"
-          >
-            <RotateCcw size={12} />
-            Restore this version
-          </button>
-          <button
-            onClick={() => setPreviewContent(null)}
-            className="px-3 py-1.5 rounded text-[12px] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (!filePath) {
     return (
@@ -450,7 +190,8 @@ export function HistoryPanel({ onRestore, currentContent }: Props) {
                 {snapshots.map((snap) => (
                   <div
                     key={snap.id}
-                    className="group px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors"
+                    className="group px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+                    onClick={() => handlePreviewSnapshot(snap)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -459,6 +200,7 @@ export function HistoryPanel({ onRestore, currentContent }: Props) {
                           <form
                             onSubmit={(e) => { e.preventDefault(); handleRename(snap.id); }}
                             className="flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <input
                               autoFocus
@@ -478,14 +220,7 @@ export function HistoryPanel({ onRestore, currentContent }: Props) {
                       </div>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         <button
-                          onClick={() => handlePreviewSnapshot(snap)}
-                          className="p-1 rounded hover:bg-[var(--surface-active)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                          title="Preview diff"
-                        >
-                          <Eye size={12} />
-                        </button>
-                        <button
-                          onClick={() => handlePin(snap)}
+                          onClick={(e) => { e.stopPropagation(); handlePin(snap); }}
                           className={`p-1 rounded hover:bg-[var(--surface-active)] ${
                             snap.pinned ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                           }`}
@@ -494,14 +229,14 @@ export function HistoryPanel({ onRestore, currentContent }: Props) {
                           <Pin size={12} />
                         </button>
                         <button
-                          onClick={() => { setRenamingId(snap.id); setRenameValue(snap.name || ""); }}
+                          onClick={(e) => { e.stopPropagation(); setRenamingId(snap.id); setRenameValue(snap.name || ""); }}
                           className="p-1 rounded hover:bg-[var(--surface-active)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                           title="Rename"
                         >
                           <Pencil size={12} />
                         </button>
                         <button
-                          onClick={() => handleDelete(snap.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(snap.id); }}
                           className="p-1 rounded hover:bg-[var(--surface-active)] text-[var(--text-muted)] hover:text-[var(--status-error)]"
                           title="Delete"
                         >

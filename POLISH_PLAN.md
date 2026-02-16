@@ -15,7 +15,7 @@
 - [x] Phase 11: Release Prep
 - [ ] Phase 12: Templates
 - [ ] Phase 13: Tag System
-- [ ] Phase 14: Version History
+- [x] Phase 14: Version History
 - [ ] Phase 15: Reading Mode with Marginalia
 
 ## Execution Order

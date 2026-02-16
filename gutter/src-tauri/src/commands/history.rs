@@ -11,7 +11,9 @@ pub struct SnapshotMeta {
     pub timestamp: u64,
     pub content_hash: String,
     pub name: Option<String>,
+    pub description: Option<String>,
     pub pinned: bool,
+    pub size_bytes: u64,
 }
 
 #[derive(Serialize)]
@@ -77,16 +79,22 @@ fn now_secs() -> u64 {
         .as_secs()
 }
 
-const MAX_AGE_SECS: u64 = 7 * 24 * 60 * 60; // 7 days
+const MAX_AGE_SECS: u64 = 24 * 60 * 60; // 24 hours
 
 #[tauri::command]
 pub fn save_snapshot(file_path: String, content: String) -> Result<SnapshotMeta, String> {
     let hash = content_hash(&content);
     let mut meta = read_meta(&file_path);
+    let ts = now_secs();
 
     // Dedup: skip if latest snapshot has the same content hash
     if let Some(latest) = meta.first() {
         if latest.content_hash == hash {
+            return Ok(latest.clone());
+        }
+        // 30s debounce: skip if last snapshot was less than 30s ago
+        // UNLESS content is substantially different? No, just follow the plan.
+        if ts - latest.timestamp < 30 {
             return Ok(latest.clone());
         }
     }
@@ -98,7 +106,6 @@ pub fn save_snapshot(file_path: String, content: String) -> Result<SnapshotMeta,
             .map_err(|e| format!("Failed to create snapshots dir: {}", e))?;
     }
 
-    let ts = now_secs();
     let id = format!("s{}", ts);
     let snap_path = snap_dir.join(format!("{}.md", id));
     fs::write(&snap_path, &content).map_err(|e| format!("Failed to write snapshot: {}", e))?;
@@ -108,7 +115,9 @@ pub fn save_snapshot(file_path: String, content: String) -> Result<SnapshotMeta,
         timestamp: ts,
         content_hash: hash,
         name: None,
+        description: None,
         pinned: false,
+        size_bytes: content.len() as u64,
     };
 
     // Insert at front (newest first)
@@ -147,21 +156,24 @@ pub fn read_snapshot(file_path: String, snapshot_id: String) -> Result<String, S
 }
 
 #[tauri::command]
-pub fn pin_snapshot(file_path: String, snapshot_id: String, pinned: bool) -> Result<(), String> {
+pub fn update_snapshot_metadata(
+    file_path: String,
+    snapshot_id: String,
+    name: Option<String>,
+    description: Option<String>,
+    pinned: Option<bool>,
+) -> Result<(), String> {
     let mut meta = read_meta(&file_path);
     if let Some(s) = meta.iter_mut().find(|s| s.id == snapshot_id) {
-        s.pinned = pinned;
-    } else {
-        return Err("Snapshot not found".to_string());
-    }
-    write_meta(&file_path, &meta)
-}
-
-#[tauri::command]
-pub fn rename_snapshot(file_path: String, snapshot_id: String, name: String) -> Result<(), String> {
-    let mut meta = read_meta(&file_path);
-    if let Some(s) = meta.iter_mut().find(|s| s.id == snapshot_id) {
-        s.name = if name.is_empty() { None } else { Some(name) };
+        if let Some(n) = name {
+            s.name = if n.is_empty() { None } else { Some(n) };
+        }
+        if let Some(d) = description {
+            s.description = if d.is_empty() { None } else { Some(d) };
+        }
+        if let Some(p) = pinned {
+            s.pinned = p;
+        }
     } else {
         return Err("Snapshot not found".to_string());
     }

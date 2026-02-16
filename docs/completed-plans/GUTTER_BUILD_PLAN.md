@@ -6,11 +6,7 @@ A markdown editor combining the best of Typora and Zettlr with robust Google Doc
 
 ## Vision
 
-Gutter is a local-first, WYSIWYG-ish markdown editor where **comments are a first-class feature**. The name refers to the typographic gutter — the margin space where annotations live. The editor ~~should~~ feel fast, clean, and premium, like a native app, not an Electron wrapper.
-
----
-
-## Tech Stack
+Gutter is a local-first, WYSIWYG-ish markdown editor where **comments are a first**
 
 | Layer | Choice |
 | --- | --- |
@@ -469,7 +465,7 @@ Refined typography, animations, app icon, about screen.
 
 ---
 
-## Testing Requirements
+## Testing Requirements (TEST CHANGE)!
 
 ### Unit tests (Vitest)
 
@@ -497,7 +493,7 @@ CodeMirror is a code editor. WYSIWYG markdown requires a rich-text document mode
 
 ### Why the three-file model for comments?
 
-**Inline markers (in **`**************************************.md**************************************`**)** solve anchor drift — the anchor *is* the content, so it moves with edits naturally. External editors preserve HTML tags.
+**Inline markers (in **`******************************************************************************************.md******************************************************************************************`**)** solve anchor drift — the anchor *is* the content, so it moves with edits naturally. External editors preserve HTML tags.
 
 **JSON sidecar** stores thread data (replies, timestamps, resolution state) that would clutter the markdown if inlined.
 
@@ -553,5 +549,30 @@ gutter/
 3. **Companion in git** — Provide a `.gitignore` template. Recommend: commit both `.comments.json` and `.comments.md`, or just the companion for lighter footprint.
 4. **Marker collision** — Users who intentionally write `<mark>` in their markdown: Gutter only treats `<mark>...<sup>[cN]</sup>` pairs as comments. Bare `<mark>` is left alone.
 5. **Future: real-time collaboration** — TipTap supports Yjs for real-time multi-user editing. The JSON sidecar would need to be replaced with a CRDT-based store. The inline marker approach is compatible. This is a v2+ concern.
+
+# Test Version Testory
+
+More
+
+yes
+
+```
+Code
+
+
+```
+
+$$
+x+y
+$$
+
+Then another thing
+
+```mermaid
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[OK]
+    B -->|No| D[End]
+```
 
 

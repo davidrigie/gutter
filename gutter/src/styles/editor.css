@@ -1650,3 +1650,33 @@
 .version-preview-content .ProseMirror ::selection {
   background: transparent;
 }
+
+/* Diff highlights */
+.diff-block-added {
+  background-color: color-mix(in srgb, var(--status-success), transparent 85%) !important;
+  border-left: 3px solid var(--status-success) !important;
+  padding-left: 0.5rem !important;
+  margin-left: -0.5rem !important;
+}
+
+.diff-block-removed {
+  background-color: color-mix(in srgb, var(--status-error), transparent 85%) !important;
+  border-left: 3px solid var(--status-error) !important;
+  padding-left: 0.5rem !important;
+  margin-left: -0.5rem !important;
+}
+
+.diff-block-active {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 4px !important;
+  border-radius: 4px !important;
+  z-index: 20;
+  position: relative;
+  animation: diffPulse 1.5s ease-out;
+}
+
+@keyframes diffPulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent), transparent 20%); }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}

@@ -41,6 +41,11 @@ export function useFileOps() {
       }
       await invoke("write_file", { path, content: markdown });
       setDirty(false);
+      
+      // Fire-and-forget snapshot for version history
+      if (path) {
+        invoke("save_snapshot", { filePath: path, content: markdown }).catch(() => {});
+      }
     },
     [filePath, setFilePath, setDirty],
   );

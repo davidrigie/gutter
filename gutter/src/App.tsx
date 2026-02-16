@@ -26,7 +26,7 @@ import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { modKey, modLabel } from "./utils/platform";
-import { fileName as pathFileName, parentDir, joinPath, isImageFile } from "./utils/path";
+import { fileName as pathFileName, parentDir, joinPath, isImageFile, resolveWikiLink } from "./utils/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 // Helper to normalize markdown content for comparison (handles line endings and trailing whitespace)
@@ -248,43 +248,29 @@ function App() {
     const handler = (e: Event) => {
       const target = (e as CustomEvent).detail?.target;
       if (!target || !workspacePath) return;
-      const findFile = (entries: import("./stores/workspaceStore").FileEntry[]): string | null => {
-        for (const entry of entries) {
-          if (!entry.is_dir) {
-            const nameWithoutExt = entry.name.replace(/\.md$/, "");
-            if (nameWithoutExt === target || entry.name === target) {
-              return entry.path;
-            }
-          }
-          if (entry.children) {
-            const found = findFile(entry.children);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
+
+      // Obsidian-style resolution: search workspace tree, shortest path wins
       const { fileTree } = useWorkspaceStore.getState();
-      const found = findFile(fileTree);
+      const found = resolveWikiLink(target, fileTree);
       if (found) {
         handleFileTreeOpen(found);
-      } else {
-        // Create the file in the same directory as the current file
-        const currentPath = useEditorStore.getState().filePath;
-        const dir = currentPath
-          ? parentDir(currentPath)
-          : workspacePath;
-        const fName = target.endsWith(".md") ? target : `${target}.md`;
-        const newPath = joinPath(dir, fName);
-        invoke("write_file", { path: newPath, content: `# ${target}\n\n` })
-          .then(() => {
-            if (workspacePath) loadFileTree(workspacePath);
-            handleFileTreeOpen(newPath);
-            useToastStore.getState().addToast(`Created ${fName}`, "success", 2000);
-          })
-          .catch(() => {
-            useToastStore.getState().addToast(`Failed to create ${fName}`, "error");
-          });
+        return;
       }
+
+      // Not found — create in same directory as current file
+      const currentPath = useEditorStore.getState().filePath;
+      const dir = currentPath ? parentDir(currentPath) : workspacePath;
+      const fName = target.endsWith(".md") ? target : `${target}.md`;
+      const newPath = joinPath(dir, fName);
+      invoke("write_file", { path: newPath, content: `# ${target}\n\n` })
+        .then(() => {
+          loadFileTree(workspacePath);
+          handleFileTreeOpen(newPath);
+          useToastStore.getState().addToast(`Created ${fName}`, "success", 2000);
+        })
+        .catch(() => {
+          useToastStore.getState().addToast(`Failed to create ${fName}`, "error");
+        });
     };
     window.addEventListener("wiki-link-click", handler);
 

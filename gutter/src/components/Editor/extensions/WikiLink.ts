@@ -1,23 +1,14 @@
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { useWorkspaceStore, type FileEntry } from "../../../stores/workspaceStore";
+import { useWorkspaceStore } from "../../../stores/workspaceStore";
+import { resolveWikiLink } from "../../../utils/path";
 
 const wikiLinkPluginKey = new PluginKey("wikiLinkDecorations");
 
 function wikiTargetExists(target: string): boolean {
   const { fileTree } = useWorkspaceStore.getState();
-  const search = (entries: FileEntry[]): boolean => {
-    for (const entry of entries) {
-      if (!entry.is_dir) {
-        const nameWithoutExt = entry.name.replace(/\.md$/, "");
-        if (nameWithoutExt === target || entry.name === target) return true;
-      }
-      if (entry.children && search(entry.children)) return true;
-    }
-    return false;
-  };
-  return search(fileTree);
+  return resolveWikiLink(target, fileTree) !== null;
 }
 
 /**
@@ -35,6 +26,11 @@ export const WikiLink = Extension.create({
         key: wikiLinkPluginKey,
         props: {
           decorations(state) {
+            // No workspace open — show wiki links as plain text
+            if (!useWorkspaceStore.getState().workspacePath) {
+              return DecorationSet.empty;
+            }
+
             const { selection } = state;
             const $from = selection.$from;
             const depth = $from.depth;
@@ -95,6 +91,7 @@ export const WikiLink = Extension.create({
   onCreate() {
     const dom = this.editor.view.dom;
     dom.addEventListener("click", (e: MouseEvent) => {
+      if (!useWorkspaceStore.getState().workspacePath) return;
       const target = (e.target as HTMLElement).closest(".wiki-link-inline") as HTMLElement | null;
       if (!target) return;
       const wikiTarget = target.getAttribute("data-wiki-target");

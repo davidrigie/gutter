@@ -2,21 +2,12 @@ import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { Node as PMNode, Mark } from "@tiptap/pm/model";
-import { useWorkspaceStore, type FileEntry } from "../../../stores/workspaceStore";
+import { useWorkspaceStore } from "../../../stores/workspaceStore";
+import { resolveWikiLink } from "../../../utils/path";
 
 function wikiTargetExists(target: string): boolean {
   const { fileTree } = useWorkspaceStore.getState();
-  const search = (entries: FileEntry[]): boolean => {
-    for (const entry of entries) {
-      if (!entry.is_dir) {
-        const nameWithoutExt = entry.name.replace(/\.md$/, "");
-        if (nameWithoutExt === target || entry.name === target) return true;
-      }
-      if (entry.children && search(entry.children)) return true;
-    }
-    return false;
-  };
-  return search(fileTree);
+  return resolveWikiLink(target, fileTree) !== null;
 }
 
 const lineRevealKey = new PluginKey("lineReveal");
@@ -239,7 +230,9 @@ export const LinkReveal = Extension.create({
             }
 
             // ── Wiki links: show [[ and ]] on active line ──
-            const wikiLinks = findWikiLinksInBlock(block, blockStart);
+            // Skip when no workspace — wiki links render as plain text
+            const hasWorkspace = !!useWorkspaceStore.getState().workspacePath;
+            const wikiLinks = hasWorkspace ? findWikiLinksInBlock(block, blockStart) : [];
 
             for (const wl of wikiLinks) {
               // Show [[ brackets (visible, muted)

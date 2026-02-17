@@ -5,6 +5,7 @@ import type { Node as UnistNode } from "unist";
 import type { JSONContent } from "@tiptap/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { joinPath, isImageFile } from "../../../utils/path";
+import { useWorkspaceStore } from "../../../stores/workspaceStore";
 
 interface MdastNode extends UnistNode {
   children?: MdastNode[];
@@ -103,6 +104,40 @@ function isAbsoluteSrc(src: string): boolean {
   return false;
 }
 
+/**
+ * Search the workspace file tree for a file matching the given name.
+ * Uses the same "shortest path wins" strategy as wiki link resolution.
+ */
+function resolveFileInWorkspace(target: string): string | null {
+  const { fileTree } = useWorkspaceStore.getState();
+  if (!fileTree.length) return null;
+
+  const hasPath = target.includes("/");
+  const matches: string[] = [];
+
+  const collect = (items: typeof fileTree) => {
+    for (const entry of items) {
+      if (!entry.is_dir) {
+        if (hasPath) {
+          const normalized = entry.path.replace(/\\/g, "/");
+          const suffix = target.replace(/\\/g, "/");
+          if (normalized.endsWith(`/${suffix}`) || normalized === suffix) {
+            matches.push(entry.path);
+          }
+        } else if (entry.name === target) {
+          matches.push(entry.path);
+        }
+      }
+      if (entry.children) collect(entry.children as typeof fileTree);
+    }
+  };
+  collect(fileTree);
+
+  if (matches.length === 0) return null;
+  if (matches.length === 1) return matches[0];
+  return matches.sort((a, b) => a.split("/").length - b.split("/").length)[0];
+}
+
 /** Walk the doc tree and convert relative image src to Tauri asset URLs */
 function resolveImagePaths(node: JSONContent, dirPath: string) {
   if (node.type === "image" && node.attrs?.src) {
@@ -112,6 +147,13 @@ function resolveImagePaths(node: JSONContent, dirPath: string) {
       src = src.slice(0, -"#wiki-embed".length);
       node.attrs.src = src;
       node.attrs.wikiEmbed = true;
+      // Wiki embeds resolve by searching the workspace (like wiki links)
+      const resolved = resolveFileInWorkspace(src);
+      if (resolved) {
+        node.attrs.originalSrc = src;
+        node.attrs.src = convertFileSrc(resolved.replace(/\\/g, "/"));
+        return; // skip the relative-path fallback below
+      }
     }
     if (src && !isAbsoluteSrc(src)) {
       // Store original relative path for round-trip serialization

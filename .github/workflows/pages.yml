@@ -3,7 +3,7 @@ name: Deploy Landing Page
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'screenshot.png']
+    paths: ['site/**', 'screenshot.png', 'gutter/screenshots/**']
   workflow_dispatch:
 
 permissions:
@@ -25,6 +25,9 @@ jobs:
 
       - name: Copy root screenshot into site
         run: cp screenshot.png site/screenshot.png
+
+      - name: Copy gallery screenshots into site
+        run: cp -r gutter/screenshots site/screenshots
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4

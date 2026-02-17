@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when <mark>working</
 
 After completing significant work (new features, new files, architectural changes), update this file and `memory/MEMORY.md` to reflect the current state. Keeping these accurate saves time in future sessions — stale instructions lead to wrong assumptions, unnecessary exploration, and wasted context window. Key things to keep current: extension list, store fields, Rust command modules, keyboard shortcuts, and polish plan status.
 
+## Keeping User-Facing Docs in Sync
+
+When adding, removing, or renaming features, update these files to match:
+
+- **`README.md`** — feature list, tech stack, download instructions
+- **`site/index.html`** — landing page feature cards, platform download links, screenshots
+- **This file (`CLAUDE.md`)** — extension list, store fields, command modules, keyboard shortcuts
+
+The website pulls download links dynamically from GitHub releases, so those stay current automatically. But feature descriptions, screenshots, and keyboard shortcut references must be updated manually. When in doubt, check all three files after any user-visible change.
+
 ## Project Overview
 
 Gutter is a local-first WYSIWYG markdown editor with first-class commenting, built with Tauri v2 (Rust backend) + React 19 + TipTap 3 (ProseMirror). All code lives under `gutter/`.

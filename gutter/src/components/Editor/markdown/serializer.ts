@@ -8,8 +8,10 @@ function assetUrlToRelative(src: string, originalSrc?: string | null): string {
   // Use the original relative path if available (handles Obsidian bare paths, etc.)
   if (originalSrc) return originalSrc;
   // Fallback: extract ./assets/... from Tauri asset URLs
+  // Normalize backslashes for Windows paths before matching
   if (src.includes("asset.localhost")) {
-    const match = src.match(/\/assets\/[^?#]+/);
+    const normalized = src.replace(/\\/g, "/");
+    const match = normalized.match(/\/assets\/[^?#]+/);
     if (match) return "." + match[0];
   }
   return src;

@@ -46,8 +46,7 @@ fn is_ignored_path(path: &Path) -> bool {
     if name.ends_with(".comments.json") || name.ends_with(".comments.md") {
         return true;
     }
-    let path_str = path.to_string_lossy();
-    if path_str.contains("/.gutter/") || path_str.contains("\\.gutter\\") {
+    if path.components().any(|c| c.as_os_str() == ".gutter") {
         return true;
     }
     if name.starts_with('.') {

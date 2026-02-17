@@ -16,6 +16,10 @@ When adding, removing, or renaming features, update these files to match:
 
 The website pulls download links dynamically from GitHub releases, so those stay current automatically. But feature descriptions, screenshots, and keyboard shortcut references must be updated manually. When in doubt, check all three files after any user-visible change.
 
+## Tooling Preferences
+
+- **Python**: Always use `uv` for Python package management. Use `uv add <pkg>` to add dependencies and `uv run python script.py` to execute. Never use `pip install` directly.
+
 ## Project Overview
 
 Gutter is a local-first WYSIWYG markdown editor with first-class commenting, built with Tauri v2 (Rust backend) + React 19 + TipTap 3 (ProseMirror). All code lives under `gutter/`.

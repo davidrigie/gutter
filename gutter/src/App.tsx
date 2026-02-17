@@ -820,14 +820,14 @@ function App() {
       rose:    { light: "#f43f5e", dark: "#fb7185" },
       orange:  { light: "#f97316", dark: "#fb923c" },
       green:   { light: "#22c55e", dark: "#4ade80" },
-      teal:    { light: "#14b8a6", dark: "#2dd4bf" },
+      teal:    { light: "#0d9488", dark: "#2dd4bf" },
     };
     const isDark = document.documentElement.classList.contains("dark");
     const preset = accentPresets[accentColor];
     // Support custom hex colors (e.g. "#e05d44") or preset names
     const color = preset
       ? (isDark ? preset.dark : preset.light)
-      : (accentColor.startsWith("#") ? accentColor : accentPresets.indigo[isDark ? "dark" : "light"]);
+      : (accentColor.startsWith("#") ? accentColor : accentPresets.teal[isDark ? "dark" : "light"]);
     root.style.setProperty("--accent", color);
     // Derive hover and alpha variants
     const hoverColor = preset

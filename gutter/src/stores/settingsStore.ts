@@ -44,7 +44,7 @@ const defaults: Settings = {
   defaultAuthor: "Author",
   editorWidth: "medium",
   lineHeight: "comfortable",
-  accentColor: "indigo",
+  accentColor: "teal",
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({

@@ -63,7 +63,7 @@ export function CommentsPanel() {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as FilterMode)}
-            className="text-[11px] bg-transparent text-[var(--text-secondary)] border border-[var(--editor-border)] rounded px-1 py-0.5 outline-none"
+            className="text-[11px] bg-[var(--surface-primary)] text-[var(--text-secondary)] border border-[var(--editor-border)] rounded-md px-1.5 py-0.5 outline-none transition-colors focus:border-[var(--accent)]"
           >
             <option value="all">All ({totalCount})</option>
             <option value="open">Open ({openCount})</option>
@@ -82,8 +82,8 @@ export function CommentsPanel() {
       </div>
       <div className="flex-1 overflow-auto py-2">
         {visibleThreads.length === 0 && (
-          <div className="px-4 py-12 text-center text-[var(--text-muted)]">
-            <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
+          <div className="px-4 py-16 text-center text-[var(--text-muted)]">
+            <MessageSquare size={32} className="mx-auto mb-3 opacity-20" />
             <p className="text-[13px] font-medium text-[var(--text-tertiary)] mb-1">
               {totalCount === 0
                 ? "No comments yet"

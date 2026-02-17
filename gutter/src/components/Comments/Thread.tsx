@@ -34,13 +34,12 @@ export function Thread({ commentId, thread, isActive, quotedText, onClick }: Thr
 
   return (
     <div
-      className={`mx-2 mb-2 rounded-lg border-l-[3px] transition-all cursor-pointer ${
+      className={`mx-2 mb-2 rounded-lg border border-[var(--editor-border)] border-l-[3px] transition-all duration-200 cursor-pointer ${
         isActive
-          ? "border-l-[var(--accent)] bg-[var(--accent-subtle)]"
-          : "border-l-transparent hover:border-l-[var(--editor-border)] hover:shadow-sm"
-      } ${thread.resolved ? "opacity-40" : ""}`}
+          ? "border-l-[var(--accent)] bg-[var(--accent-subtle)] shadow-sm"
+          : "bg-[var(--surface-elevated)] border-l-transparent hover:border-l-[var(--editor-border)]"
+      } ${thread.resolved ? "opacity-50" : ""}`}
       onClick={onClick}
-      style={{ borderTop: '1px solid var(--editor-border)', borderRight: '1px solid var(--editor-border)', borderBottom: '1px solid var(--editor-border)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5">
@@ -122,10 +121,11 @@ export function Thread({ commentId, thread, isActive, quotedText, onClick }: Thr
         <div className="px-3 pb-2">
           {thread.thread.map((msg) => (
             <div key={msg.id} className="mb-2 last:mb-0">
-              <div className="flex items-baseline gap-2">
-                <span className="text-[12px] font-medium text-[var(--text-primary)]">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[12px] font-semibold text-[var(--text-primary)]">
                   {msg.author}
                 </span>
+                <span className="text-[10px] text-[var(--text-muted)]">·</span>
                 <span className="text-[11px] text-[var(--text-muted)]">
                   {formatDate(msg.timestamp)}
                 </span>

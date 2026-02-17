@@ -1,21 +1,46 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import { invoke } from "@tauri-apps/api/core";
 import { BlockActionBar } from "../BlockActionBar";
+import { resolveFileInTree, fileName } from "../../../utils/path";
+import { useWorkspaceStore } from "../../../stores/workspaceStore";
 
 export function ImageBlockView({ node, deleteNode, editor, getPos }: NodeViewProps) {
   const [fallbackSrc, setFallbackSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const triedWorkspace = useRef(false);
 
   const handleError = () => {
     const filePath = node.attrs.filePath as string | undefined;
+    const originalSrc = node.attrs.originalSrc as string | undefined;
+
     if (fallbackSrc) {
-      // Both asset URL and data URL fallback failed — show diagnostic info
+      // Data URL fallback also failed — try workspace-wide resolution as last resort
+      if (!triedWorkspace.current && originalSrc) {
+        triedWorkspace.current = true;
+        const { fileTree } = useWorkspaceStore.getState();
+        // Search by bare filename (Obsidian-style: image can be anywhere in vault)
+        const name = fileName(originalSrc);
+        const resolved = resolveFileInTree(name, fileTree);
+        if (resolved && resolved !== filePath) {
+          invoke<string>("read_file_data_url", { path: resolved })
+            .then(setFallbackSrc)
+            .catch(() => {
+              setError(
+                `Image failed to load.\n` +
+                `src: ${node.attrs.src}\n` +
+                `filePath: ${filePath ?? "(not set)"}\n` +
+                `originalSrc: ${originalSrc}`
+              );
+            });
+          return;
+        }
+      }
       setError(
         `Image failed to load.\n` +
         `src: ${node.attrs.src}\n` +
         `filePath: ${filePath ?? "(not set)"}\n` +
-        `originalSrc: ${node.attrs.originalSrc ?? "(not set)"}`
+        `originalSrc: ${originalSrc ?? "(not set)"}`
       );
       return;
     }
@@ -23,6 +48,25 @@ export function ImageBlockView({ node, deleteNode, editor, getPos }: NodeViewPro
       invoke<string>("read_file_data_url", { path: filePath })
         .then(setFallbackSrc)
         .catch((err) => {
+          // filePath didn't exist — try workspace-wide resolution before giving up
+          if (originalSrc) {
+            const { fileTree } = useWorkspaceStore.getState();
+            const name = fileName(originalSrc);
+            const resolved = resolveFileInTree(name, fileTree);
+            if (resolved && resolved !== filePath) {
+              invoke<string>("read_file_data_url", { path: resolved })
+                .then(setFallbackSrc)
+                .catch(() => {
+                  setError(
+                    `Image failed to load.\n` +
+                    `src: ${node.attrs.src}\n` +
+                    `filePath: ${filePath}\n` +
+                    `fallback error: ${err}`
+                  );
+                });
+              return;
+            }
+          }
           setError(
             `Image failed to load.\n` +
             `src: ${node.attrs.src}\n` +
@@ -34,7 +78,7 @@ export function ImageBlockView({ node, deleteNode, editor, getPos }: NodeViewPro
       setError(
         `Image failed to load (no filePath for fallback).\n` +
         `src: ${node.attrs.src}\n` +
-        `originalSrc: ${node.attrs.originalSrc ?? "(not set)"}`
+        `originalSrc: ${originalSrc ?? "(not set)"}`
       );
     }
   };

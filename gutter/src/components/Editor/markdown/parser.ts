@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import type { Node as UnistNode } from "unist";
 import type { JSONContent } from "@tiptap/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { joinPath, normalizePath, isImageFile } from "../../../utils/path";
+import { joinPath, normalizePath, isImageFile, resolveFileInTree } from "../../../utils/path";
 import { useWorkspaceStore } from "../../../stores/workspaceStore";
 
 interface MdastNode extends UnistNode {
@@ -111,31 +111,7 @@ function isAbsoluteSrc(src: string): boolean {
 function resolveFileInWorkspace(target: string): string | null {
   const { fileTree } = useWorkspaceStore.getState();
   if (!fileTree.length) return null;
-
-  const hasPath = target.includes("/");
-  const matches: string[] = [];
-
-  const collect = (items: typeof fileTree) => {
-    for (const entry of items) {
-      if (!entry.is_dir) {
-        if (hasPath) {
-          const normalized = entry.path.replace(/\\/g, "/");
-          const suffix = target.replace(/\\/g, "/");
-          if (normalized.endsWith(`/${suffix}`) || normalized === suffix) {
-            matches.push(entry.path);
-          }
-        } else if (entry.name === target) {
-          matches.push(entry.path);
-        }
-      }
-      if (entry.children) collect(entry.children as typeof fileTree);
-    }
-  };
-  collect(fileTree);
-
-  if (matches.length === 0) return null;
-  if (matches.length === 1) return matches[0];
-  return matches.sort((a, b) => a.split("/").length - b.split("/").length)[0];
+  return resolveFileInTree(target, fileTree);
 }
 
 /** Walk the doc tree and convert relative image src to Tauri asset URLs */
@@ -165,13 +141,23 @@ function resolveImagePaths(node: JSONContent, dirPath: string) {
       // would double-encode into %2520
       let decoded: string;
       try { decoded = decodeURIComponent(src); } catch { decoded = src; }
-      // Normalize to forward slashes for consistent path joining (Windows sends backslashes)
-      const normalizedDir = dirPath.replace(/\\/g, "/");
-      // normalizePath resolves . and .. components — macOS handles these transparently
-      // but Windows asset protocol does not
-      const absolute = normalizePath(joinPath(normalizedDir, decoded));
-      node.attrs.filePath = absolute;
-      node.attrs.src = convertFileSrc(absolute);
+      // Try workspace-wide resolution first (Obsidian-style: images can be anywhere
+      // in the vault, not necessarily relative to the current file)
+      let searchTarget = decoded;
+      // Strip leading ./ for workspace search — ./assets/img.png → assets/img.png
+      if (searchTarget.startsWith("./")) searchTarget = searchTarget.slice(2);
+      const workspaceResolved = resolveFileInWorkspace(searchTarget);
+      if (workspaceResolved) {
+        const resolvedNorm = workspaceResolved.replace(/\\/g, "/");
+        node.attrs.filePath = resolvedNorm;
+        node.attrs.src = convertFileSrc(resolvedNorm);
+      } else {
+        // Fallback: resolve relative to current file's directory
+        const normalizedDir = dirPath.replace(/\\/g, "/");
+        const absolute = normalizePath(joinPath(normalizedDir, decoded));
+        node.attrs.filePath = absolute;
+        node.attrs.src = convertFileSrc(absolute);
+      }
     }
   }
   if (node.content) {

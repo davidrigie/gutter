@@ -1,6 +1,6 @@
 [package]
 name = "gutter"
-version = "0.3.3"
+version = "0.3.4"
 description = "A local-first WYSIWYG markdown editor with first-class commenting"
 authors = ["you"]
 license = ""
@@ -32,7 +32,7 @@ base64 = "0.22"
 
 [profile.release]
 lto = "thin"
-strip = true
+strip = "debuginfo"
 codegen-units = 16
 opt-level = "s"
 panic = "abort"

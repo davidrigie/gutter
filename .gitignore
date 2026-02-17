@@ -7,3 +7,7 @@ target/
 
 # Generated demo assets
 gutter/demo/**/assets/
+
+# Generated test screenshots (regenerable via npm run screenshots)
+gutter/test-results/screenshots/
+gutter/test-results/

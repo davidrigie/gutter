@@ -921,14 +921,27 @@
   var current = 0;
   var images = [];
 
+  // Display order — hero-light first as the best intro shot
+  var displayOrder = [
+    'hero-light.png',
+    'hero-dark.png',
+    'reading-mode.png',
+    'rich-content.png',
+    'command-palette.png',
+    'history-panel.png',
+    'tag-browser.png',
+    'outline.png'
+  ];
+
   var captions = {
-    'hero-dark.png': 'Editor with inline comments — Dark mode',
-    'hero-light.png': 'Editor with inline comments — Light mode',
-    'history-panel.png': 'Version history with inline diff',
-    'outline.png': 'Document outline and navigation',
-    'reading-mode.png': 'Reading mode with margin annotations',
-    'rich-content.png': 'Math, diagrams, and code blocks',
-    'tag-browser.png': 'Tag browser and filtering'
+    'hero-light.png': 'WYSIWYG editor with inline comments and wiki links',
+    'hero-dark.png': 'Full dark mode with comment threads',
+    'reading-mode.png': 'Distraction-free reading with margin annotations',
+    'rich-content.png': 'Syntax-highlighted code, LaTeX math, and frontmatter',
+    'command-palette.png': 'Command palette with keyboard shortcuts',
+    'history-panel.png': 'Version history with inline red/green diff view',
+    'tag-browser.png': 'Workspace-wide tag browser and filtering',
+    'outline.png': 'Document outline for quick navigation'
   };
 
   function nameToCaption(filename) {
@@ -994,7 +1007,15 @@
       if (!Array.isArray(files)) throw new Error('Bad response');
       images = files
         .filter(function (f) { return /\.png$/i.test(f.name); })
-        .sort(function (a, b) { return a.name.localeCompare(b.name); })
+        .sort(function (a, b) {
+          var ai = displayOrder.indexOf(a.name);
+          var bi = displayOrder.indexOf(b.name);
+          // Known images sort by displayOrder; unknown ones go to the end alphabetically
+          if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
+          if (ai === -1) return 1;
+          if (bi === -1) return -1;
+          return ai - bi;
+        })
         .map(function (f) {
           return {
             name: f.name,

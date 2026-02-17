@@ -20,6 +20,7 @@ import { MermaidBlock, MermaidBlockView } from "./Editor/extensions/MermaidBlock
 import { CodeBlockView } from "./Editor/extensions/CodeBlockWithLang";
 import { Frontmatter } from "./Editor/extensions/Frontmatter";
 import { WikiLink } from "./Editor/extensions/WikiLink";
+import { CommentMark } from "./Editor/extensions/CommentMark";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { parseMarkdown } from "./Editor/markdown/parser";
@@ -301,6 +302,7 @@ export function VersionPreview({ content, currentContent, label, onRestore, onDi
     MermaidBlock.extend({ addNodeView() { return ReactNodeViewRenderer(MermaidBlockView); } }),
     Frontmatter,
     WikiLink,
+    CommentMark,
     TaskList,
     TaskItem.configure({ nested: true }),
     createDiffPlugin(decoRef),

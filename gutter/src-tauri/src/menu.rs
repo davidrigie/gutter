@@ -16,6 +16,13 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     // --- File menu ---
     let new_file = MenuItem::with_id(app, "new_file", "New File", true, Some("CmdOrCtrl+N"))?;
     let open = MenuItem::with_id(app, "open", "Open File", true, Some("CmdOrCtrl+O"))?;
+    let open_folder = MenuItem::with_id(
+        app,
+        "open_folder",
+        "Open Folder",
+        true,
+        None::<&str>,
+    )?;
     let save = MenuItem::with_id(app, "save", "Save", true, Some("CmdOrCtrl+S"))?;
     let new_from_template = MenuItem::with_id(
         app,
@@ -37,6 +44,7 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     let file_menu = SubmenuBuilder::new(app, "File")
         .item(&new_file)
         .item(&open)
+        .item(&open_folder)
         .item(&save)
         .separator()
         .item(&new_from_template)
@@ -226,6 +234,7 @@ pub fn setup_menu(app: &App) -> Result<(), Box<dyn std::error::Error>> {
             "preferences" => "menu:preferences",
             "new_file" => "menu:new-file",
             "open" => "menu:open",
+            "open_folder" => "menu:open-folder",
             "save" => "menu:save",
             "new_from_template" => "menu:new-from-template",
             "save_as_template" => "menu:save-as-template",

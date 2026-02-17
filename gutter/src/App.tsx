@@ -602,6 +602,13 @@ function App() {
     const unlisteners = [
       listen("menu:new-file", () => handleNewFile()),
       listen("menu:open", () => handleOpenFile()),
+      listen("menu:open-folder", async () => {
+        const selected = await open({ directory: true });
+        if (selected) {
+          const path = typeof selected === "string" ? selected : (selected as { path: string }).path;
+          await loadFileTree(path);
+        }
+      }),
       listen("menu:save", () => handleSave()),
       listen("menu:export", () => setShowExport(true)),
       listen("menu:preferences", () => setShowPreferences(true)),

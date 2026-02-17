@@ -196,8 +196,8 @@
   gap: 2px;
   padding: 4px;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -254,8 +254,8 @@
   transition: opacity 0.15s;
   z-index: 10;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
@@ -391,8 +391,8 @@
 
 .slash-menu {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -401,6 +401,7 @@
   max-height: 320px;
   overflow-y: auto;
   animation: fadeInScale 120ms ease-out;
+  will-change: transform, opacity;
 }
 .slash-menu-item {
   display: flex;
@@ -536,6 +537,7 @@
   min-width: 140px;
   box-shadow: var(--shadow-lg);
   animation: fadeInScale 120ms ease-out;
+  will-change: transform, opacity;
 }
 .dark .code-block-lang-dropdown {
   background: var(--code-block-bg);
@@ -654,8 +656,8 @@
   border: 1px solid var(--editor-border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 .math-block-editor-label {
   padding: 4px 10px;
@@ -751,8 +753,8 @@
   border: 1px solid var(--editor-border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 .mermaid-block-editor-label {
   padding: 4px 10px;
@@ -809,14 +811,15 @@
   position: fixed;
   z-index: var(--z-overlay);
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   padding: 4px;
   min-width: 180px;
   box-shadow: var(--shadow-lg);
   animation: fadeInScale 120ms ease-out;
+  will-change: transform, opacity;
 }
 .context-menu-item {
   display: flex;
@@ -860,7 +863,8 @@
   font-size: var(--font-size-xs);
   color: var(--text-muted);
   font-family: "SF Mono", Menlo, monospace;
-  background: var(--surface-hover);
+  background: transparent;
+  border: 1px solid var(--editor-border);
   padding: 1px 5px;
   border-radius: var(--radius-sm);
 }
@@ -879,8 +883,8 @@
   position: fixed;
   z-index: 60;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
@@ -1116,8 +1120,8 @@
 
 .wiki-autocomplete {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -1126,6 +1130,7 @@
   max-width: 360px;
   overflow-y: auto;
   animation: fadeInScale 120ms ease-out;
+  will-change: transform, opacity;
 }
 .wiki-autocomplete-item {
   display: flex;
@@ -1451,13 +1456,19 @@
    ═══════════════════════════════════════════════════════ */
 
 .unified-search-section {
-  padding: 6px 16px 2px;
+  padding: 8px 16px 4px;
+  margin-top: 4px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
   user-select: none;
+  border-top: 1px solid var(--editor-border);
+}
+.unified-search-section:first-child {
+  border-top: none;
+  margin-top: 0;
 }
 
 .unified-search-badge {
@@ -1621,8 +1632,8 @@
   gap: 6px;
   padding: 6px 14px;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);

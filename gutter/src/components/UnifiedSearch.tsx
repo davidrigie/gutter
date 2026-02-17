@@ -376,7 +376,7 @@ export function UnifiedSearch({ commands, onOpenFile, onClose, filterMode }: Uni
       >
         <span className={isSelected ? "text-[var(--text-primary)] font-medium" : ""}>{cmd.name}</span>
         {cmd.shortcut && (
-          <span className="text-[11px] text-[var(--text-muted)] font-mono bg-[var(--surface-active)] px-1.5 py-0.5 rounded">
+          <span className="text-[11px] text-[var(--text-muted)] font-mono border border-[var(--editor-border)] px-1.5 py-0.5 rounded">
             {cmd.shortcut}
           </span>
         )}

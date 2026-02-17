@@ -12,6 +12,26 @@ export function joinPath(...segments: string[]): string {
   return segments.map(s => s.replace(/[/\\]$/, "")).join("/");
 }
 
+/** Resolve . and .. components in a forward-slash path */
+export function normalizePath(p: string): string {
+  const parts = p.split("/");
+  const resolved: string[] = [];
+  for (const part of parts) {
+    if (part === ".") continue;
+    if (
+      part === ".." &&
+      resolved.length > 0 &&
+      resolved[resolved.length - 1] !== "" &&
+      !/^[a-zA-Z]:$/.test(resolved[resolved.length - 1])
+    ) {
+      resolved.pop();
+    } else if (part !== "..") {
+      resolved.push(part);
+    }
+  }
+  return resolved.join("/");
+}
+
 /**
  * Obsidian-style wiki link resolution.
  * Collects all files matching by name (or path suffix), then picks the

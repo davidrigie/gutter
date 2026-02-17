@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import type { Node as UnistNode } from "unist";
 import type { JSONContent } from "@tiptap/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { joinPath, isImageFile } from "../../../utils/path";
+import { joinPath, normalizePath, isImageFile } from "../../../utils/path";
 import { useWorkspaceStore } from "../../../stores/workspaceStore";
 
 interface MdastNode extends UnistNode {
@@ -158,9 +158,16 @@ function resolveImagePaths(node: JSONContent, dirPath: string) {
     if (src && !isAbsoluteSrc(src)) {
       // Store original relative path for round-trip serialization
       node.attrs.originalSrc = src;
+      // Decode URL-encoded characters before path operations — remark-parse preserves
+      // percent-encoding from markdown (e.g. %20 for spaces), which convertFileSrc
+      // would double-encode into %2520
+      let decoded: string;
+      try { decoded = decodeURIComponent(src); } catch { decoded = src; }
       // Normalize to forward slashes for consistent path joining (Windows sends backslashes)
       const normalizedDir = dirPath.replace(/\\/g, "/");
-      const absolute = joinPath(normalizedDir, src);
+      // normalizePath resolves . and .. components — macOS handles these transparently
+      // but Windows asset protocol does not
+      const absolute = normalizePath(joinPath(normalizedDir, decoded));
       node.attrs.src = convertFileSrc(absolute);
     }
   }

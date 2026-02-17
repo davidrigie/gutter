@@ -145,6 +145,32 @@ pub fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Read a file and return it as a data: URL (base64-encoded).
+/// Used for images to bypass the asset protocol which has issues on Windows.
+#[tauri::command]
+pub fn read_file_data_url(path: String) -> Result<String, String> {
+    let data = fs::read(&path).map_err(|e| format!("Failed to read file: {}", e))?;
+    let mime = match Path::new(&path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase()
+        .as_str()
+    {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "bmp" => "image/bmp",
+        "ico" => "image/x-icon",
+        _ => "application/octet-stream",
+    };
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&data);
+    Ok(format!("data:{};base64,{}", mime, b64))
+}
+
 #[tauri::command]
 pub fn get_open_file_path(app: tauri::AppHandle) -> Option<String> {
     use tauri::Manager;

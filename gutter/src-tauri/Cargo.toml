@@ -28,6 +28,7 @@ dirs = "5"
 url = "2"
 tauri-plugin-single-instance = "2"
 sha2 = "0.10"
+base64 = "0.22"
 
 [profile.release]
 lto = "thin"

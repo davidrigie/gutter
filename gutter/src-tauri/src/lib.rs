@@ -56,6 +56,7 @@ pub fn run() {
             commands::file_io::save_image,
             commands::file_io::copy_image,
             commands::file_io::open_url,
+            commands::file_io::read_file_data_url,
             commands::file_io::get_open_file_path,
             commands::comments::read_comments,
             commands::comments::write_comments,

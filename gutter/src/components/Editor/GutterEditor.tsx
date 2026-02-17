@@ -191,6 +191,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
               ...this.parent?.(),
               originalSrc: { default: null },
               wikiEmbed: { default: false },
+              filePath: { default: null },
             };
           },
           addNodeView() {

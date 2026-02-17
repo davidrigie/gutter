@@ -4,16 +4,16 @@
 
 :root {
   /* ─── Core palette ─── */
-  --editor-bg: #fafaf9;
-  --editor-text: #1a1a1a;
-  --editor-border: #e7e5e4;
-  --sidebar-bg: #f5f5f4;
-  --accent: #6366f1;
+  --editor-bg: #f8fafc;
+  --editor-text: #0f172a;
+  --editor-border: #e2e8f0;
+  --sidebar-bg: #f1f5f9;
+  --accent: #0d9488;
 
   /* ─── Accent variants ─── */
-  --accent-hover: #4f46e5;
-  --accent-subtle: rgba(99, 102, 241, 0.08);
-  --accent-muted: rgba(99, 102, 241, 0.5);
+  --accent-hover: #0f766e;
+  --accent-subtle: rgba(13, 148, 136, 0.08);
+  --accent-muted: rgba(13, 148, 136, 0.5);
 
   /* ─── Comment highlights ─── */
   --comment-highlight: rgba(245, 176, 65, 0.25);
@@ -25,29 +25,29 @@
   --annotation-bg: rgba(255, 255, 255, 0.7);
 
   /* ─── Semantic text ─── */
-  --text-primary: #1a1a1a;
-  --text-secondary: #44403c;
-  --text-tertiary: #78716c;
-  --text-muted: #a8a29e;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
 
   /* ─── Surfaces ─── */
-  --surface-primary: #fafaf9;
-  --surface-secondary: #f5f5f4;
+  --surface-primary: #f8fafc;
+  --surface-secondary: #f1f5f9;
   --surface-hover: rgba(0, 0, 0, 0.04);
   --surface-active: rgba(0, 0, 0, 0.06);
   --surface-elevated: #ffffff;
 
   /* ─── Glass / backdrop ─── */
-  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-bg: rgba(248, 250, 252, 0.85);
   --glass-border: rgba(0, 0, 0, 0.08);
 
   /* ─── Focus ring ─── */
-  --focus-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+  --focus-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
 
   /* ─── Code block ─── */
   --code-bg: rgba(0, 0, 0, 0.05);
-  --code-block-bg: #f5f5f4;
-  --code-block-header: #ededec;
+  --code-block-bg: #f1f5f9;
+  --code-block-header: #e2e8f0;
 
   /* ─── Find / replace ─── */
   --find-match: rgba(255, 213, 0, 0.4);
@@ -55,13 +55,13 @@
   --find-match-shadow: 0 0 0 1px rgba(255, 140, 0, 0.8);
 
   /* ─── Selection ─── */
-  --selection-bg: rgba(99, 102, 241, 0.08);
+  --selection-bg: rgba(13, 148, 136, 0.08);
 
   /* ─── Status ─── */
   --status-error: #ef4444;
   --status-success: #22c55e;
   --status-warning: #f59e0b;
-  --status-info: #6366f1;
+  --status-info: #0d9488;
 
   /* ─── Radii ─── */
   --radius-sm: 4px;
@@ -69,10 +69,10 @@
   --radius-lg: 12px;
 
   /* ─── Shadows ─── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 4px 6px rgba(0, 0, 0, 0.05), 0 16px 48px rgba(0, 0, 0, 0.15);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.12);
+  --shadow-xl: 0 4px 6px rgba(15, 23, 42, 0.05), 0 16px 48px rgba(15, 23, 42, 0.15);
 
   /* ─── Typography scale ─── */
   --font-size-xs: 11px;
@@ -119,11 +119,11 @@ body {
 }
 
 ::selection {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(13, 148, 136, 0.2);
 }
 
 .dark ::selection {
-  background: rgba(129, 140, 248, 0.25);
+  background: rgba(45, 212, 191, 0.25);
 }
 
 /* ─── Global interactive element transitions ─── */
@@ -164,53 +164,53 @@ button, a, input, textarea, select {
 }
 
 .dark {
-  --editor-bg: #0c0c0f;
-  --editor-text: #e7e5e4;
-  --editor-border: #27272a;
-  --sidebar-bg: #141417;
-  --accent: #818cf8;
+  --editor-bg: #0c1017;
+  --editor-text: #e2e8f0;
+  --editor-border: #1e293b;
+  --sidebar-bg: #111827;
+  --accent: #2dd4bf;
 
-  --accent-hover: #a5b4fc;
-  --accent-subtle: rgba(129, 140, 248, 0.1);
-  --accent-muted: rgba(129, 140, 248, 0.5);
+  --accent-hover: #5eead4;
+  --accent-subtle: rgba(45, 212, 191, 0.1);
+  --accent-muted: rgba(45, 212, 191, 0.5);
 
   --comment-highlight: rgba(245, 176, 65, 0.2);
   --comment-highlight-active: rgba(245, 176, 65, 0.4);
   --comment-highlight-resolved: rgba(156, 163, 175, 0.15);
 
   --annotation-border: rgba(255, 255, 255, 0.08);
-  --annotation-bg: rgba(28, 28, 32, 0.7);
+  --annotation-bg: rgba(17, 24, 39, 0.7);
 
-  --text-primary: #e7e5e4;
-  --text-secondary: #a8a29e;
-  --text-tertiary: #78716c;
-  --text-muted: #57534e;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-muted: #475569;
 
-  --surface-primary: #0c0c0f;
-  --surface-secondary: #141417;
+  --surface-primary: #0c1017;
+  --surface-secondary: #111827;
   --surface-hover: rgba(255, 255, 255, 0.05);
   --surface-active: rgba(255, 255, 255, 0.08);
-  --surface-elevated: #1c1c20;
+  --surface-elevated: #1a2332;
 
-  --glass-bg: rgba(20, 20, 23, 0.88);
+  --glass-bg: rgba(12, 16, 23, 0.90);
   --glass-border: rgba(255, 255, 255, 0.08);
 
-  --focus-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+  --focus-shadow: 0 0 0 2px rgba(45, 212, 191, 0.2);
 
   --code-bg: rgba(255, 255, 255, 0.08);
-  --code-block-bg: #18181b;
-  --code-block-header: #222225;
+  --code-block-bg: #111827;
+  --code-block-header: #1a2332;
 
   --find-match: rgba(255, 213, 0, 0.4);
   --find-match-current: rgba(255, 140, 0, 0.6);
   --find-match-shadow: 0 0 0 1px rgba(255, 140, 0, 0.8);
 
-  --selection-bg: rgba(129, 140, 248, 0.1);
+  --selection-bg: rgba(45, 212, 191, 0.1);
 
   --status-error: #f87171;
   --status-success: #4ade80;
   --status-warning: #fbbf24;
-  --status-info: #818cf8;
+  --status-info: #2dd4bf;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);

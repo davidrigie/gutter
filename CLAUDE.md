@@ -135,3 +135,22 @@ tsconfig has `strict: true`, `noUnusedLocals: true`, `noUnusedParameters: true`.
 ## Testing
 
 Tests in `gutter/tests/`: parser, serializer, round-trip fidelity, comment store CRUD, companion file generation, smoke tests. Run a single test file: `npx vitest run tests/parser.test.ts`.
+
+## Releasing
+
+The release workflow (`.github/workflows/release.yml`) builds for macOS (ARM + Intel), Linux, and Windows. It triggers on pushing a `v*` tag. CI runs `npm ci` which requires `package-lock.json` to be in sync with `package.json`.
+
+**Release checklist** — follow these steps in order:
+
+1. **Verify lockfiles are in sync**: Run `npm ci` from `gutter/` — if it fails, run `npm install` and commit the updated `package-lock.json`. This is the #1 cause of release failures (CI uses `npm ci` which refuses to install if the lockfile doesn't match `package.json`).
+2. **Bump version** in all three files (must match):
+   - `gutter/package.json` → `"version": "X.Y.Z"`
+   - `gutter/src-tauri/tauri.conf.json` → `"version": "X.Y.Z"`
+   - `gutter/src-tauri/Cargo.toml` → `version = "X.Y.Z"`
+3. **Update Cargo.lock**: Run `cd gutter/src-tauri && cargo update --package gutter`
+4. **Build locally**: Run `npm run build` from `gutter/` to verify the frontend compiles
+5. **Commit and push**: Commit the version bump to `main` and push
+6. **Tag and push**: `git tag vX.Y.Z && git push origin vX.Y.Z`
+7. **Monitor**: `gh run list --workflow release` to watch the build
+
+**If a release fails**: Delete the broken release and tag (`gh release delete vX.Y.Z --yes && git push origin --delete vX.Y.Z && git tag -d vX.Y.Z`), fix the issue, commit, and re-tag.

@@ -502,6 +502,74 @@
       line-height: 1.6;
     }
 
+    /* ─── Feature list (compact tier) ─── */
+    .feature-tier-divider {
+      text-align: center;
+      margin: 40px 0 28px;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .feature-list-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .feature-list-item:hover {
+      border-color: rgba(99, 102, 241, 0.25);
+    }
+
+    .feature-list-item .feature-icon {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 7px;
+      margin-bottom: 0;
+    }
+
+    .feature-list-item .feature-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .feature-list-item .feature-list-text {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .feature-list-item h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-list-item p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     /* ─── Tech strip ─── */
     .tech-strip {
       padding: 48px 24px;
@@ -631,6 +699,10 @@
       .hero h1 { font-size: 2.2rem; }
 
       .tech-strip-inner { gap: 24px; }
+
+      .feature-list { grid-template-columns: 1fr; }
+
+      .feature-list-item p { white-space: normal; }
     }
 
     @media (min-width: 769px) and (max-width: 1024px) {
@@ -730,66 +802,87 @@
     </div>
     <div class="feature-card animate-on-scroll">
       <div class="feature-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-      </div>
-      <h3>Wiki Links</h3>
-      <p>Type [[ to link between notes. Autocomplete suggests files as you type, and backlinks show what references the current page.</p>
-    </div>
-    <div class="feature-card animate-on-scroll">
-      <div class="feature-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      </div>
-      <h3>Math &amp; Diagrams</h3>
-      <p>LaTeX and Mermaid, rendered inline. Write the syntax, see the result. No export step, no separate preview.</p>
-    </div>
-    <div class="feature-card animate-on-scroll">
-      <div class="feature-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
       </div>
       <h3>Local-First</h3>
       <p>No accounts, no cloud, no telemetry. Plain markdown files on disk. Works great with git.</p>
     </div>
-    <div class="feature-card animate-on-scroll">
+  </div>
+
+  <div class="feature-tier-divider animate-on-scroll">Plus</div>
+
+  <div class="feature-list">
+    <div class="feature-list-item animate-on-scroll">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+      </div>
+      <div class="feature-list-text">
+        <h3>Wiki Links</h3>
+        <p>Type [[ to link between notes with autocomplete and backlinks</p>
+      </div>
+    </div>
+    <div class="feature-list-item animate-on-scroll">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="feature-list-text">
+        <h3>Math &amp; Diagrams</h3>
+        <p>LaTeX and Mermaid rendered inline — no export step</p>
+      </div>
+    </div>
+    <div class="feature-list-item animate-on-scroll">
       <div class="feature-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </div>
-      <h3>Version History</h3>
-      <p>Every save creates a snapshot. Browse, compare with inline diffs, and restore any version. Git history too, if your files are tracked.</p>
+      <div class="feature-list-text">
+        <h3>Version History</h3>
+        <p>Snapshots on every save with inline diff and restore</p>
+      </div>
     </div>
-    <div class="feature-card animate-on-scroll">
+    <div class="feature-list-item animate-on-scroll">
       <div class="feature-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </div>
-      <h3>Unified Search</h3>
-      <p>Cmd+K to search files, headings, tags, and commands in one place. Quick open, jump to any heading, filter by tag.</p>
+      <div class="feature-list-text">
+        <h3>Unified Search</h3>
+        <p>Files, headings, tags, and commands in one palette</p>
+      </div>
     </div>
-    <div class="feature-card animate-on-scroll">
+    <div class="feature-list-item animate-on-scroll">
       <div class="feature-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
       </div>
-      <h3>Tags</h3>
-      <p>Organize notes with frontmatter tags. Browse in a tag panel with list or cloud view, filter the file tree, search by tag.</p>
+      <div class="feature-list-text">
+        <h3>Tags</h3>
+        <p>Frontmatter tags with browser, cloud view, and file tree filtering</p>
+      </div>
     </div>
-    <div class="feature-card animate-on-scroll">
+    <div class="feature-list-item animate-on-scroll">
       <div class="feature-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
       </div>
-      <h3>Templates</h3>
-      <p>Start from built-in templates like meeting notes, journal entries, or project briefs. Save any document as a custom template.</p>
+      <div class="feature-list-text">
+        <h3>Templates</h3>
+        <p>Built-in and custom templates for quick document starts</p>
+      </div>
     </div>
-    <div class="feature-card animate-on-scroll">
+    <div class="feature-list-item animate-on-scroll">
       <div class="feature-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
       </div>
-      <h3>Reading Mode</h3>
-      <p>A clean, book-typeset view with comments as margin annotations. No chrome, no cursor — just the text and your notes.</p>
+      <div class="feature-list-text">
+        <h3>Reading Mode</h3>
+        <p>Distraction-free view with comments as margin annotations</p>
+      </div>
     </div>
-    <div class="feature-card animate-on-scroll">
+    <div class="feature-list-item animate-on-scroll">
       <div class="feature-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
       </div>
-      <h3>Fast &amp; Native</h3>
-      <p>Built on Tauri and Rust. Starts in under a second, light on memory, native on macOS, Windows, and Linux.</p>
+      <div class="feature-list-text">
+        <h3>Fast &amp; Native</h3>
+        <p>Tauri + Rust — starts instantly, light on memory, cross-platform</p>
+      </div>
     </div>
   </div>
 </section>

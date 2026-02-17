@@ -5,15 +5,37 @@ import { BlockActionBar } from "../BlockActionBar";
 
 export function ImageBlockView({ node, deleteNode, editor, getPos }: NodeViewProps) {
   const [fallbackSrc, setFallbackSrc] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleError = () => {
-    // If the asset protocol URL fails (common on Windows), fall back to
-    // reading the file via Rust and using a data: URL instead.
     const filePath = node.attrs.filePath as string | undefined;
-    if (filePath && !fallbackSrc) {
+    if (fallbackSrc) {
+      // Both asset URL and data URL fallback failed — show diagnostic info
+      setError(
+        `Image failed to load.\n` +
+        `src: ${node.attrs.src}\n` +
+        `filePath: ${filePath ?? "(not set)"}\n` +
+        `originalSrc: ${node.attrs.originalSrc ?? "(not set)"}`
+      );
+      return;
+    }
+    if (filePath) {
       invoke<string>("read_file_data_url", { path: filePath })
         .then(setFallbackSrc)
-        .catch(() => {});
+        .catch((err) => {
+          setError(
+            `Image failed to load.\n` +
+            `src: ${node.attrs.src}\n` +
+            `filePath: ${filePath}\n` +
+            `fallback error: ${err}`
+          );
+        });
+    } else {
+      setError(
+        `Image failed to load (no filePath for fallback).\n` +
+        `src: ${node.attrs.src}\n` +
+        `originalSrc: ${node.attrs.originalSrc ?? "(not set)"}`
+      );
     }
   };
 
@@ -28,13 +50,31 @@ export function ImageBlockView({ node, deleteNode, editor, getPos }: NodeViewPro
           editor.chain().focus().insertContentAt(end, { type: node.type.name, attrs: { ...node.attrs } }).run();
         }}
       />
-      <img
-        src={fallbackSrc || node.attrs.src}
-        alt={node.attrs.alt || ""}
-        title={node.attrs.title || undefined}
-        style={{ maxWidth: "100%" }}
-        onError={handleError}
-      />
+      {error ? (
+        <div
+          style={{
+            padding: "12px 16px",
+            background: "var(--surface-hover, #fee2e2)",
+            border: "1px solid var(--border-primary, #fca5a5)",
+            borderRadius: "6px",
+            fontFamily: "monospace",
+            fontSize: "12px",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
+            color: "var(--text-primary, #991b1b)",
+          }}
+        >
+          {error}
+        </div>
+      ) : (
+        <img
+          src={fallbackSrc || node.attrs.src}
+          alt={node.attrs.alt || ""}
+          title={node.attrs.title || undefined}
+          style={{ maxWidth: "100%" }}
+          onError={handleError}
+        />
+      )}
     </NodeViewWrapper>
   );
 }

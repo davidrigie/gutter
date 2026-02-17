@@ -125,7 +125,7 @@ export function WelcomeScreen({ onNewFile, onOpenFile, onOpenRecent }: WelcomeSc
                 className="flex items-center justify-between text-[12px] py-0.5"
               >
                 <span className="text-[var(--text-secondary)]">{s.action}</span>
-                <span className="text-[var(--text-muted)] font-mono text-[11px] bg-[var(--surface-active)] px-1.5 py-0.5 rounded">
+                <span className="text-[var(--text-muted)] font-mono text-[11px] border border-[var(--editor-border)] px-1.5 py-0.5 rounded">
                   {s.keys}
                 </span>
               </div>
@@ -176,7 +176,7 @@ export function WelcomeScreen({ onNewFile, onOpenFile, onOpenRecent }: WelcomeSc
                       className="flex items-center justify-between text-[12px] py-0.5"
                     >
                       <span className="text-[var(--text-secondary)]">{s.action}</span>
-                      <span className="text-[var(--text-muted)] font-mono text-[11px] bg-[var(--surface-active)] px-1.5 py-0.5 rounded shrink-0 ml-4">
+                      <span className="text-[var(--text-muted)] font-mono text-[11px] border border-[var(--editor-border)] px-1.5 py-0.5 rounded shrink-0 ml-4">
                         {s.keys}
                       </span>
                     </div>

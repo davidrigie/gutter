@@ -153,14 +153,17 @@ The release workflow (`.github/workflows/release.yml`) builds for macOS (ARM + I
 **Release checklist** — follow these steps in order:
 
 1. **Verify lockfiles are in sync**: Run `npm ci` from `gutter/` — if it fails, run `npm install` and commit the updated `package-lock.json`. This is the #1 cause of release failures (CI uses `npm ci` which refuses to install if the lockfile doesn't match `package.json`).
-2. **Bump version** in all three files (must match):
+2. **Verify Rust compiles for all platforms**: Check for any platform-specific code (e.g. `RunEvent::Opened` is macOS-only in Tauri). Use `#[cfg(target_os = "...")]` gates where needed.
+3. **Bump version** in all three files (must match):
    - `gutter/package.json` → `"version": "X.Y.Z"`
    - `gutter/src-tauri/tauri.conf.json` → `"version": "X.Y.Z"`
    - `gutter/src-tauri/Cargo.toml` → `version = "X.Y.Z"`
-3. **Update Cargo.lock**: Run `cd gutter/src-tauri && cargo update --package gutter`
-4. **Build locally**: Run `npm run build` from `gutter/` to verify the frontend compiles
-5. **Commit and push**: Commit the version bump to `main` and push
-6. **Tag and push**: `git tag vX.Y.Z && git push origin vX.Y.Z`
-7. **Monitor**: `gh run list --workflow release` to watch the build
+4. **Update Cargo.lock**: Run `cd gutter/src-tauri && cargo update --package gutter`
+5. **Build locally**: Run `npm run build` from `gutter/` to verify the frontend compiles, and `cd src-tauri && cargo check` for Rust.
+6. **Commit and push**: Commit the version bump to `main` and push
+7. **Tag and push**: `git tag vX.Y.Z && git push origin vX.Y.Z`
+8. **Monitor**: `gh run list --workflow release` — wait for ALL platforms (macOS ARM, macOS Intel, Linux, Windows) to pass
+9. **Publish**: The workflow creates a **draft** release. Once all builds pass, publish it: `gh release edit vX.Y.Z --draft=false --latest`. This is critical — the website download links pull from `/releases/latest`, so an unpublished or empty release breaks all downloads.
+10. **Verify downloads**: Check that `gh release view vX.Y.Z --json assets --jq '.assets[].name'` shows all expected binaries (.dmg x2, .exe, .msi, .AppImage, .deb)
 
-**If a release fails**: Delete the broken release and tag (`gh release delete vX.Y.Z --yes && git push origin --delete vX.Y.Z && git tag -d vX.Y.Z`), fix the issue, commit, and re-tag.
+**If a release fails**: Delete the broken release and tag (`gh release delete vX.Y.Z --yes && git push origin --delete vX.Y.Z && git tag -d vX.Y.Z`), fix the issue, commit, and re-tag. Also delete any failed releases that have no assets — an empty release marked Latest will break all website download links.

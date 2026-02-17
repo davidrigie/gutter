@@ -8,7 +8,6 @@ import { ContextMenu, type ContextMenuItem } from "../ContextMenu";
 import { fileName as pathFileName, joinPath, isImageFile } from "../../utils/path";
 import { isMac } from "../../utils/platform";
 import {
-  ChevronRight,
   ChevronDown,
   FolderIcon,
   FolderOpen,
@@ -738,12 +737,12 @@ const FileTreeNode = memo(function FileTreeNode({
         <div
           data-tree-path={entry.path}
           data-tree-dir="true"
-          className={`flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
+          className={`flex items-center gap-1 py-[5px] cursor-pointer select-none transition-all duration-150 text-[13px] border-l-2 ${
             isDropTarget
-              ? "bg-[var(--selection-bg)]"
+              ? "bg-[var(--selection-bg)] border-l-[var(--accent)]"
               : isDragSource
-                ? "opacity-40"
-                : "hover:bg-[var(--surface-hover)]"
+                ? "opacity-40 border-l-transparent"
+                : "border-l-transparent hover:bg-[var(--surface-hover)]"
           }`}
           style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
           onMouseDown={handleMouseDown}
@@ -770,16 +769,16 @@ const FileTreeNode = memo(function FileTreeNode({
               {Array.from({ length: depth }).map((_, i) => (
                 <div
                   key={i}
-                  className="absolute top-0 bottom-0 border-l border-[var(--editor-border)]"
+                  className="absolute top-0 bottom-0 border-l border-[var(--editor-border)] opacity-30"
                   style={{ left: `${(i + 1) * 16 + 4}px` }}
                 />
               ))}
             </div>
           )}
-          <span className="text-[var(--text-muted)] shrink-0">
-            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          <span className={`text-[var(--text-muted)] shrink-0 transition-transform duration-150 ${expanded ? "" : "-rotate-90"}`}>
+            <ChevronDown size={14} />
           </span>
-          <span className="text-[var(--text-tertiary)] shrink-0">
+          <span className={`shrink-0 ${expanded ? "text-[var(--text-secondary)]" : "text-[var(--text-tertiary)]"}`}>
             {expanded ? <FolderOpen size={14} /> : <FolderIcon size={14} />}
           </span>
           {renaming ? (
@@ -859,14 +858,14 @@ const FileTreeNode = memo(function FileTreeNode({
     <div
       data-tree-path={entry.path}
       data-tree-dir="false"
-      className={`relative flex items-center gap-1 py-[3px] cursor-pointer select-none transition-colors text-[13px] ${
+      className={`relative flex items-center gap-1 py-[5px] cursor-pointer select-none transition-all duration-150 text-[13px] border-l-2 ${
         isDragSource
-          ? "opacity-40"
+          ? "opacity-40 border-l-transparent"
           : isMultiSelected
-            ? "bg-[var(--selection-bg)]"
+            ? "bg-[var(--selection-bg)] border-l-[var(--accent)]"
             : isActiveTab
-              ? "bg-[var(--selection-bg)] border-l-2 border-l-[var(--accent)]"
-              : "hover:bg-[var(--surface-hover)]"
+              ? "bg-[var(--accent-subtle)] border-l-[var(--accent)]"
+              : "border-l-transparent hover:bg-[var(--surface-hover)] hover:border-l-[var(--editor-border)]"
       }`}
       style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: 8 }}
       onMouseDown={handleMouseDown}
@@ -892,7 +891,7 @@ const FileTreeNode = memo(function FileTreeNode({
           {Array.from({ length: depth }).map((_, i) => (
             <div
               key={i}
-              className="absolute top-0 bottom-0 border-l border-[var(--editor-border)] opacity-40"
+              className="absolute top-0 bottom-0 border-l border-[var(--editor-border)] opacity-30"
               style={{ left: `${(i + 1) * 16 + 4}px` }}
             />
           ))}

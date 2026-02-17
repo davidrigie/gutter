@@ -4,6 +4,7 @@ target/
 .DS_Store
 *.log
 .env
+.venv/
 
 # Generated demo assets
 gutter/demo/**/assets/

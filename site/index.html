@@ -294,6 +294,141 @@
       }
     }
 
+    /* ─── Carousel ─── */
+    .carousel {
+      position: relative;
+      max-width: 1000px;
+      margin: 64px auto 0;
+      animation: fadeUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .carousel-viewport {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.05),
+        0 24px 80px rgba(0, 0, 0, 0.4),
+        0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    @media (prefers-color-scheme: light) {
+      .carousel-viewport {
+        box-shadow:
+          0 0 0 1px rgba(0, 0, 0, 0.05),
+          0 24px 80px rgba(0, 0, 0, 0.1),
+          0 8px 32px rgba(0, 0, 0, 0.06);
+      }
+    }
+
+    /* Indigo glow behind carousel */
+    .carousel::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      height: 80%;
+      background: radial-gradient(ellipse, var(--accent-glow), transparent 70%);
+      filter: blur(60px);
+      z-index: -1;
+      animation: heroGlow 4s ease-in-out infinite;
+    }
+
+    .carousel-track {
+      display: flex;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .carousel-track img {
+      width: 100%;
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .carousel-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.2s, background 0.15s, transform 0.15s;
+    }
+
+    .carousel:hover .carousel-arrow { opacity: 1; }
+
+    .carousel-arrow:hover {
+      background: var(--surface-hover);
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .carousel-arrow--prev { left: 12px; }
+    .carousel-arrow--next { right: 12px; }
+
+    .carousel-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .carousel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      opacity: 0.3;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.2s, transform 0.2s;
+    }
+
+    .carousel-dot:hover { opacity: 0.6; }
+
+    .carousel-dot.active {
+      opacity: 1;
+      background: var(--accent);
+      transform: scale(1.2);
+    }
+
+    .carousel-caption {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      min-height: 1.4em;
+    }
+
+    /* Loading state */
+    .carousel-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 16 / 10;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 768px) {
+      .carousel-arrow { width: 34px; height: 34px; opacity: 1; }
+      .carousel-arrow--prev { left: 8px; }
+      .carousel-arrow--next { right: 8px; }
+    }
+
     /* ─── Features ─── */
     .features {
       padding: 100px 24px;
@@ -553,8 +688,20 @@
       </a>
     </div>
   </div>
-  <div class="hero-screenshot">
-    <img src="screenshot.png?v=3" alt="Gutter editor screenshot showing inline comments on a markdown document" loading="eager">
+  <div class="carousel" id="carousel">
+    <div class="carousel-viewport">
+      <div class="carousel-track" id="carousel-track">
+        <div class="carousel-loading">Loading screenshots...</div>
+      </div>
+    </div>
+    <button class="carousel-arrow carousel-arrow--prev" id="carousel-prev" aria-label="Previous screenshot">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="carousel-arrow carousel-arrow--next" id="carousel-next" aria-label="Next screenshot">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="carousel-dots" id="carousel-dots"></div>
+    <div class="carousel-caption" id="carousel-caption"></div>
   </div>
 </section>
 
@@ -760,6 +907,128 @@
       });
     })
     .catch(function () { /* fall back to /releases/latest links */ });
+})();
+
+// Screenshot carousel
+(function () {
+  var repo = 'davidrigie/gutter';
+  var dir = 'gutter/screenshots';
+  var track = document.getElementById('carousel-track');
+  var dots = document.getElementById('carousel-dots');
+  var caption = document.getElementById('carousel-caption');
+  var prevBtn = document.getElementById('carousel-prev');
+  var nextBtn = document.getElementById('carousel-next');
+  var current = 0;
+  var images = [];
+
+  function nameToCaption(filename) {
+    return filename
+      .replace(/\.png$/i, '')
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+
+  function goTo(index) {
+    if (!images.length) return;
+    current = (index + images.length) % images.length;
+    track.style.transform = 'translateX(-' + (current * 100) + '%)';
+    // Update dots
+    var allDots = dots.querySelectorAll('.carousel-dot');
+    allDots.forEach(function (d, i) {
+      d.classList.toggle('active', i === current);
+    });
+    // Update caption
+    caption.textContent = images[current].caption;
+    // Preload adjacent
+    [current - 1, current + 1].forEach(function (i) {
+      var idx = (i + images.length) % images.length;
+      if (images[idx] && !images[idx].preloaded) {
+        var img = new Image();
+        img.src = images[idx].url;
+        images[idx].preloaded = true;
+      }
+    });
+  }
+
+  prevBtn.addEventListener('click', function () { goTo(current - 1); });
+  nextBtn.addEventListener('click', function () { goTo(current + 1); });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+    if (e.key === 'ArrowRight') goTo(current + 1);
+  });
+
+  // Touch/swipe support
+  var touchStartX = 0;
+  var touchEndX = 0;
+  var carousel = document.getElementById('carousel');
+  carousel.addEventListener('touchstart', function (e) {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  carousel.addEventListener('touchend', function (e) {
+    touchEndX = e.changedTouches[0].screenX;
+    var diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) goTo(current + 1);
+      else goTo(current - 1);
+    }
+  }, { passive: true });
+
+  // Fetch screenshot list from GitHub API
+  fetch('https://api.github.com/repos/' + repo + '/contents/' + dir)
+    .then(function (r) { return r.json(); })
+    .then(function (files) {
+      if (!Array.isArray(files)) throw new Error('Bad response');
+      images = files
+        .filter(function (f) { return /\.png$/i.test(f.name); })
+        .sort(function (a, b) { return a.name.localeCompare(b.name); })
+        .map(function (f) {
+          return {
+            name: f.name,
+            url: 'https://raw.githubusercontent.com/' + repo + '/main/' + dir + '/' + f.name,
+            caption: nameToCaption(f.name),
+            preloaded: false
+          };
+        });
+
+      if (!images.length) {
+        track.innerHTML = '<div class="carousel-loading">No screenshots found</div>';
+        return;
+      }
+
+      // Build image elements
+      track.innerHTML = '';
+      images.forEach(function (img, i) {
+        var el = document.createElement('img');
+        el.src = img.url;
+        el.alt = img.caption;
+        el.loading = i === 0 ? 'eager' : 'lazy';
+        el.draggable = false;
+        track.appendChild(el);
+        if (i === 0) img.preloaded = true;
+      });
+
+      // Build dots
+      images.forEach(function (_, i) {
+        var dot = document.createElement('button');
+        dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', 'Go to screenshot ' + (i + 1));
+        dot.addEventListener('click', function () { goTo(i); });
+        dots.appendChild(dot);
+      });
+
+      // Set initial caption and preload adjacent
+      goTo(0);
+    })
+    .catch(function () {
+      // Fallback: show static screenshot
+      track.innerHTML = '<img src="screenshot.png?v=3" alt="Gutter editor screenshot" loading="eager">';
+      caption.textContent = '';
+      prevBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+    });
 })();
 
 // Scroll-triggered animations

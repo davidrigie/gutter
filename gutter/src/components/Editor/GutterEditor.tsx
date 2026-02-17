@@ -186,6 +186,12 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
           HTMLAttributes: { rel: "noopener noreferrer" },
         }),
         Image.extend({
+          addAttributes() {
+            return {
+              ...this.parent?.(),
+              originalSrc: { default: null },
+            };
+          },
           addNodeView() {
             return ReactNodeViewRenderer(ImageBlockView);
           },

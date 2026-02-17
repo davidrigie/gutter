@@ -69,11 +69,26 @@ export function parseMarkdown(markdown: string, fileDirPath?: string): JSONConte
   return doc;
 }
 
+/** Returns true for URLs and absolute filesystem paths that should not be resolved */
+function isAbsoluteSrc(src: string): boolean {
+  // URLs and data/blob URIs
+  if (/^(https?:|data:|blob:|asset:)/.test(src)) return true;
+  // Already-resolved Tauri asset URLs
+  if (src.includes("asset.localhost")) return true;
+  // Absolute Unix paths
+  if (src.startsWith("/")) return true;
+  // Absolute Windows paths (C:\, D:\, etc.)
+  if (/^[a-zA-Z]:[/\\]/.test(src)) return true;
+  return false;
+}
+
 /** Walk the doc tree and convert relative image src to Tauri asset URLs */
 function resolveImagePaths(node: JSONContent, dirPath: string) {
   if (node.type === "image" && node.attrs?.src) {
     const src = node.attrs.src as string;
-    if (src.startsWith("./") || src.startsWith("../")) {
+    if (src && !isAbsoluteSrc(src)) {
+      // Store original relative path for round-trip serialization
+      node.attrs.originalSrc = src;
       // Normalize to forward slashes for consistent path joining (Windows sends backslashes)
       const normalizedDir = dirPath.replace(/\\/g, "/");
       const absolute = joinPath(normalizedDir, src);

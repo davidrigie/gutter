@@ -2,10 +2,12 @@ import type { JSONContent } from "@tiptap/react";
 
 /**
  * Convert a Tauri asset protocol URL back to a relative path for markdown.
- * asset URLs look like: https://asset.localhost/path/to/dir/assets/image.png
+ * Prefers originalSrc (stored during parsing) for exact round-trip fidelity.
  */
-function assetUrlToRelative(src: string): string {
-  // Detect Tauri asset protocol URLs
+function assetUrlToRelative(src: string, originalSrc?: string | null): string {
+  // Use the original relative path if available (handles Obsidian bare paths, etc.)
+  if (originalSrc) return originalSrc;
+  // Fallback: extract ./assets/... from Tauri asset URLs
   if (src.includes("asset.localhost")) {
     const match = src.match(/\/assets\/[^?#]+/);
     if (match) return "." + match[0];
@@ -80,7 +82,7 @@ function serializeBlock(
 
     case "image": {
       const alt = node.attrs?.alt || "";
-      const src = assetUrlToRelative(node.attrs?.src || "");
+      const src = assetUrlToRelative(node.attrs?.src || "", node.attrs?.originalSrc);
       const title = node.attrs?.title;
       if (title) {
         return `![${alt}](${src} "${title}")`;
@@ -172,7 +174,7 @@ function serializeInlineNode(node: JSONContent): string {
 
   if (node.type === "image") {
     const alt = node.attrs?.alt || "";
-    const src = assetUrlToRelative(node.attrs?.src || "");
+    const src = assetUrlToRelative(node.attrs?.src || "", node.attrs?.originalSrc);
     return `![${alt}](${src})`;
   }
 

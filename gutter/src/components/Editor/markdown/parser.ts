@@ -85,7 +85,7 @@ function convertWikiImageEmbeds(md: string): string {
     const target = pipeIdx >= 0 ? inner.substring(0, pipeIdx).trim() : inner.trim();
     const alt = pipeIdx >= 0 ? inner.substring(pipeIdx + 1).trim() : "";
     if (isImageFile(target)) {
-      return `![${alt}](${target}#wiki-embed)`;
+      return `![${alt}](<${target}#wiki-embed>)`;
     }
     return original;
   });

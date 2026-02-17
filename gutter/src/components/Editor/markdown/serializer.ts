@@ -83,6 +83,9 @@ function serializeBlock(
     case "image": {
       const alt = node.attrs?.alt || "";
       const src = assetUrlToRelative(node.attrs?.src || "", node.attrs?.originalSrc);
+      if (node.attrs?.wikiEmbed) {
+        return alt ? `![[${src}|${alt}]]` : `![[${src}]]`;
+      }
       const title = node.attrs?.title;
       if (title) {
         return `![${alt}](${src} "${title}")`;
@@ -175,6 +178,9 @@ function serializeInlineNode(node: JSONContent): string {
   if (node.type === "image") {
     const alt = node.attrs?.alt || "";
     const src = assetUrlToRelative(node.attrs?.src || "", node.attrs?.originalSrc);
+    if (node.attrs?.wikiEmbed) {
+      return alt ? `![[${src}|${alt}]]` : `![[${src}]]`;
+    }
     return `![${alt}](${src})`;
   }
 

@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import type { Node as UnistNode } from "unist";
 import type { JSONContent } from "@tiptap/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { joinPath } from "../../../utils/path";
+import { joinPath, isImageFile } from "../../../utils/path";
 
 interface MdastNode extends UnistNode {
   children?: MdastNode[];
@@ -33,6 +33,9 @@ export function parseMarkdown(markdown: string, fileDirPath?: string): JSONConte
     frontmatterContent = fmMatch[1];
     body = fmMatch[2];
   }
+
+  // Convert Obsidian wiki image embeds to standard markdown images before parsing
+  body = convertWikiImageEmbeds(body);
 
   // Extract math blocks before parsing (remark doesn't handle $$)
   const { cleaned, mathBlocks } = extractMathBlocks(body);
@@ -69,6 +72,24 @@ export function parseMarkdown(markdown: string, fileDirPath?: string): JSONConte
   return doc;
 }
 
+/**
+ * Convert Obsidian wiki image embeds ![[image.png]] to standard markdown images.
+ * Supports optional alt text via pipe: ![[image.png|alt text]]
+ * Only converts when the target is an image file; non-image embeds are left as-is.
+ * Appends #wiki-embed fragment so resolveImagePaths can set the wikiEmbed flag.
+ */
+function convertWikiImageEmbeds(md: string): string {
+  return md.replace(/!\[\[([^\]]+)\]\]/g, (original, inner: string) => {
+    const pipeIdx = inner.indexOf("|");
+    const target = pipeIdx >= 0 ? inner.substring(0, pipeIdx).trim() : inner.trim();
+    const alt = pipeIdx >= 0 ? inner.substring(pipeIdx + 1).trim() : "";
+    if (isImageFile(target)) {
+      return `![${alt}](${target}#wiki-embed)`;
+    }
+    return original;
+  });
+}
+
 /** Returns true for URLs and absolute filesystem paths that should not be resolved */
 function isAbsoluteSrc(src: string): boolean {
   // URLs and data/blob URIs
@@ -85,7 +106,13 @@ function isAbsoluteSrc(src: string): boolean {
 /** Walk the doc tree and convert relative image src to Tauri asset URLs */
 function resolveImagePaths(node: JSONContent, dirPath: string) {
   if (node.type === "image" && node.attrs?.src) {
-    const src = node.attrs.src as string;
+    let src = node.attrs.src as string;
+    // Detect wiki-embed marker from convertWikiImageEmbeds
+    if (src.endsWith("#wiki-embed")) {
+      src = src.slice(0, -"#wiki-embed".length);
+      node.attrs.src = src;
+      node.attrs.wikiEmbed = true;
+    }
     if (src && !isAbsoluteSrc(src)) {
       // Store original relative path for round-trip serialization
       node.attrs.originalSrc = src;

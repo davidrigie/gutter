@@ -921,7 +921,18 @@
   var current = 0;
   var images = [];
 
+  var captions = {
+    'hero-dark.png': 'Editor with inline comments — Dark mode',
+    'hero-light.png': 'Editor with inline comments — Light mode',
+    'history-panel.png': 'Version history with inline diff',
+    'outline.png': 'Document outline and navigation',
+    'reading-mode.png': 'Reading mode with margin annotations',
+    'rich-content.png': 'Math, diagrams, and code blocks',
+    'tag-browser.png': 'Tag browser and filtering'
+  };
+
   function nameToCaption(filename) {
+    if (captions[filename]) return captions[filename];
     return filename
       .replace(/\.png$/i, '')
       .replace(/[-_]/g, ' ')

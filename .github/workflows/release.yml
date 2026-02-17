@@ -55,7 +55,7 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './gutter/src-tauri -> target'
-          shared-key: release-${{ matrix.platform }}-${{ matrix.target }}
+          shared-key: release-v2-${{ matrix.platform }}-${{ matrix.target }}
 
       - name: Setup Node
         uses: actions/setup-node@v4

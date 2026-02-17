@@ -149,6 +149,7 @@ function resolveImagePaths(node: JSONContent, dirPath: string) {
       node.attrs.wikiEmbed = true;
       // Wiki embeds resolve by searching the workspace (like wiki links)
       const resolved = resolveFileInWorkspace(src);
+      console.warn("[image-resolve:wiki]", { src, resolved });
       if (resolved) {
         node.attrs.originalSrc = src;
         node.attrs.src = convertFileSrc(resolved.replace(/\\/g, "/"));
@@ -168,7 +169,9 @@ function resolveImagePaths(node: JSONContent, dirPath: string) {
       // normalizePath resolves . and .. components — macOS handles these transparently
       // but Windows asset protocol does not
       const absolute = normalizePath(joinPath(normalizedDir, decoded));
-      node.attrs.src = convertFileSrc(absolute);
+      const assetUrl = convertFileSrc(absolute);
+      console.warn("[image-resolve]", { originalSrc: src, decoded, absolute, assetUrl });
+      node.attrs.src = assetUrl;
     }
   }
   if (node.content) {

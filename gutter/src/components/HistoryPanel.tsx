@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useEditorStore } from "../stores/editorStore";
 import { useToastStore } from "../stores/toastStore";
@@ -55,12 +55,18 @@ export function HistoryPanel({ onPreview }: Props) {
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [activeSection, setActiveSection] = useState<"local" | "git">("local");
+  const [gitLoading, setGitLoading] = useState(false);
+  // Track which filePath each async request was for, to discard stale results
+  const requestId = useRef(0);
+  // Track which filePath git history has been loaded for, to avoid redundant fetches
+  const gitLoadedFor = useRef<string | null>(null);
 
   const loadSnapshots = useCallback(async () => {
     if (!filePath) return;
+    const id = ++requestId.current;
     try {
       const list = await invoke<SnapshotMeta[]>("list_snapshots", { filePath });
-      setSnapshots(list);
+      if (requestId.current === id) setSnapshots(list);
     } catch (e) {
       console.error("Failed to load snapshots:", e);
     }
@@ -68,18 +74,39 @@ export function HistoryPanel({ onPreview }: Props) {
 
   const loadGitHistory = useCallback(async () => {
     if (!filePath) return;
+    const id = ++requestId.current;
+    setGitLoading(true);
     try {
       const list = await invoke<GitCommit[]>("list_git_history", { filePath });
-      setGitCommits(list);
+      if (requestId.current === id) {
+        setGitCommits(list);
+        gitLoadedFor.current = filePath;
+      }
     } catch {
-      setGitCommits([]);
+      if (requestId.current === id) setGitCommits([]);
+    } finally {
+      if (requestId.current === id) setGitLoading(false);
     }
   }, [filePath]);
 
+  // Clear stale data and load snapshots on file change
   useEffect(() => {
+    setSnapshots([]);
+    setGitCommits([]);
+    gitLoadedFor.current = null;
     loadSnapshots();
-    loadGitHistory();
-  }, [loadSnapshots, loadGitHistory]);
+  }, [loadSnapshots]);
+
+  // Load git history only when the Git tab is active (or becomes active)
+  // Debounce to avoid rapid-fire git processes when browsing files
+  useEffect(() => {
+    if (activeSection !== "git") return;
+    if (gitLoadedFor.current === filePath) return; // already loaded for this file
+    const timer = setTimeout(() => {
+      loadGitHistory();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [activeSection, filePath, loadGitHistory]);
 
   const handlePreviewSnapshot = useCallback(async (snap: SnapshotMeta) => {
     if (!filePath) return;
@@ -170,32 +197,30 @@ export function HistoryPanel({ onPreview }: Props) {
       </div>
 
       {/* Section tabs */}
-      {gitCommits.length > 0 && (
-        <div className="flex border-b border-[var(--editor-border)]">
-          <button
-            onClick={() => setActiveSection("local")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-medium transition-colors ${
-              activeSection === "local"
-                ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-            }`}
-          >
-            <HistoryIcon size={12} />
-            Local ({snapshots.length})
-          </button>
-          <button
-            onClick={() => setActiveSection("git")}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-medium transition-colors ${
-              activeSection === "git"
-                ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-            }`}
-          >
-            <GitBranch size={12} />
-            Git ({gitCommits.length})
-          </button>
-        </div>
-      )}
+      <div className="flex border-b border-[var(--editor-border)]">
+        <button
+          onClick={() => setActiveSection("local")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-medium transition-colors ${
+            activeSection === "local"
+              ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          }`}
+        >
+          <HistoryIcon size={12} />
+          Local{snapshots.length > 0 ? ` (${snapshots.length})` : ""}
+        </button>
+        <button
+          onClick={() => setActiveSection("git")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-medium transition-colors ${
+            activeSection === "git"
+              ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
+              : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+          }`}
+        >
+          <GitBranch size={12} />
+          Git{gitCommits.length > 0 ? ` (${gitCommits.length})` : ""}
+        </button>
+      </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
@@ -322,7 +347,12 @@ export function HistoryPanel({ onPreview }: Props) {
 
         {activeSection === "git" && (
           <>
-            {gitCommits.length === 0 ? (
+            {gitLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
+                <GitBranch size={24} className="mb-2 opacity-30 animate-pulse" />
+                <span className="text-[12px]">Loading git history...</span>
+              </div>
+            ) : gitCommits.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
                 <GitBranch size={24} className="mb-2 opacity-30" />
                 <span className="text-[12px]">No git history</span>

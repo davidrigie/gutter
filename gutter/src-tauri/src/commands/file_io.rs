@@ -133,10 +133,14 @@ pub fn open_url(url: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to open URL: {}", e))?;
 
     #[cfg(target_os = "windows")]
-    Command::new("cmd")
-        .args(["/c", "start", &url])
-        .spawn()
-        .map_err(|e| format!("Failed to open URL: {}", e))?;
+    {
+        use std::os::windows::process::CommandExt;
+        Command::new("cmd")
+            .args(["/c", "start", &url])
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW
+            .spawn()
+            .map_err(|e| format!("Failed to open URL: {}", e))?;
+    }
 
     Ok(())
 }

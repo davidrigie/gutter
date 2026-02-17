@@ -5,6 +5,18 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// Create a Command that hides the console window on Windows.
+fn git_command() -> Command {
+    #[allow(unused_mut)]
+    let mut cmd = Command::new("git");
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    cmd
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SnapshotMeta {
     pub id: String,
@@ -197,7 +209,7 @@ pub fn list_git_history(file_path: String) -> Result<Vec<GitCommit>, String> {
     let dir = path.parent().unwrap_or(&path);
 
     // Get the repo root
-    let repo_root_output = Command::new("git")
+    let repo_root_output = git_command()
         .args(["rev-parse", "--show-toplevel"])
         .current_dir(dir)
         .output();
@@ -208,7 +220,7 @@ pub fn list_git_history(file_path: String) -> Result<Vec<GitCommit>, String> {
     };
 
     // Use --name-only to get the path of the file in each commit (handles --follow renames)
-    let output = Command::new("git")
+    let output = git_command()
         .args([
             "log",
             "--follow",
@@ -278,7 +290,7 @@ pub fn read_git_version(
     let dir = path.parent().unwrap_or(&path);
 
     // Get the repo root
-    let repo_root_output = Command::new("git")
+    let repo_root_output = git_command()
         .args(["rev-parse", "--show-toplevel"])
         .current_dir(dir)
         .output()
@@ -293,7 +305,7 @@ pub fn read_git_version(
     let rel_path = if let Some(p) = commit_path {
         p
     } else {
-        let rel_output = Command::new("git")
+        let rel_output = git_command()
             .args(["ls-files", "--full-name", "--", &file_path])
             .current_dir(dir)
             .output()
@@ -306,7 +318,7 @@ pub fn read_git_version(
         p
     };
 
-    let output = Command::new("git")
+    let output = git_command()
         .args(["show", &format!("{}:{}", commit_hash, rel_path)])
         .current_dir(&repo_root)
         .output()

@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import type { Node as UnistNode } from "unist";
 import type { JSONContent } from "@tiptap/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { joinPath } from "../../../utils/path";
 
 interface MdastNode extends UnistNode {
   children?: MdastNode[];
@@ -73,7 +74,9 @@ function resolveImagePaths(node: JSONContent, dirPath: string) {
   if (node.type === "image" && node.attrs?.src) {
     const src = node.attrs.src as string;
     if (src.startsWith("./") || src.startsWith("../")) {
-      const absolute = dirPath + "/" + src.replace(/^\.\//, "");
+      // Normalize to forward slashes for consistent path joining (Windows sends backslashes)
+      const normalizedDir = dirPath.replace(/\\/g, "/");
+      const absolute = joinPath(normalizedDir, src);
       node.attrs.src = convertFileSrc(absolute);
     }
   }

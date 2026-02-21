@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { CommentThread } from "../../types/comments";
 import { useCommentStore } from "../../stores/commentStore";
 import { useSettingsStore } from "../../stores/settingsStore";
@@ -17,6 +17,11 @@ export function Thread({ commentId, thread, isActive, quotedText, onClick }: Thr
   const { resolveThread, deleteThread } = useCommentStore();
   const [expanded, setExpanded] = useState(!thread.resolved);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Sync expanded state when resolved status changes (e.g. via undo or external update)
+  useEffect(() => {
+    setExpanded(!thread.resolved);
+  }, [thread.resolved]);
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);

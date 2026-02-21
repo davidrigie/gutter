@@ -5,6 +5,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { modKey, modLabel } from "../../../utils/platform";
 import { useTagStore, getAllTags } from "../../../stores/tagStore";
 import { BlockActionBar } from "../BlockActionBar";
+import { useSyncedNodeState } from "../../../hooks/useSyncedNodeState";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -65,7 +66,7 @@ export const Frontmatter = Node.create({
 
 export function FrontmatterView({ node, updateAttributes, deleteNode, editor, getPos }: NodeViewProps) {
   const [editing, setEditing] = useState(false);
-  const [editContent, setEditContent] = useState(node.attrs.content as string);
+  const [editContent, setEditContent] = useSyncedNodeState(node.attrs.content as string, editing);
 
   let fields: Record<string, string> = {};
   try {

@@ -13,16 +13,33 @@ interface ToastState {
   removeToast: (id: string) => void;
 }
 
-export const useToastStore = create<ToastState>((set) => ({
+const toastTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
 
   addToast: (message, type, duration = 4000) => {
+    // Deduplicate: if a toast with the same message+type exists, reset its timer
+    const existing = get().toasts.find((t) => t.message === message && t.type === type);
+    if (existing) {
+      const oldTimer = toastTimers.get(existing.id);
+      if (oldTimer) clearTimeout(oldTimer);
+      const timer = setTimeout(() => {
+        set((s) => ({ toasts: s.toasts.filter((t) => t.id !== existing.id) }));
+        toastTimers.delete(existing.id);
+      }, duration);
+      toastTimers.set(existing.id, timer);
+      return;
+    }
+
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const toast: Toast = { id, message, type, duration };
     set((s) => ({ toasts: [...s.toasts, toast] }));
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+      toastTimers.delete(id);
     }, duration);
+    toastTimers.set(id, timer);
   },
 
   removeToast: (id) => {

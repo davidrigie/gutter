@@ -109,9 +109,12 @@ export const useTagStore = create<TagState>((set, get) => ({
       for (const tag of oldTags) {
         const files = newTagToFiles.get(tag);
         if (files) {
-          files.delete(filePath);
-          if (files.size === 0) {
+          const cloned = new Set(files);
+          cloned.delete(filePath);
+          if (cloned.size === 0) {
             newTagToFiles.delete(tag);
+          } else {
+            newTagToFiles.set(tag, cloned);
           }
         }
       }
@@ -145,9 +148,12 @@ export const useTagStore = create<TagState>((set, get) => ({
     for (const tag of oldTags) {
       const files = newTagToFiles.get(tag);
       if (files) {
-        files.delete(filePath);
-        if (files.size === 0) {
+        const cloned = new Set(files);
+        cloned.delete(filePath);
+        if (cloned.size === 0) {
           newTagToFiles.delete(tag);
+        } else {
+          newTagToFiles.set(tag, cloned);
         }
       }
     }

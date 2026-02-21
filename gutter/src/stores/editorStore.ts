@@ -23,6 +23,7 @@ interface EditorState {
 
   setFilePath: (path: string | null) => void;
   setContent: (content: string) => void;
+  setContentClean: (content: string) => void;
   bumpContentVersion: () => void;
   setDirty: (dirty: boolean) => void;
   toggleSourceMode: () => void;
@@ -65,6 +66,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       fileName: path ? pathFileName(path) || "Untitled" : "Untitled",
     }),
   setContent: (content) => set({ content, isDirty: true }),
+  setContentClean: (content) => set({ content }),
   setDirty: (isDirty) => set({ isDirty }),
   toggleSourceMode: () => set((s) => ({ isSourceMode: !s.isSourceMode })),
   toggleReadingMode: () => set((s) => ({ isReadingMode: !s.isReadingMode })),

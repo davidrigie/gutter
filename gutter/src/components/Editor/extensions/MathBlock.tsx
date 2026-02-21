@@ -5,12 +5,13 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import katex from "katex";
 import { modLabel } from "../../../utils/platform";
 import { BlockActionBar } from "../BlockActionBar";
+import { useSyncedNodeState } from "../../../hooks/useSyncedNodeState";
 
 // ─── Block math: $$...$$ ───
 
 export function MathBlockView({ node, updateAttributes, selected, deleteNode, editor, getPos }: NodeViewProps) {
   const [editing, setEditing] = useState(false);
-  const [latex, setLatex] = useState(node.attrs.latex || "");
+  const [latex, setLatex] = useSyncedNodeState(node.attrs.latex || "", editing);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -173,11 +174,13 @@ export const MathBlock = Node.create({
 
 export function MathInlineView({ node, updateAttributes, selected }: NodeViewProps) {
   const [editing, setEditing] = useState(false);
-  const [latex, setLatex] = useState(node.attrs.latex || "");
+  const [latex, setLatex] = useSyncedNodeState(node.attrs.latex || "", editing);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     if (editing && inputRef.current) {
+      cancelledRef.current = false;
       inputRef.current.focus();
       inputRef.current.select();
     }
@@ -214,14 +217,18 @@ export function MathInlineView({ node, updateAttributes, selected }: NodeViewPro
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === "Escape") {
                 e.preventDefault();
-                if (e.key === "Enter") handleSave();
-                else {
+                if (e.key === "Enter") {
+                  handleSave();
+                } else {
+                  cancelledRef.current = true;
                   setLatex(node.attrs.latex || "");
                   setEditing(false);
                 }
               }
             }}
-            onBlur={handleSave}
+            onBlur={() => {
+              if (!cancelledRef.current) handleSave();
+            }}
           />
           <span className="math-inline-dollar">$</span>
         </span>

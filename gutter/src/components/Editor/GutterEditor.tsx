@@ -38,6 +38,7 @@ import { SpellCheck } from "./extensions/SpellCheck";
 import { MarkdownLinkInput } from "./extensions/MarkdownLinkInput";
 import { LinkReveal } from "./extensions/LinkReveal";
 import { WikiLinkAutocomplete } from "./extensions/WikiLinkAutocomplete";
+import { BlockGapInserter } from "./extensions/BlockGapInserter";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { createFindReplacePlugin } from "../FindReplace";
@@ -235,6 +236,7 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         WikiLinkAutocomplete,
         TaskList,
         TaskItem.configure({ nested: true }),
+        BlockGapInserter,
       ],
       content: (() => {
         const storeContent = useEditorStore.getState().content;
@@ -303,6 +305,8 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
         const commentMark = marks.find((m) => m.type.name === "commentMark");
         if (commentMark) {
           setActiveCommentId(commentMark.attrs.commentId);
+        } else {
+          setActiveCommentId(null);
         }
 
         // Detect if cursor is inside a link mark for floating editor
@@ -627,19 +631,36 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       });
     }, [editor, getNextCommentId]);
 
-    // Remove a comment — clears either a mark or a node attribute
+    // Remove a comment — walk doc to find the specific mark/node with matching commentId
     const removeCommentFromEditor = useCallback((cId: string) => {
       if (!editor) return;
-      // Try removing the mark
-      editor.chain().focus().unsetMark("commentMark").run();
-      // Also clear any node-level commentId attributes
+      const { tr } = editor.state;
+      const markType = editor.state.schema.marks.commentMark;
+      let changed = false;
+
+      // Walk doc to find and remove the specific comment mark
       editor.state.doc.descendants((node, pos) => {
+        // Handle node-level commentId attributes (atom nodes like mermaid, math)
         if (node.type.spec.atom && node.attrs.commentId === cId) {
-          editor.view.dispatch(
-            editor.state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, commentId: null }),
+          tr.setNodeMarkup(pos, undefined, { ...node.attrs, commentId: null });
+          changed = true;
+          return;
+        }
+        // Handle inline mark comments — find the specific mark with matching commentId
+        if (node.isText) {
+          const mark = node.marks.find(
+            (m) => m.type.name === "commentMark" && m.attrs.commentId === cId,
           );
+          if (mark) {
+            tr.removeMark(pos, pos + node.nodeSize, markType.create({ commentId: cId }));
+            changed = true;
+          }
         }
       });
+
+      if (changed) {
+        editor.view.dispatch(tr);
+      }
     }, [editor]);
 
     // Handle comment submission
@@ -831,6 +852,19 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       };
       window.addEventListener("scroll-to-comment", handler);
       return () => window.removeEventListener("scroll-to-comment", handler);
+    }, [editor]);
+
+    // 4c: Handle undo/redo events from StatusBar buttons
+    useEffect(() => {
+      if (!editor) return;
+      const handleUndo = () => editor.chain().focus().undo().run();
+      const handleRedo = () => editor.chain().focus().redo().run();
+      document.addEventListener("editor-undo", handleUndo);
+      document.addEventListener("editor-redo", handleRedo);
+      return () => {
+        document.removeEventListener("editor-undo", handleUndo);
+        document.removeEventListener("editor-redo", handleRedo);
+      };
     }, [editor]);
 
     return (

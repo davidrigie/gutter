@@ -98,7 +98,7 @@ export function StatusBar() {
       <span className="ml-auto flex items-center gap-0.5">
         <button
           className={`p-0.5 rounded ${canUndo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
-          onClick={() => canUndo && document.execCommand("undo")}
+          onClick={() => canUndo && document.dispatchEvent(new CustomEvent("editor-undo"))}
           disabled={!canUndo}
           title={`Undo (${modLabel()}+Z)`}
         >
@@ -106,7 +106,7 @@ export function StatusBar() {
         </button>
         <button
           className={`p-0.5 rounded ${canRedo ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]" : "text-[var(--text-muted)] opacity-40 cursor-default"}`}
-          onClick={() => canRedo && document.execCommand("redo")}
+          onClick={() => canRedo && document.dispatchEvent(new CustomEvent("editor-redo"))}
           disabled={!canRedo}
           title={`Redo (${modLabel()}+Shift+Z)`}
         >

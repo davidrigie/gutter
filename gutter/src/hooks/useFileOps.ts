@@ -6,7 +6,6 @@ import { useSettingsStore } from "../stores/settingsStore";
 
 export function useFileOps() {
   const {
-    filePath,
     setFilePath,
     setContent,
     setDirty,
@@ -30,7 +29,8 @@ export function useFileOps() {
 
   const saveFile = useCallback(
     async (markdown: string) => {
-      let path = filePath;
+      // Read filePath from store at call time to avoid stale closures
+      let path = useEditorStore.getState().filePath;
       if (!path) {
         const selected = await save({
           filters: [{ name: "Markdown", extensions: ["md"] }],
@@ -41,26 +41,28 @@ export function useFileOps() {
       }
       await invoke("write_file", { path, content: markdown });
       setDirty(false);
-      
-      // Fire-and-forget snapshot for version history
-      if (path) {
-        invoke("save_snapshot", { filePath: path, content: markdown }).catch(() => {});
-      }
     },
-    [filePath, setFilePath, setDirty],
+    [setFilePath, setDirty],
   );
+
+  const cancelAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+  }, []);
 
   const scheduleAutoSave = useCallback(
     (markdown: string) => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
+      cancelAutoSave();
+      // Read filePath from store at call time to avoid stale closures
+      const filePath = useEditorStore.getState().filePath;
       if (!filePath || autoSaveInterval === 0) return;
       autoSaveTimerRef.current = setTimeout(() => {
         saveFile(markdown);
       }, autoSaveInterval);
     },
-    [filePath, saveFile, autoSaveInterval],
+    [saveFile, autoSaveInterval, cancelAutoSave],
   );
 
   useEffect(() => {
@@ -71,5 +73,5 @@ export function useFileOps() {
     };
   }, []);
 
-  return { openFile, saveFile, scheduleAutoSave };
+  return { openFile, saveFile, scheduleAutoSave, cancelAutoSave };
 }

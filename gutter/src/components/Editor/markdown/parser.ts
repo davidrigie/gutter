@@ -331,7 +331,7 @@ function convertInlineChildren(node: MdastNode): JSONContent[] | undefined {
     // remark splits this into: html(<mark>), text(content), html(</mark>), html(<sup>), text([cN]), html(</sup>)
     const markerResult = tryMatchCommentMarker(children, i);
     if (markerResult) {
-      result.push(markerResult.node);
+      result.push(...markerResult.nodes);
       i = markerResult.nextIndex;
       continue;
     }
@@ -361,44 +361,61 @@ function convertInlineChildren(node: MdastNode): JSONContent[] | undefined {
 function tryMatchCommentMarker(
   children: MdastNode[],
   start: number,
-): { node: JSONContent; nextIndex: number } | null {
-  // Pattern: html(<mark>) text html(</mark>) html(<sup>) text([cN]) html(</sup>)
-  if (start + 5 >= children.length) return null;
-
+): { nodes: JSONContent[]; nextIndex: number } | null {
+  // Pattern: html(<mark>) ...content... html(</mark>) html(<sup>) text([cN]) html(</sup>)
+  // Content between <mark> and </mark> can be text, strong, emphasis, etc.
   const n0 = children[start];
-  const n1 = children[start + 1];
-  const n2 = children[start + 2];
-  const n3 = children[start + 3];
-  const n4 = children[start + 4];
-  const n5 = children[start + 5];
+  if (n0.type !== "html" || n0.value !== "<mark>") return null;
+
+  // Find </mark> close tag
+  let closeMarkIdx = -1;
+  for (let j = start + 1; j < children.length; j++) {
+    if (children[j].type === "html" && children[j].value === "</mark>") {
+      closeMarkIdx = j;
+      break;
+    }
+  }
+  if (closeMarkIdx === -1) return null;
+
+  // After </mark>, expect <sup>[cN]</sup>
+  if (closeMarkIdx + 3 >= children.length) return null;
+  const nSup = children[closeMarkIdx + 1];
+  const nId = children[closeMarkIdx + 2];
+  const nSupClose = children[closeMarkIdx + 3];
 
   if (
-    n0.type === "html" && n0.value === "<mark>" &&
-    n1.type === "text" && n1.value &&
-    n2.type === "html" && n2.value === "</mark>" &&
-    n3.type === "html" && n3.value === "<sup>" &&
-    n4.type === "text" && n4.value &&
-    n5.type === "html" && n5.value === "</sup>"
-  ) {
-    const idMatch = n4.value.match(/^\[c(\d+)\]$/);
-    if (idMatch) {
-      return {
-        node: {
-          type: "text",
-          text: n1.value,
-          marks: [
-            {
-              type: "commentMark",
-              attrs: { commentId: `c${idMatch[1]}` },
-            },
-          ],
-        },
-        nextIndex: start + 6,
-      };
+    nSup.type !== "html" || nSup.value !== "<sup>" ||
+    nId.type !== "text" || !nId.value ||
+    nSupClose.type !== "html" || nSupClose.value !== "</sup>"
+  ) return null;
+
+  const idMatch = nId.value.match(/^\[c(\d+)\]$/);
+  if (!idMatch) return null;
+
+  const commentId = `c${idMatch[1]}`;
+  const commentMarkObj = { type: "commentMark", attrs: { commentId } };
+
+  // Convert all nodes between <mark> and </mark>
+  const innerNodes = children.slice(start + 1, closeMarkIdx);
+  const converted: JSONContent[] = [];
+  for (const inner of innerNodes) {
+    const c = convertInlineNode(inner);
+    if (c) {
+      if (Array.isArray(c)) {
+        converted.push(...c);
+      } else {
+        converted.push(c);
+      }
     }
   }
 
-  return null;
+  // Add commentMark to each converted node
+  const marked = converted.map((n) => addMark(n, commentMarkObj));
+
+  return {
+    nodes: marked.length > 0 ? marked : [{ type: "text", text: "", marks: [commentMarkObj] as JSONContent["marks"] }],
+    nextIndex: closeMarkIdx + 4,
+  };
 }
 
 function tryMatchBareMark(

@@ -440,7 +440,7 @@ export function FindReplace({ editor, mode: initialMode, onClose, sourceTextarea
           .*
         </button>
         <span className="find-replace-count">
-          {matchCount > 0 ? `${currentIndex + 1} of ${matchCount}` : "No results"}
+          {matchCount > 0 ? `${currentIndex + 1} of ${matchCount}` : searchTerm ? "No results" : ""}
         </span>
         <button className="find-replace-btn" onClick={() => navigateMatch("prev")} title="Previous (Shift+Enter)">
           &uarr;

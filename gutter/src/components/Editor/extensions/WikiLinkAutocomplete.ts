@@ -33,6 +33,10 @@ function fuzzyMatch(query: string, target: string): boolean {
 export const WikiLinkAutocomplete = Extension.create({
   name: "wikiLinkAutocomplete",
 
+  onDestroy() {
+    WikiAutocompleteMenu.instance?.close();
+  },
+
   addProseMirrorPlugins() {
     const tiptapEditor = this.editor;
 

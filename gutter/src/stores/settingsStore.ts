@@ -6,7 +6,7 @@ interface Settings {
   fontSize: number;
   fontFamily: "serif" | "sans" | "mono";
   autoSaveInterval: number;
-  panelWidths: { fileTree: number; comments: number };
+  panelWidths: { fileTree: number; comments: number; history: number; tags: number };
   recentFiles: string[];
   spellCheckEnabled: boolean;
   defaultAuthor: string;
@@ -24,7 +24,7 @@ interface SettingsState extends Settings {
   setFontSize: (size: number) => void;
   setFontFamily: (family: "serif" | "sans" | "mono") => void;
   setAutoSaveInterval: (ms: number) => void;
-  setPanelWidth: (panel: "fileTree" | "comments", width: number) => void;
+  setPanelWidth: (panel: "fileTree" | "comments" | "history" | "tags", width: number) => void;
   addRecentFile: (path: string) => void;
   setSpellCheckEnabled: (enabled: boolean) => void;
   setDefaultAuthor: (author: string) => void;
@@ -33,12 +33,14 @@ interface SettingsState extends Settings {
   setAccentColor: (color: string) => void;
 }
 
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
 const defaults: Settings = {
   theme: "light",
   fontSize: 16,
   fontFamily: "serif",
   autoSaveInterval: 2000,
-  panelWidths: { fileTree: 224, comments: 288 },
+  panelWidths: { fileTree: 224, comments: 288, history: 288, tags: 288 },
   recentFiles: [],
   spellCheckEnabled: false,
   defaultAuthor: "Author",
@@ -58,6 +60,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       // Map legacy fontFamily values
       if (parsed.fontFamily && !["serif", "sans", "mono"].includes(parsed.fontFamily)) {
         parsed.fontFamily = "serif";
+      }
+      // Merge panelWidths with defaults so old configs get new keys
+      if (parsed.panelWidths) {
+        parsed.panelWidths = { ...defaults.panelWidths, ...parsed.panelWidths };
       }
       set({ ...defaults, ...parsed, loaded: true });
     } catch {
@@ -89,36 +95,36 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setTheme: (theme) => {
     set({ theme });
-    get().saveSettings();
+    debouncedSave();
   },
 
   cycleTheme: () => {
     const current = get().theme;
     const next = current === "light" ? "dark" : current === "dark" ? "system" : "light";
     set({ theme: next });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setFontSize: (fontSize) => {
     set({ fontSize });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setFontFamily: (fontFamily) => {
     set({ fontFamily });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setAutoSaveInterval: (autoSaveInterval) => {
     set({ autoSaveInterval });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setPanelWidth: (panel, width) => {
     set((s) => ({
       panelWidths: { ...s.panelWidths, [panel]: width },
     }));
-    get().saveSettings();
+    debouncedSave();
   },
 
   addRecentFile: (path) => {
@@ -127,31 +133,39 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const recentFiles = [path, ...filtered].slice(0, 20);
       return { recentFiles };
     });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setSpellCheckEnabled: (spellCheckEnabled) => {
     set({ spellCheckEnabled });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setDefaultAuthor: (defaultAuthor) => {
     set({ defaultAuthor });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setEditorWidth: (editorWidth) => {
     set({ editorWidth });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setLineHeight: (lineHeight) => {
     set({ lineHeight });
-    get().saveSettings();
+    debouncedSave();
   },
 
   setAccentColor: (accentColor) => {
     set({ accentColor });
-    get().saveSettings();
+    debouncedSave();
   },
 }));
+
+function debouncedSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    useSettingsStore.getState().saveSettings();
+    saveTimer = null;
+  }, 500);
+}

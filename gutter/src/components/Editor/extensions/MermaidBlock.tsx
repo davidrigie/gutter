@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import mermaid from "mermaid";
 import { modLabel } from "../../../utils/platform";
 import { BlockActionBar } from "../BlockActionBar";
+import { useSyncedNodeState } from "../../../hooks/useSyncedNodeState";
 
 mermaid.initialize({
   startOnLoad: false,
@@ -16,7 +17,7 @@ let mermaidCounter = 0;
 
 export function MermaidBlockView({ node, updateAttributes, selected, deleteNode, editor, getPos }: NodeViewProps) {
   const [editing, setEditing] = useState(!node.attrs.code);
-  const [code, setCode] = useState(node.attrs.code || "");
+  const [code, setCode] = useSyncedNodeState(node.attrs.code || "", editing);
   const [svg, setSvg] = useState("");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);

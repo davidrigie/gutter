@@ -199,6 +199,10 @@ const slashKey = new PluginKey("slashCommands");
 export const SlashCommands = Extension.create({
   name: "slashCommands",
 
+  onDestroy() {
+    SlashMenu.instance?.close();
+  },
+
   addProseMirrorPlugins() {
     const tiptapEditor = this.editor;
 
@@ -228,16 +232,13 @@ export const SlashCommands = Extension.create({
               }
               if (event.key === "Escape") {
                 event.preventDefault();
-                menu.close();
-                // Delete the "/" trigger character
+                // Delete the full /query text (from slash position to cursor)
                 const { from } = view.state.selection;
-                const textBefore = view.state.doc.textBetween(
-                  Math.max(0, from - 1),
-                  from,
-                );
-                if (textBefore === "/") {
+                const deleteFrom = menu.slashPos;
+                menu.close();
+                if (deleteFrom < from) {
                   view.dispatch(
-                    view.state.tr.delete(from - 1, from),
+                    view.state.tr.delete(deleteFrom, from),
                   );
                 }
                 return true;

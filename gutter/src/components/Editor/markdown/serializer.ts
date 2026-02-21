@@ -200,9 +200,9 @@ function serializeInlineNode(node: JSONContent): string {
   if (commentMark) {
     const id = commentMark.attrs?.commentId || "c0";
     const otherMarks = marks.filter((m) => m.type !== "commentMark");
-    text = `<mark>${text}</mark><sup>[${id}]</sup>`;
-    // Apply other marks around the HTML
-    return wrapWithMarks(text, otherMarks);
+    // Apply formatting INSIDE the <mark> tag so round-trip works
+    const formattedText = wrapWithMarks(text, otherMarks);
+    return `<mark>${formattedText}</mark><sup>[${id}]</sup>`;
   }
 
   return wrapWithMarks(text, marks);

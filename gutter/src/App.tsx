@@ -59,9 +59,11 @@ function App() {
     showOutline,
     toggleOutline,
     setContent,
+    setContentClean,
     setDirty,
     setFilePath,
     setActiveCommentId,
+    setCommentTexts,
     contentVersion,
     bumpContentVersion,
   } = useEditorStore();
@@ -70,7 +72,7 @@ function App() {
 
   const { addTab, setActiveTab, removeTab, setTabDirty, updateTabPath, workspacePath, loadFileTree, openTabs, activeTabPath } = useWorkspaceStore();
   const { getThreadIds } = useCommentStore();
-  const { openFile, saveFile, scheduleAutoSave } = useFileOps();
+  const { openFile, saveFile, scheduleAutoSave, cancelAutoSave } = useFileOps();
   const { loadCommentsFromFile, saveComments, generateCompanion } = useComments();
 
   const [unifiedSearchMode, setUnifiedSearchMode] = useState<"all" | "files" | "commands" | null>(null);
@@ -86,7 +88,8 @@ function App() {
   const markdownRef = useRef("");
   const lastSaveTimeRef = useRef<number>(0);
   const untitledCounterRef = useRef(0);
-  const untitledContentRef = useRef<Map<string, string>>(new Map());
+  const tabContentCache = useRef<Map<string, string>>(new Map());
+  const activationIdRef = useRef(0);
 
   const sourceTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -200,77 +203,117 @@ function App() {
     toggleSourceMode();
   }, [toggleSourceMode]);
 
+  // ─── Centralized Tab Lifecycle ───
+
+  // Deactivate the current tab: stash content, cancel auto-save, clear comment state
+  const deactivateCurrentTab = useCallback(() => {
+    const prevTab = useWorkspaceStore.getState().activeTabPath;
+    if (prevTab) {
+      tabContentCache.current.set(prevTab, markdownRef.current);
+    }
+    cancelAutoSave();
+    setActiveCommentId(null);
+    setCommentTexts({});
+  }, [cancelAutoSave, setActiveCommentId, setCommentTexts]);
+
+  // Activate a tab: load content from cache or disk, load comments with staleness guard
+  const activateTab = useCallback(
+    async (path: string) => {
+      const myActivation = ++activationIdRef.current;
+
+      setActiveTab(path);
+      setShowReloadPrompt(false);
+
+      // Handle image files
+      if (isImageFile(path)) {
+        setImagePreview(convertFileSrc(path));
+        return;
+      }
+      setImagePreview(null);
+
+      const isUntitled = path.startsWith("untitled:");
+
+      // Load content: from cache if present, otherwise from disk
+      if (tabContentCache.current.has(path)) {
+        const content = tabContentCache.current.get(path) || "";
+        setFilePath(isUntitled ? null : path);
+        markdownRef.current = content;
+        setContentClean(content);
+        bumpContentVersion();
+        // Dirty state from tab's isDirty flag
+        const tab = useWorkspaceStore.getState().openTabs.find(t => t.path === path);
+        setDirty(!!tab?.isDirty);
+      } else if (!isUntitled) {
+        try {
+          const content = await invoke<string>("read_file", { path });
+          // Staleness check: if another activation happened, bail
+          if (activationIdRef.current !== myActivation) return;
+          setFilePath(path);
+          markdownRef.current = content;
+          setContentClean(content);
+          bumpContentVersion();
+          setDirty(false);
+        } catch (e) {
+          useToastStore.getState().addToast("Failed to open file", "error");
+          console.error("Failed to open file:", e);
+          return;
+        }
+      }
+
+      // Load comments (with staleness guard)
+      if (!isUntitled) {
+        await loadCommentsFromFile(path);
+        if (activationIdRef.current !== myActivation) return;
+      }
+    },
+    [setActiveTab, setFilePath, setContentClean, setDirty, bumpContentVersion, loadCommentsFromFile],
+  );
+
   // Open file handler
   const handleOpenFile = useCallback(async () => {
-
     const content = await openFile();
     if (content !== null) {
-      setImagePreview(null);
-      markdownRef.current = content;
-      setContent(content);
-      bumpContentVersion();
+      deactivateCurrentTab();
       const path = useEditorStore.getState().filePath;
       if (path) {
+        markdownRef.current = content;
         const name = pathFileName(path) || "Untitled";
         addTab(path, name);
         addRecentFile(path);
-        await loadCommentsFromFile(path);
+        // activateTab will set content from cache, so stash it first
+        tabContentCache.current.set(path, content);
+        await activateTab(path);
       }
     }
-  }, [openFile, addTab, addRecentFile, loadCommentsFromFile, setContent, bumpContentVersion]);
+  }, [openFile, deactivateCurrentTab, activateTab, addTab, addRecentFile]);
 
   // Open specific file (from file tree)
   const handleFileTreeOpen = useCallback(
     async (path: string) => {
-      if (isImageFile(path)) {
-        const name = pathFileName(path) || "Image";
-        addTab(path, name);
-        setActiveTab(path);
-        setImagePreview(convertFileSrc(path));
-        return;
-      }
-      try {
-        setImagePreview(null);
-        setShowReloadPrompt(false);
-        const content = await invoke<string>("read_file", { path });
-        setFilePath(path);
-        markdownRef.current = content;
-        setContent(content);
-        bumpContentVersion();
-        setDirty(false);
-        const name = pathFileName(path) || "Untitled";
-        addTab(path, name);
+      deactivateCurrentTab();
+      const name = pathFileName(path) || (isImageFile(path) ? "Image" : "Untitled");
+      addTab(path, name);
+      if (!isImageFile(path)) {
         addRecentFile(path);
-        await loadCommentsFromFile(path);
-      } catch (e) {
-        console.error("Failed to open file:", e);
       }
+      await activateTab(path);
     },
-    [setFilePath, setContent, setDirty, addTab, setActiveTab, addRecentFile, loadCommentsFromFile, bumpContentVersion],
+    [deactivateCurrentTab, activateTab, addTab, addRecentFile],
   );
 
   // New file handler — creates an in-memory untitled buffer, named on save
   const handleNewFile = useCallback(() => {
-    // Stash current untitled content before switching
-    const prevTab = useWorkspaceStore.getState().activeTabPath;
-    if (prevTab?.startsWith("untitled:")) {
-      untitledContentRef.current.set(prevTab, markdownRef.current);
-    }
+    deactivateCurrentTab();
 
     untitledCounterRef.current += 1;
     const id = `untitled:${untitledCounterRef.current}`;
     const label = untitledCounterRef.current === 1 ? "Untitled" : `Untitled ${untitledCounterRef.current}`;
 
-    setImagePreview(null);
-    setShowReloadPrompt(false);
-    setFilePath(null);
-    markdownRef.current = "";
-    setContent("");
-    bumpContentVersion();
-    setDirty(false);
-    untitledContentRef.current.set(id, "");
+    tabContentCache.current.set(id, "");
     addTab(id, label);
-  }, [setFilePath, setContent, setDirty, addTab, bumpContentVersion]);
+    // activateTab handles setting filePath, content, etc.
+    activateTab(id);
+  }, [deactivateCurrentTab, activateTab, addTab]);
 
   // Handle file-open from OS (startup or running)
   useEffect(() => {
@@ -368,7 +411,9 @@ function App() {
     if (wasUntitled && path && activeTab) {
       const name = pathFileName(path) || "Untitled";
       updateTabPath(activeTab, path, name);
-      untitledContentRef.current.delete(activeTab);
+      // Move cached content to new path key
+      tabContentCache.current.delete(activeTab);
+      tabContentCache.current.set(path, md);
       addRecentFile(path);
       const ws = useWorkspaceStore.getState().workspacePath;
       if (ws) await loadFileTree(ws);
@@ -389,56 +434,10 @@ function App() {
   // Tab handlers
   const handleSwitchTab = useCallback(
     async (path: string) => {
-      // Stash content of current tab before switching away
-      const prevTab = useWorkspaceStore.getState().activeTabPath;
-      if (prevTab) {
-        untitledContentRef.current.set(prevTab, markdownRef.current);
-      }
-
-      setShowReloadPrompt(false);
-      setActiveTab(path);
-
-      if (isImageFile(path)) {
-        setImagePreview(convertFileSrc(path));
-        return;
-      }
-
-      setImagePreview(null);
-
-      // Restore from in-memory map if we have unsaved changes there
-      if (untitledContentRef.current.has(path)) {
-        const content = untitledContentRef.current.get(path) || "";
-        const isUntitled = path.startsWith("untitled:");
-        setFilePath(isUntitled ? null : path);
-        markdownRef.current = content;
-        setContent(content);
-        bumpContentVersion();
-        // For regular files, we should check if it's actually dirty compared to disk,
-        // but for now we trust the stashed content.
-        const activeTab = useWorkspaceStore.getState().openTabs.find(t => t.path === path);
-        setDirty(!!activeTab?.isDirty);
-
-        // If it's a regular file, we still want to load its comments
-        if (!isUntitled) {
-          await loadCommentsFromFile(path);
-        }
-        return;
-      }
-
-      try {
-        const content = await invoke<string>("read_file", { path });
-        setFilePath(path);
-        markdownRef.current = content;
-        setContent(content);
-        bumpContentVersion();
-        setDirty(false);
-        await loadCommentsFromFile(path);
-      } catch (e) {
-        useToastStore.getState().addToast("Failed to switch tab", "error");
-        console.error("Failed to switch tab:", e);
-      }
+      deactivateCurrentTab();
+      await activateTab(path);
     },
-    [setActiveTab, setFilePath, setContent, setDirty, loadCommentsFromFile, bumpContentVersion],
+    [deactivateCurrentTab, activateTab],
   );
 
   const handleCloseTab = useCallback(
@@ -454,9 +453,8 @@ function App() {
           // For untitled tabs, we need to ensure it's the active tab so saveFile can prompt
           const isActive = useWorkspaceStore.getState().activeTabPath === path;
           if (isUntitled && !isActive) {
-            // Switch to it so the save dialog works
             setActiveTab(path);
-            const content = untitledContentRef.current.get(path) || "";
+            const content = tabContentCache.current.get(path) || "";
             setFilePath(null);
             markdownRef.current = content;
           }
@@ -464,54 +462,27 @@ function App() {
           await handleSave();
         }
       }
-      // Clean up untitled content
-      if (isUntitled) {
-        untitledContentRef.current.delete(path);
-      }
-      // If closing the currently previewed image tab, clear preview
+      // Clean up cached content for this tab
+      tabContentCache.current.delete(path);
+
       const wasActive = useWorkspaceStore.getState().activeTabPath === path;
       removeTab(path);
 
       if (wasActive) {
-        // removeTab sets activeTabPath to last remaining tab (or null)
         const newActive = useWorkspaceStore.getState().activeTabPath;
         if (newActive) {
-          if (isImageFile(newActive)) {
-            setImagePreview(convertFileSrc(newActive));
-          } else if (newActive.startsWith("untitled:")) {
-            setImagePreview(null);
-            const content = untitledContentRef.current.get(newActive) || "";
-            setFilePath(null);
-            markdownRef.current = content;
-            setContent(content);
-            bumpContentVersion();
-            setDirty(content.length > 0);
-          } else {
-            setImagePreview(null);
-            // Load the new active tab's content
-            try {
-              const content = await invoke<string>("read_file", { path: newActive });
-              setFilePath(newActive);
-              markdownRef.current = content;
-              setContent(content);
-              bumpContentVersion();
-              setDirty(false);
-              await loadCommentsFromFile(newActive);
-            } catch {
-              // Tab may have been for a deleted file
-            }
-          }
+          await activateTab(newActive);
         } else {
           setImagePreview(null);
           markdownRef.current = "";
           setFilePath(null);
-          setContent("");
+          setContentClean("");
           bumpContentVersion();
           setDirty(false);
         }
       }
     },
-    [openTabs, removeTab, handleSave, setActiveTab, setFilePath, setContent, setDirty, loadCommentsFromFile, bumpContentVersion],
+    [openTabs, removeTab, handleSave, activateTab, setActiveTab, setFilePath, setContentClean, setDirty, bumpContentVersion],
   );
 
   // Handle history restore
@@ -576,7 +547,7 @@ function App() {
     }},
     { name: "New Comment", shortcut: `${mod}+Shift+M`, action: () => editorInstanceRef.current?.createComment() },
     { name: "Next Comment", shortcut: `${mod}+Shift+N`, action: () => navigateComment("next") },
-    { name: "Previous Comment", shortcut: `${mod}+Shift+P`, action: () => navigateComment("prev") },
+    { name: "Previous Comment", action: () => navigateComment("prev") },
     { name: "New from Template", action: async () => {
       const currentPath = useEditorStore.getState().filePath;
       const ws = useWorkspaceStore.getState().workspacePath;
@@ -678,6 +649,11 @@ function App() {
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 4a: Skip all shortcuts (except Escape) when a modal/dialog is open
+      if (e.key !== "Escape" && (unifiedSearchMode || showExport || showPreferences || templatePicker)) {
+        return;
+      }
+
       if (modKey(e) && !e.shiftKey && e.key === "n") {
         e.preventDefault();
         handleNewFile();
@@ -710,6 +686,8 @@ function App() {
         e.preventDefault();
         cycleTheme();
       } else if (modKey(e) && !e.shiftKey && e.key === "k") {
+        // 4b: Don't hijack Cmd+K when focus is inside the ProseMirror editor (it inserts a link)
+        if (document.activeElement?.closest(".ProseMirror")) return;
         e.preventDefault();
         setUnifiedSearchMode("all");
       } else if (modKey(e) && !e.shiftKey && e.key === "p") {
@@ -766,6 +744,10 @@ function App() {
     toggleReadingMode,
     cycleTheme,
     navigateComment,
+    unifiedSearchMode,
+    showExport,
+    showPreferences,
+    templatePicker,
   ]);
 
   // Theme application
@@ -1097,15 +1079,15 @@ function App() {
           <>
             <ResizeHandle
               side="right"
-              currentWidth={panelWidths.comments}
+              currentWidth={panelWidths.history}
               minWidth={220}
               maxWidth={Math.floor(window.innerWidth * 0.5)}
-              onResize={(w) => setPanelWidth("comments", w)}
-              onDoubleClick={() => setPanelWidth("comments", 288)}
+              onResize={(w) => setPanelWidth("history", w)}
+              onDoubleClick={() => setPanelWidth("history", 288)}
             />
             <aside
               className="border-l border-[var(--editor-border)] shrink-0 overflow-auto sidebar-panel"
-              style={{ width: panelWidths.comments }}
+              style={{ width: panelWidths.history }}
             >
               <HistoryPanel onPreview={handleHistoryPreview} />
             </aside>
@@ -1117,15 +1099,15 @@ function App() {
           <>
             <ResizeHandle
               side="right"
-              currentWidth={panelWidths.comments}
+              currentWidth={panelWidths.tags}
               minWidth={220}
               maxWidth={Math.floor(window.innerWidth * 0.5)}
-              onResize={(w) => setPanelWidth("comments", w)}
-              onDoubleClick={() => setPanelWidth("comments", 288)}
+              onResize={(w) => setPanelWidth("tags", w)}
+              onDoubleClick={() => setPanelWidth("tags", 288)}
             />
             <aside
               className="border-l border-[var(--editor-border)] shrink-0 overflow-auto sidebar-panel"
-              style={{ width: panelWidths.comments }}
+              style={{ width: panelWidths.tags }}
             >
               <TagBrowser />
             </aside>

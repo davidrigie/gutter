@@ -934,6 +934,7 @@ function RenameInput({
   onCancel: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const submittedRef = useRef(false);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -953,13 +954,19 @@ function RenameInput({
       onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === "Enter") {
+          submittedRef.current = true;
           onSubmit((e.target as HTMLInputElement).value);
         }
         if (e.key === "Escape") {
+          submittedRef.current = true;
           onCancel();
         }
       }}
-      onBlur={(e) => onSubmit(e.target.value)}
+      onBlur={(e) => {
+        if (!submittedRef.current) {
+          onSubmit(e.target.value);
+        }
+      }}
     />
   );
 }
@@ -976,6 +983,7 @@ function InlineCreateInput({
   onCancel: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const submittedRef = useRef(false);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -995,15 +1003,18 @@ function InlineCreateInput({
         placeholder={type === "folder" ? "folder name" : "file name"}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
+            submittedRef.current = true;
             const val = (e.target as HTMLInputElement).value.trim();
             if (val) onSubmit(val);
             else onCancel();
           }
           if (e.key === "Escape") {
+            submittedRef.current = true;
             onCancel();
           }
         }}
         onBlur={(e) => {
+          if (submittedRef.current) return;
           const val = e.target.value.trim();
           if (val) onSubmit(val);
           else onCancel();

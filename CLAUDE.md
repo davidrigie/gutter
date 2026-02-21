@@ -107,6 +107,7 @@ Custom TipTap extensions in `src/components/Editor/extensions/`:
 - **MarkdownLinkInput.ts** — auto-converts typed `[text](url)` to links
 - **Frontmatter.tsx** — YAML frontmatter support with edit mode
 - **SpellCheck.ts** — toggleable spell check
+- **BlockGapInserter.ts** — click between adjacent block nodes to insert paragraphs
 
 ### Cross-Component Communication (CustomEvents)
 
@@ -141,6 +142,7 @@ Mod+K (unified search), Mod+O (open), Mod+S (save), Mod+P (quick open files), Mo
 
 - `**src/utils/platform.ts**` — `isMac()`, `modLabel()`, `modKey(e)` for cross-platform keyboard handling
 - `**src/utils/path.ts**` — cross-platform path utilities: `splitPath()`, `fileName()`, `parentDir()`, `joinPath()`
+- `**src/hooks/useSyncedNodeState.ts**` — shared hook for atom node views to sync editable state with ProseMirror selection
 
 ## TypeScript Strictness
 

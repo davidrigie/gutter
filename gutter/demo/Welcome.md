@@ -25,6 +25,7 @@ Open the file tree on the left to explore the demo workspace. Each file showcase
 - [[Design System]] — Color tokens, typography, and component patterns
 - [[Meeting Notes]] — A real-world example with comments and tasks
 - [[Research Notes]] — Wiki links and backlinks in action
+- [[Q1 Engineering Review]] — A full technical report showcasing all features
 
 ### Journal
 

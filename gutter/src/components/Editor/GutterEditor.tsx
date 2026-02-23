@@ -694,6 +694,39 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
       }
     }, [commentCreation]);
 
+    // Clean up orphaned comment marks on unmount (e.g. mode switch while creating)
+    const commentCreationRef = useRef(commentCreation);
+    commentCreationRef.current = commentCreation;
+    useEffect(() => {
+      return () => {
+        const pending = commentCreationRef.current;
+        if (pending && editorRef.current) {
+          const ed = editorRef.current;
+          const cId = pending.commentId;
+          const { tr } = ed.state;
+          const markType = ed.state.schema.marks.commentMark;
+          let changed = false;
+          ed.state.doc.descendants((node, pos) => {
+            if (node.type.spec.atom && node.attrs.commentId === cId) {
+              tr.setNodeMarkup(pos, undefined, { ...node.attrs, commentId: null });
+              changed = true;
+              return;
+            }
+            if (node.isText) {
+              const mark = node.marks.find(
+                (m) => m.type.name === "commentMark" && m.attrs.commentId === cId,
+              );
+              if (mark) {
+                tr.removeMark(pos, pos + node.nodeSize, markType.create({ commentId: cId }));
+                changed = true;
+              }
+            }
+          });
+          if (changed) ed.view.dispatch(tr);
+        }
+      };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Navigate comments
     const navigateComment = useCallback(
       (direction: "next" | "prev") => {

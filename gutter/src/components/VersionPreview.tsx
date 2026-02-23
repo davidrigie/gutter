@@ -31,6 +31,80 @@ import "../styles/editor.css";
 
 const lowlight = createLowlight(common);
 
+// --- Word-level diff ---
+
+interface Token { text: string; from: number; to: number }
+
+function tokenize(text: string): Token[] {
+  const tokens: Token[] = [];
+  const re = /\S+/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    tokens.push({ text: m[0], from: m.index, to: m.index + m[0].length });
+  }
+  return tokens;
+}
+
+/** Extract plaintext from a JSONContent node tree */
+function extractText(node: JSONContent): string {
+  if (node.text) return node.text;
+  if (!node.content) return "";
+  return node.content.map(extractText).join("");
+}
+
+/** Word-level LCS diff — returns changed character ranges for each side */
+function diffWords(oldText: string, newText: string): { oldRanges: [number, number][]; newRanges: [number, number][] } {
+  const oldTokens = tokenize(oldText);
+  const newTokens = tokenize(newText);
+  const m = oldTokens.length;
+  const n = newTokens.length;
+
+  // LCS on word tokens
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = oldTokens[i - 1].text === newTokens[j - 1].text
+        ? dp[i - 1][j - 1] + 1
+        : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+
+  // Backtrack to find changed tokens
+  const oldChanged = new Set<number>();
+  const newChanged = new Set<number>();
+  let ii = m, jj = n;
+  while (ii > 0 || jj > 0) {
+    if (ii > 0 && jj > 0 && oldTokens[ii - 1].text === newTokens[jj - 1].text) {
+      ii--; jj--;
+    } else if (jj > 0 && (ii === 0 || dp[ii][jj - 1] >= dp[ii - 1][jj])) {
+      newChanged.add(jj - 1);
+      jj--;
+    } else {
+      oldChanged.add(ii - 1);
+      ii--;
+    }
+  }
+
+  // Convert to character ranges, merging adjacent tokens (gap <= 1 char)
+  const toRanges = (changed: Set<number>, tokens: Token[]): [number, number][] => {
+    const sorted = [...changed].sort((a, b) => a - b);
+    if (sorted.length === 0) return [];
+    const ranges: [number, number][] = [[tokens[sorted[0]].from, tokens[sorted[0]].to]];
+    for (let k = 1; k < sorted.length; k++) {
+      const last = ranges[ranges.length - 1];
+      const tok = tokens[sorted[k]];
+      if (tok.from <= last[1] + 2) {
+        last[1] = Math.max(last[1], tok.to);
+      } else {
+        ranges.push([tok.from, tok.to]);
+      }
+    }
+    return ranges;
+  };
+
+  return { oldRanges: toRanges(oldChanged, oldTokens), newRanges: toRanges(newChanged, newTokens) };
+}
+
 // --- Block diff ---
 
 function nodeKey(node: JSONContent): string {
@@ -128,6 +202,8 @@ interface MergedBlock {
   mergedIdx: number;
   /** Which change group this belongs to (-1 for equal) */
   changeGroup: number;
+  /** For modified blocks (paired remove+add): character ranges of changed words */
+  wordRanges?: [number, number][];
 }
 
 function buildMergedDoc(
@@ -169,6 +245,24 @@ function buildMergedDoc(
     }
   }
 
+  // Post-process: pair removes with adds within each group for word-level diff
+  for (const group of changeGroups) {
+    const removes = group.filter((idx) => merged[idx].diffType === "removed");
+    const adds = group.filter((idx) => merged[idx].diffType === "added");
+    const pairs = Math.min(removes.length, adds.length);
+    for (let p = 0; p < pairs; p++) {
+      const oldBlock = merged[removes[p]];
+      const newBlock = merged[adds[p]];
+      const oldText = extractText(oldBlock.node);
+      const newText = extractText(newBlock.node);
+      if (oldText && newText) {
+        const { oldRanges, newRanges } = diffWords(oldText, newText);
+        oldBlock.wordRanges = oldRanges;
+        newBlock.wordRanges = newRanges;
+      }
+    }
+  }
+
   const doc: JSONContent = {
     type: "doc",
     content: merged.map((m) => m.node),
@@ -185,6 +279,20 @@ interface DiffDecoState {
 }
 
 const diffHighlightKey = new PluginKey("diffHighlight");
+
+/** Build a map from character offset (in the block's text) to absolute doc position */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildCharMap(doc: any, blockOffset: number, blockSize: number): number[] {
+  const map: number[] = [];
+  doc.nodesBetween(blockOffset + 1, blockOffset + blockSize, (child: any, pos: number) => {
+    if (child.isText && child.text) {
+      for (let i = 0; i < child.text.length; i++) {
+        map.push(pos + i);
+      }
+    }
+  });
+  return map;
+}
 
 function createDiffPlugin(stateRef: { current: DiffDecoState }) {
   return Extension.create({
@@ -203,26 +311,77 @@ function createDiffPlugin(stateRef: { current: DiffDecoState }) {
                 if (blockIdx < merged.length) {
                   const m = merged[blockIdx];
                   const isActive = m.changeGroup === activeGroup && activeGroup >= 0;
+                  const hasWordRanges = m.wordRanges && m.wordRanges.length > 0;
+
                   if (m.diffType === "removed") {
-                    let cls = "diff-block-removed";
-                    if (isActive) cls += " diff-block-active";
-                    decorations.push(
-                      Decoration.node(offset, offset + node.nodeSize, {
-                        class: cls,
-                        "data-diff-type": "removed",
-                        "data-change-group": String(m.changeGroup),
-                      })
-                    );
+                    if (hasWordRanges) {
+                      // Modified block: subtle left border + inline word highlights
+                      let cls = "diff-block-modified-old";
+                      if (isActive) cls += " diff-block-active";
+                      decorations.push(
+                        Decoration.node(offset, offset + node.nodeSize, {
+                          class: cls,
+                          "data-diff-type": "removed",
+                          "data-change-group": String(m.changeGroup),
+                        })
+                      );
+                      // Add inline decorations for changed words
+                      const charMap = buildCharMap(state.doc, offset, node.nodeSize);
+                      for (const [from, to] of m.wordRanges!) {
+                        const docFrom = charMap[from];
+                        const docTo = charMap[Math.min(to - 1, charMap.length - 1)];
+                        if (docFrom !== undefined && docTo !== undefined) {
+                          decorations.push(
+                            Decoration.inline(docFrom, docTo + 1, { class: "diff-word-removed" })
+                          );
+                        }
+                      }
+                    } else {
+                      // Pure removal: full block highlight
+                      let cls = "diff-block-removed";
+                      if (isActive) cls += " diff-block-active";
+                      decorations.push(
+                        Decoration.node(offset, offset + node.nodeSize, {
+                          class: cls,
+                          "data-diff-type": "removed",
+                          "data-change-group": String(m.changeGroup),
+                        })
+                      );
+                    }
                   } else if (m.diffType === "added") {
-                    let cls = "diff-block-added";
-                    if (isActive) cls += " diff-block-active";
-                    decorations.push(
-                      Decoration.node(offset, offset + node.nodeSize, {
-                        class: cls,
-                        "data-diff-type": "added",
-                        "data-change-group": String(m.changeGroup),
-                      })
-                    );
+                    if (hasWordRanges) {
+                      // Modified block: subtle left border + inline word highlights
+                      let cls = "diff-block-modified-new";
+                      if (isActive) cls += " diff-block-active";
+                      decorations.push(
+                        Decoration.node(offset, offset + node.nodeSize, {
+                          class: cls,
+                          "data-diff-type": "added",
+                          "data-change-group": String(m.changeGroup),
+                        })
+                      );
+                      const charMap = buildCharMap(state.doc, offset, node.nodeSize);
+                      for (const [from, to] of m.wordRanges!) {
+                        const docFrom = charMap[from];
+                        const docTo = charMap[Math.min(to - 1, charMap.length - 1)];
+                        if (docFrom !== undefined && docTo !== undefined) {
+                          decorations.push(
+                            Decoration.inline(docFrom, docTo + 1, { class: "diff-word-added" })
+                          );
+                        }
+                      }
+                    } else {
+                      // Pure addition: full block highlight
+                      let cls = "diff-block-added";
+                      if (isActive) cls += " diff-block-active";
+                      decorations.push(
+                        Decoration.node(offset, offset + node.nodeSize, {
+                          class: cls,
+                          "data-diff-type": "added",
+                          "data-change-group": String(m.changeGroup),
+                        })
+                      );
+                    }
                   }
                 }
                 blockIdx++;

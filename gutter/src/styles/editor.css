@@ -1683,7 +1683,7 @@
   background: transparent;
 }
 
-/* Diff highlights */
+/* Diff highlights — full block (pure additions/removals) */
 .diff-block-added {
   background-color: color-mix(in srgb, var(--status-success), transparent 85%) !important;
   border-left: 3px solid var(--status-success) !important;
@@ -1698,6 +1698,34 @@
   margin-left: -0.5rem !important;
   text-decoration: line-through;
   opacity: 0.6;
+}
+
+/* Diff highlights — modified blocks (paired changes with word-level detail) */
+.diff-block-modified-old {
+  border-left: 3px solid var(--status-error) !important;
+  padding-left: 0.5rem !important;
+  margin-left: -0.5rem !important;
+  opacity: 0.6;
+}
+
+.diff-block-modified-new {
+  border-left: 3px solid var(--status-success) !important;
+  padding-left: 0.5rem !important;
+  margin-left: -0.5rem !important;
+}
+
+/* Inline word-level highlights within modified blocks */
+.diff-word-removed {
+  background-color: color-mix(in srgb, var(--status-error), transparent 65%);
+  text-decoration: line-through;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.diff-word-added {
+  background-color: color-mix(in srgb, var(--status-success), transparent 65%);
+  border-radius: 2px;
+  padding: 0 1px;
 }
 
 .diff-block-active {

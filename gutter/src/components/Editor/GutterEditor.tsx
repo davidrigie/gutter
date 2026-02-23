@@ -907,8 +907,14 @@ export const GutterEditor = forwardRef<GutterEditorHandle, GutterEditorProps>(
               title="Open link"
               onClick={() => {
                 const href = linkEdit.href;
-                if (/^https?:\/\//.test(href)) {
+                const isExternal = /^https?:\/\//.test(href);
+                if (isExternal) {
                   invoke("open_url", { url: href }).catch(() => window.open(href, "_blank"));
+                } else if (href.endsWith(".md") || !href.includes(".")) {
+                  window.dispatchEvent(
+                    new CustomEvent("internal-link-click", { detail: { href } }),
+                  );
+                  setLinkEdit(null);
                 }
               }}
             >

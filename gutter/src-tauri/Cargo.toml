@@ -1,6 +1,6 @@
 [package]
 name = "gutter"
-version = "0.3.6"
+version = "0.3.7"
 description = "A local-first WYSIWYG markdown editor with first-class commenting"
 authors = ["you"]
 license = ""

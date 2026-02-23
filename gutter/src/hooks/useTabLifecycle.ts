@@ -293,22 +293,13 @@ export function useTabLifecycle(
 
   const handleCloseTab = useCallback(
     async (path: string) => {
-      const isUntitled = path.startsWith("untitled:");
       const tab = openTabs.find((t) => t.path === path);
       if (tab?.isDirty) {
         const shouldSave = await ask(
-          `"${tab.name}" has unsaved changes. Save before closing?`,
+          `Do you want to save "${tab.name}" before closing?`,
           { title: "Unsaved Changes", kind: "warning" },
         );
         if (shouldSave) {
-          // For untitled tabs, we need to ensure it's the active tab so saveFile can prompt
-          const isActive = useWorkspaceStore.getState().activeTabPath === path;
-          if (isUntitled && !isActive) {
-            setActiveTab(path);
-            const content = tabContentCache.current.get(path) || "";
-            setFilePath(null);
-            markdownRef.current = content;
-          }
           lastSaveTimeRef.current = Date.now();
           await handleSave();
         }
@@ -333,7 +324,7 @@ export function useTabLifecycle(
         }
       }
     },
-    [openTabs, removeTab, handleSave, activateTab, setActiveTab, setFilePath, setContentClean, setDirty, bumpContentVersion, tabContentCache, markdownRef, lastSaveTimeRef],
+    [openTabs, removeTab, handleSave, activateTab, setFilePath, setContentClean, setDirty, bumpContentVersion, tabContentCache, markdownRef, lastSaveTimeRef],
   );
 
   // Comment navigation

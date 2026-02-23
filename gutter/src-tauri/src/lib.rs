@@ -2,7 +2,7 @@ mod commands;
 mod menu;
 
 use std::sync::Mutex;
-use tauri::{Emitter, Manager, RunEvent};
+use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 
 pub struct OpenFileState {
     pub path: Mutex<Option<String>>,
@@ -99,12 +99,14 @@ pub fn run() {
                         }
                     }
                 }
-                RunEvent::ExitRequested { .. } => {
-                    // Default behavior is fine
-                }
-                RunEvent::Exit => {
+                RunEvent::WindowEvent { event: WindowEvent::Destroyed, .. } => {
                     // Stop the watcher so its background thread shuts down cleanly
                     let _ = commands::watcher::stop_watcher(app_handle.clone());
+                    // Force-exit to avoid macOS 26 WebKit crash: after the window
+                    // is deallocated, pending run-loop callbacks
+                    // (WebPageProxy::dispatchSetObscuredContentInsets) access freed
+                    // memory. Exit immediately so those callbacks never fire.
+                    std::process::exit(0);
                 }
                 _ => {}
             }

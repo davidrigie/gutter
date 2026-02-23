@@ -48,11 +48,11 @@ export function useWindowLifecycle(
         const hasDirty = tabs.some((t) => t.isDirty);
         if (hasDirty) {
           event.preventDefault();
-          const shouldClose = await ask(
-            "You have unsaved changes. Close without saving?",
+          const shouldSave = await ask(
+            "Do you want to save before closing?",
             { title: "Unsaved Changes", kind: "warning" },
           );
-          if (shouldClose) {
+          if (!shouldSave) {
             getCurrentWindow().destroy();
           }
         }

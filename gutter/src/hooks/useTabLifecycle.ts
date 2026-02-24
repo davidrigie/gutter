@@ -11,6 +11,7 @@ import { useToastStore } from "../stores/toastStore";
 import { useFileOps } from "./useFileOps";
 import { useComments } from "./useComments";
 import { fileName as pathFileName, parentDir, joinPath, isImageFile, resolveWikiLink } from "../utils/path";
+import { hashContent } from "../utils/hash";
 
 /**
  * Manages tab lifecycle: activation, deactivation, open/close/switch,
@@ -138,6 +139,7 @@ export function useTabLifecycle(
           setContentClean(content);
           bumpContentVersion();
           setDirty(false);
+          useWorkspaceStore.getState().setTabDiskHash(path, hashContent(content));
         } catch (e) {
           useToastStore.getState().addToast("Failed to open file", "error");
           console.error("Failed to open file:", e);

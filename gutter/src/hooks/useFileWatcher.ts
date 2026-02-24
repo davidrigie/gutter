@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEditorStore } from "../stores/editorStore";
 import { useWorkspaceStore } from "../stores/workspaceStore";
+import { hashContent } from "../utils/hash";
 
 /** Normalize markdown for comparison (handles line endings and trailing whitespace) */
 const normalizeMarkdown = (s: string) => s.replace(/\r\n/g, "\n").trim();
@@ -83,6 +84,11 @@ export function useFileWatcher(
       useEditorStore.getState().setContent(content);
       useEditorStore.getState().bumpContentVersion();
       useEditorStore.getState().setDirty(false);
+      const activeTab = useWorkspaceStore.getState().activeTabPath;
+      if (activeTab) {
+        useWorkspaceStore.getState().setTabDiskHash(activeTab, hashContent(content));
+        useWorkspaceStore.getState().setTabExternallyModified(activeTab, false);
+      }
     }
     setShowReloadPrompt(false);
   }, [markdownRef]);

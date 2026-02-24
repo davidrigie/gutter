@@ -5,9 +5,6 @@ import { useEditorStore } from "../stores/editorStore";
 import { useWorkspaceStore } from "../stores/workspaceStore";
 import { hashContent } from "../utils/hash";
 
-/** Normalize markdown for comparison (handles line endings and trailing whitespace) */
-const normalizeMarkdown = (s: string) => s.replace(/\r\n/g, "\n").trim();
-
 /**
  * Manages the file system watcher: starts/stops with workspace, listens for
  * tree-changed and file-changed events, and exposes a reload prompt.
@@ -32,39 +29,59 @@ export function useFileWatcher(
       }, 500);
     });
 
-    let fileChangeDebounce: ReturnType<typeof setTimeout>;
+    const fileChangeDebounces = new Map<string, ReturnType<typeof setTimeout>>();
+
     const unlistenFile = listen<string>("file-changed", (event) => {
       const changedPath = event.payload;
-      const { openTabs, activeTabPath } = useWorkspaceStore.getState();
+      const { openTabs } = useWorkspaceStore.getState();
 
-      // Ensure the file is actually still open in a tab
-      const isFileOpen = openTabs.some(t => t.path === changedPath);
-      if (!isFileOpen) {
-        // If the file being reported is the one currently showing a prompt, clear it
-        if (changedPath === activeTabPath) {
-          setShowReloadPrompt(false);
-        }
-        return;
-      }
+      // Only care about files open in tabs
+      const tab = openTabs.find(t => t.path === changedPath);
+      if (!tab) return;
 
-      if (changedPath !== activeTabPath) return;
-
-      // Ignore changes that happen within 1.5s of our own save
+      // Ignore changes within 1.5s of our own save
       if (Date.now() - lastSaveTimeRef.current < 1500) return;
 
-      // Debounce: FSEvents can fire multiple times for one save
-      clearTimeout(fileChangeDebounce);
-      fileChangeDebounce = setTimeout(async () => {
+      // Per-path debounce (FSEvents fires multiple times)
+      const existing = fileChangeDebounces.get(changedPath);
+      if (existing) clearTimeout(existing);
+
+      fileChangeDebounces.set(changedPath, setTimeout(async () => {
+        fileChangeDebounces.delete(changedPath);
         try {
           const diskContent = await invoke<string>("read_file", { path: changedPath });
-          // Only show prompt if normalized disk content actually differs from editor content
-          if (normalizeMarkdown(diskContent) !== normalizeMarkdown(markdownRef.current)) {
-            setShowReloadPrompt(true);
+          const diskHash = hashContent(diskContent);
+          const currentTab = useWorkspaceStore.getState().openTabs.find(t => t.path === changedPath);
+          if (!currentTab) return;
+
+          // If disk content matches what we last knew, nothing actually changed
+          if (currentTab.diskHash === diskHash) return;
+
+          const { activeTabPath: currentActive } = useWorkspaceStore.getState();
+
+          if (changedPath === currentActive) {
+            // ACTIVE TAB
+            if (!currentTab.isDirty) {
+              // Clean buffer → silent reload
+              markdownRef.current = diskContent;
+              useEditorStore.getState().setContentClean(diskContent);
+              useEditorStore.getState().bumpContentVersion();
+              useEditorStore.getState().setDirty(false);
+              useWorkspaceStore.getState().setTabDiskHash(changedPath, diskHash);
+              useWorkspaceStore.getState().setTabExternallyModified(changedPath, false);
+            } else {
+              // Dirty buffer → show conflict prompt
+              useWorkspaceStore.getState().setTabExternallyModified(changedPath, true);
+              setShowReloadPrompt(true);
+            }
+          } else {
+            // BACKGROUND TAB: mark for handling on tab switch
+            useWorkspaceStore.getState().setTabExternallyModified(changedPath, true);
           }
         } catch {
-          // File may have been deleted — ignore
+          // File may have been deleted
         }
-      }, 500);
+      }, 500));
     });
 
     return () => {
@@ -72,7 +89,8 @@ export function useFileWatcher(
       unlistenTree.then((fn) => fn());
       unlistenFile.then((fn) => fn());
       clearTimeout(debounceTimer);
-      clearTimeout(fileChangeDebounce);
+      fileChangeDebounces.forEach((t) => clearTimeout(t));
+      fileChangeDebounces.clear();
     };
   }, [workspacePath, loadFileTree, markdownRef, lastSaveTimeRef]);
 

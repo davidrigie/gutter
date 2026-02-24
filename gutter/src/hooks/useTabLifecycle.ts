@@ -214,6 +214,8 @@ export function useTabLifecycle(
         const name = pathFileName(path) || "Untitled";
         addTab(path, name);
         addRecentFile(path);
+        // Set diskHash for read-before-write safety
+        useWorkspaceStore.getState().setTabDiskHash(path, hashContent(content));
         // activateTab will set content from cache, so stash it first
         tabContentCache.current.set(path, content);
         await activateTab(path);

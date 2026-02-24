@@ -99,11 +99,12 @@ export function useFileWatcher(
     if (path) {
       const content = await invoke<string>("read_file", { path });
       markdownRef.current = content;
-      useEditorStore.getState().setContent(content);
+      useEditorStore.getState().setContentClean(content);
       useEditorStore.getState().bumpContentVersion();
       useEditorStore.getState().setDirty(false);
       const activeTab = useWorkspaceStore.getState().activeTabPath;
       if (activeTab) {
+        useWorkspaceStore.getState().setTabDirty(activeTab, false);
         useWorkspaceStore.getState().setTabDiskHash(activeTab, hashContent(content));
         useWorkspaceStore.getState().setTabExternallyModified(activeTab, false);
       }

@@ -70,12 +70,6 @@ export function useSaveHandler(
     await saveFile(md);
     const path = useEditorStore.getState().filePath;
 
-    // Update disk hash to reflect what we just wrote
-    if (path) {
-      useWorkspaceStore.getState().setTabDiskHash(path, hashContent(md));
-      useWorkspaceStore.getState().setTabExternallyModified(path, false);
-    }
-
     // If this was an untitled tab that now has a real path, update the tab
     if (wasUntitled && path && activeTab) {
       const name = pathFileName(path) || "Untitled";
@@ -89,6 +83,10 @@ export function useSaveHandler(
     }
 
     if (path) {
+      // Update disk hash to reflect what we just wrote (after updateTabPath so path is correct)
+      useWorkspaceStore.getState().setTabDiskHash(path, hashContent(md));
+      useWorkspaceStore.getState().setTabExternallyModified(path, false);
+
       await saveComments();
       await generateCompanion(md);
       setTabDirty(path, false);

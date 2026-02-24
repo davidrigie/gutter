@@ -1,7 +1,9 @@
 import { useCallback, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { useEditorStore } from "../stores/editorStore";
 import { useWorkspaceStore } from "../stores/workspaceStore";
+import { hashContent } from "../utils/hash";
 import { useTagStore } from "../stores/tagStore";
 import { useToastStore } from "../stores/toastStore";
 import { useSettingsStore } from "../stores/settingsStore";
@@ -30,10 +32,49 @@ export function useSaveHandler(
     const md = markdownRef.current;
     const activeTab = useWorkspaceStore.getState().activeTabPath;
     const wasUntitled = activeTab?.startsWith("untitled:");
+
+    // Read-before-write safety check
+    const currentPath = useEditorStore.getState().filePath;
+    if (currentPath) {
+      try {
+        const diskContent = await invoke<string>("read_file", { path: currentPath });
+        const diskHash = hashContent(diskContent);
+        const tab = useWorkspaceStore.getState().getTab(currentPath);
+
+        if (tab?.diskHash && tab.diskHash !== diskHash) {
+          // Disk changed since we last read/wrote — ask user
+          const overwrite = await ask(
+            "This file was modified outside of Gutter since you last opened or saved it. Overwrite with your changes?",
+            { title: "File Changed on Disk", kind: "warning" },
+          );
+          if (!overwrite) {
+            // User chose not to overwrite — reload from disk instead
+            markdownRef.current = diskContent;
+            useEditorStore.getState().setContentClean(diskContent);
+            useEditorStore.getState().bumpContentVersion();
+            useEditorStore.getState().setDirty(false);
+            useWorkspaceStore.getState().setTabDiskHash(currentPath, diskHash);
+            useWorkspaceStore.getState().setTabDirty(currentPath, false);
+            useWorkspaceStore.getState().setTabExternallyModified(currentPath, false);
+            tabContentCache.current.set(currentPath, diskContent);
+            return;
+          }
+        }
+      } catch {
+        // File doesn't exist yet (new file) — proceed with save
+      }
+    }
+
     lastSaveTimeRef.current = Date.now();
 
     await saveFile(md);
     const path = useEditorStore.getState().filePath;
+
+    // Update disk hash to reflect what we just wrote
+    if (path) {
+      useWorkspaceStore.getState().setTabDiskHash(path, hashContent(md));
+      useWorkspaceStore.getState().setTabExternallyModified(path, false);
+    }
 
     // If this was an untitled tab that now has a real path, update the tab
     if (wasUntitled && path && activeTab) {

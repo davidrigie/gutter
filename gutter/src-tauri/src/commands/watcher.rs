@@ -33,7 +33,7 @@ pub fn mark_write(app: &AppHandle, path: &str) {
 fn is_suppressed(app: &AppHandle, path: &Path) -> bool {
     let state = app.state::<IgnoredPathState>();
     let mut guard = state.paths.lock().unwrap();
-    
+
     // Clean up expired entries while we're here
     let now = Instant::now();
     guard.retain(|_, expiry| *expiry > now);

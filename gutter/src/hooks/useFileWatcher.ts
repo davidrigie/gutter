@@ -16,10 +16,14 @@ export function useFileWatcher(
   const [showReloadPrompt, setShowReloadPrompt] = useState(false);
   const workspacePath = useWorkspaceStore((s) => s.workspacePath);
   const loadFileTree = useWorkspaceStore((s) => s.loadFileTree);
+  const filePath = useEditorStore((s) => s.filePath);
+
+  // Determine what path to watch: workspace folder, or the active file's parent directory
+  const watchPath = workspacePath || (filePath ? filePath.substring(0, filePath.lastIndexOf("/")) : null);
 
   useEffect(() => {
-    if (!workspacePath) return;
-    invoke("start_watcher", { path: workspacePath }).catch(console.error);
+    if (!watchPath) return;
+    invoke("start_watcher", { path: watchPath }).catch(console.error);
 
     let debounceTimer: ReturnType<typeof setTimeout>;
     const unlistenTree = listen<string>("tree-changed", () => {
@@ -92,7 +96,7 @@ export function useFileWatcher(
       fileChangeDebounces.forEach((t) => clearTimeout(t));
       fileChangeDebounces.clear();
     };
-  }, [workspacePath, loadFileTree, markdownRef, lastSaveTimeRef]);
+  }, [watchPath, workspacePath, loadFileTree, markdownRef, lastSaveTimeRef]);
 
   const reloadFromDisk = useCallback(async () => {
     const path = useEditorStore.getState().filePath;

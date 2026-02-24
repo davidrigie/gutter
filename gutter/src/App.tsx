@@ -51,6 +51,7 @@ function App() {
     toggleOutline,
     setContent,
     setDirty,
+    isDirty,
     contentVersion,
     bumpContentVersion,
   } = useEditorStore();
@@ -196,20 +197,23 @@ function App() {
           )}
 
           {showReloadPrompt && !isReadingMode && (
-            <div className="h-8 flex items-center justify-between px-3 text-[12px] bg-[color-mix(in_srgb,var(--status-info),transparent_90%)] text-[var(--status-info)] border-b border-[var(--editor-border)]">
-              <span>This file has been modified externally.</span>
-              <div className="flex gap-2">
+            <div className="flex items-center justify-between px-3 py-1.5 text-[12px] bg-[var(--surface-secondary)] border-b border-[var(--editor-border)] text-[var(--text-secondary)]">
+              <span className="flex items-center gap-1.5">
+                <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isDirty ? "bg-[var(--status-warning)]" : "bg-[var(--status-info)]"}`} />
+                {isDirty ? "File changed on disk. You have unsaved edits — reloading will discard them." : "File changed on disk."}
+              </span>
+              <div className="flex gap-1.5 flex-shrink-0 ml-3">
                 <button
                   className="px-2 py-0.5 rounded text-[11px] bg-[var(--accent)] text-white hover:opacity-90"
                   onClick={reloadFromDisk}
                 >
-                  Reload
+                  {isDirty ? "Discard & Reload" : "Reload"}
                 </button>
                 <button
                   className="px-2 py-0.5 rounded text-[11px] hover:bg-[var(--surface-hover)]"
                   onClick={dismissReloadPrompt}
                 >
-                  Dismiss
+                  {isDirty ? "Keep Mine" : "Dismiss"}
                 </button>
               </div>
             </div>

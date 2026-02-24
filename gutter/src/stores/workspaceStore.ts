@@ -13,6 +13,8 @@ export interface OpenTab {
   name: string;
   isDirty: boolean;
   isPinned: boolean;
+  diskHash: string | null;
+  externallyModified: boolean;
 }
 
 interface WorkspaceState {
@@ -31,6 +33,9 @@ interface WorkspaceState {
   pinTab: (path: string) => void;
   unpinTab: (path: string) => void;
   updateTabPath: (oldPath: string, newPath: string, newName: string) => void;
+  setTabDiskHash: (path: string, hash: string | null) => void;
+  setTabExternallyModified: (path: string, modified: boolean) => void;
+  getTab: (path: string) => OpenTab | undefined;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
@@ -53,7 +58,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   addTab: (path, name) => {
     const { openTabs } = get();
     if (!openTabs.find((t) => t.path === path)) {
-      set({ openTabs: [...openTabs, { path, name, isDirty: false, isPinned: false }] });
+      set({ openTabs: [...openTabs, { path, name, isDirty: false, isPinned: false, diskHash: null, externallyModified: false }] });
     }
     set({ activeTabPath: path });
   },
@@ -114,5 +119,27 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       ),
       activeTabPath: activeTabPath === oldPath ? newPath : activeTabPath,
     });
+  },
+
+  setTabDiskHash: (path, hash) => {
+    const { openTabs } = get();
+    set({
+      openTabs: openTabs.map((t) =>
+        t.path === path ? { ...t, diskHash: hash } : t,
+      ),
+    });
+  },
+
+  setTabExternallyModified: (path, modified) => {
+    const { openTabs } = get();
+    set({
+      openTabs: openTabs.map((t) =>
+        t.path === path ? { ...t, externallyModified: modified } : t,
+      ),
+    });
+  },
+
+  getTab: (path) => {
+    return get().openTabs.find((t) => t.path === path);
   },
 }));

@@ -92,6 +92,19 @@ Flow: parser.ts extracts markers → CommentMark TipTap extension renders them �
 
 **Critical invariant**: `serialize(parse(markdown)) ≈ markdown` — round-trip fidelity must be preserved. Comment markers are inline HTML that must survive exactly.
 
+### File Safety (Disk-Truth Model)
+
+The file on disk is always the source of truth. Key behaviors:
+
+- **Clean files auto-reload silently** when changed externally (all tabs, not just active)
+- **Dirty files show conflict dialog** when changed externally
+- **Read-before-write**: every save checks disk hash before writing; aborts if external changes detected
+- **Auto-save OFF by default** — manual Cmd+S. Opt-in via Preferences.
+- **`diskHash`** per tab tracks last known disk state (djb2 hash via `src/utils/hash.ts`)
+- **`externallyModified`** flag on tabs triggers reload-or-prompt on tab switch
+
+Relevant files: `useFileWatcher.ts`, `useSaveHandler.ts`, `useFileOps.ts`, `useTabLifecycle.ts`, `workspaceStore.ts`
+
 ### Editor Extensions
 
 Custom TipTap extensions in `src/components/Editor/extensions/`:
